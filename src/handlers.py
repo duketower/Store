@@ -5,7 +5,8 @@ import pytz
 
 from .parser import parse_expense
 from .sheets import (append_expense, get_today_expenses, get_recent_expenses,
-                     get_balance_summary, delete_expense_row, update_expense_field)
+                     get_balance_summary, delete_expense_row, update_expense_field,
+                     search_expenses, log_settlement, get_settlements)
 from .config import MAX_LIST_ENTRIES, USER_MAP, TIMEZONE
 
 
@@ -643,6 +644,119 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         await update.message.reply_text(f"Couldn't fetch balance.\n({e})")
+
+
+# --- /search ---
+
+async def search_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _check_auth(update):
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /search <keyword>\nExample: /search milk")
+        return
+    keyword = " ".join(context.args)
+    try:
+        rows = search_expenses(keyword)
+        if not rows:
+            await update.message.reply_text(f"No results for '{keyword}'.")
+            return
+
+        lines = []
+        for r in reversed(rows):
+            date = str(r.get("Date", ""))
+            desc = r.get("Description", "")
+            amt = float(r.get("Amount", 0))
+            cat = r.get("Category", "")
+            paid_by = r.get("Paid By", "")
+            mode = r.get("Payment Mode", "")
+            lines.append(f"{date} — {desc} — {amt:.2f}\n   {cat} | {paid_by} | {mode}")
+
+        header = f"Search: '{keyword}' ({len(rows)} result{'s' if len(rows) != 1 else ''})\n\n"
+        await update.message.reply_text(header + "\n\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"Search failed.\n({e})")
+
+
+# --- /settle ---
+
+async def settle_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Usage:
+      /settle           → show current balance + prompt
+      /settle 1500      → log that the debtor paid the creditor 1500
+      /settle 1500 note → same with an optional note
+    """
+    if not await _check_auth(update):
+        return
+
+    try:
+        b = get_balance_summary()
+
+        # No args → show balance and instructions
+        if not context.args:
+            if b["diff"] == 0:
+                await update.message.reply_text(
+                    "Balance Summary\n"
+                    f"{'─' * 28}\n"
+                    f"Ali personal:    {b['ali_personal']:.2f}\n"
+                    f"Anurag personal: {b['anurag_personal']:.2f}\n"
+                    f"{'─' * 28}\n"
+                    "Accounts are already settled.\n\n"
+                    "To log a payment: /settle <amount> [note]"
+                )
+            else:
+                await update.message.reply_text(
+                    "Balance Summary\n"
+                    f"{'─' * 28}\n"
+                    f"Ali personal:    {b['ali_personal']:.2f}\n"
+                    f"Anurag personal: {b['anurag_personal']:.2f}\n"
+                    f"{'─' * 28}\n"
+                    f"{b['debtor']} owes {b['creditor']}: {b['settlement']:.2f}\n\n"
+                    f"To settle fully: /settle {b['settlement']:.2f}\n"
+                    f"To settle partially: /settle <amount> [note]"
+                )
+            return
+
+        # Parse amount
+        try:
+            amount = float(context.args[0])
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            await update.message.reply_text("Invalid amount. Use: /settle <amount> [note]")
+            return
+
+        note = " ".join(context.args[1:]) if len(context.args) > 1 else ""
+
+        # Determine who pays whom
+        if b["diff"] == 0:
+            await update.message.reply_text("Accounts are already settled — nothing to record.")
+            return
+
+        from_user = b["debtor"]
+        to_user = b["creditor"]
+
+        log_settlement(from_user=from_user, to_user=to_user, amount=amount, note=note)
+
+        sender_name = USER_MAP.get(update.effective_user.id, "Someone")
+        confirm = (
+            f"Settlement recorded\n"
+            f"{'─' * 24}\n"
+            f"{from_user} → {to_user}: {amount:.2f}"
+            + (f"\nNote: {note}" if note else "")
+        )
+        await update.message.reply_text(confirm)
+
+        # Notify the other user
+        other_id = _get_other_user_id(update.effective_user.id)
+        if other_id:
+            try:
+                await context.bot.send_message(other_id, f"Settlement logged by {sender_name}:\n{from_user} → {to_user}: {amount:.2f}" + (f"\nNote: {note}" if note else ""))
+            except Exception:
+                pass
+
+    except Exception as e:
+        await update.message.reply_text(f"Error.\n({e})")
 
 
 # --- Scheduled summaries ---

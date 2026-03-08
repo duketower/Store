@@ -12,6 +12,8 @@ SCOPES = [
 HEADERS = ["Date", "Time", "Description", "Amount", "Category", "Paid By", "Payment Mode", "Added By"]
 SHEET_NAME = "Expenses"
 DASHBOARD_NAME = "Dashboard"
+SETTLEMENTS_NAME = "Settlements"
+SETTLEMENT_HEADERS = ["Date", "From", "To", "Amount", "Note"]
 CATEGORIES = ["Raw Materials", "Labour", "Salary", "Maintenance", "Equipment",
                "Utilities", "Rent", "Transport", "Packaging", "Miscellaneous"]
 
@@ -228,6 +230,26 @@ def get_recent_expenses(n: int = 10, offset: int = 0) -> tuple[list[dict], bool]
     return result, has_more
 
 
+def search_expenses(keyword: str, limit: int = 15) -> list[dict]:
+    """Search all expenses by keyword (matches description or category, case-insensitive)."""
+    sheet = _get_sheet()
+    all_rows = sheet.get_all_records()
+    kw = keyword.lower().strip()
+    matches = [
+        r for r in all_rows
+        if kw in str(r.get("Description", "")).lower()
+        or kw in str(r.get("Category", "")).lower()
+        or kw in str(r.get("Paid By", "")).lower()
+    ]
+    # Return most recent matches, with sheet row indices
+    total = len(all_rows)
+    result = matches[-limit:]
+    for r in result:
+        idx = all_rows.index(r)
+        r["_sheet_row"] = idx + 2  # +1 header, +1 1-indexing
+    return result
+
+
 def delete_expense_row(sheet_row: int):
     sheet = _get_sheet()
     sheet.delete_rows(sheet_row)
@@ -237,6 +259,35 @@ def update_expense_field(sheet_row: int, field: str, value):
     sheet = _get_sheet()
     col = HEADER_COL[field]
     sheet.update_cell(sheet_row, col, value)
+
+
+def _get_settlements_sheet():
+    client = _client()
+    spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    try:
+        sheet = spreadsheet.worksheet(SETTLEMENTS_NAME)
+    except gspread.exceptions.WorksheetNotFound:
+        sheet = spreadsheet.add_worksheet(title=SETTLEMENTS_NAME, rows=500, cols=5)
+        sheet.append_row(SETTLEMENT_HEADERS)
+        sheet.freeze(rows=1)
+    return sheet
+
+
+def log_settlement(from_user: str, to_user: str, amount: float, note: str = "") -> None:
+    tz = pytz.timezone(TIMEZONE)
+    date_str = datetime.now(tz).strftime("%Y-%m-%d")
+    sheet = _get_settlements_sheet()
+    first_row = sheet.row_values(1)
+    if first_row != SETTLEMENT_HEADERS:
+        sheet.insert_row(SETTLEMENT_HEADERS, index=1)
+        sheet.freeze(rows=1)
+    sheet.append_row([date_str, from_user, to_user, amount, note])
+
+
+def get_settlements(limit: int = 10) -> list[dict]:
+    sheet = _get_settlements_sheet()
+    rows = sheet.get_all_records()
+    return rows[-limit:]
 
 
 def get_balance_summary(month: str = None) -> dict:

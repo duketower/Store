@@ -35,6 +35,8 @@ from src.handlers import (
     handle_edit_value_callback,
     handle_edit_text_input,
     handle_list_more,
+    search_handler,
+    settle_handler,
     scheduled_daily_summary,
     scheduled_weekly_summary,
     WAITING_DESCRIPTION,
@@ -94,6 +96,8 @@ def main():
     app.add_handler(CommandHandler("summary", summary_handler))
     app.add_handler(CommandHandler("list", list_handler))
     app.add_handler(CommandHandler("balance", balance_handler))
+    app.add_handler(CommandHandler("search", search_handler))
+    app.add_handler(CommandHandler("settle", settle_handler))
     app.add_handler(CommandHandler("cancel", cancel_handler))
     app.add_handler(conv)
 
