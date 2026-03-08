@@ -154,20 +154,32 @@ def setup_dashboard():
 
     dash.update(values=data, range_name="A1", value_input_option="USER_ENTERED")
 
-    # Bold the title and section headers
-    bold = {"textFormat": {"bold": True}}
-    header_rows = ["A1", "A3", "A8", "A12", "A16", "A20", "A21", "A23", "A28", "A33", "A38", "A45"]
-    for cell in header_rows:
-        dash.format(cell, bold)
-
-    # Widen column A
-    spreadsheet.batch_update({"requests": [{
+    # Bold headers + widen column A — all in one batch request
+    bold_rows = [1, 3, 8, 12, 16, 20, 21, 23, 28, 33, 38, 45]  # 1-indexed
+    bold_requests = [
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": dash.id,
+                    "startRowIndex": r - 1,
+                    "endRowIndex": r,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": 1,
+                },
+                "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+                "fields": "userEnteredFormat.textFormat.bold",
+            }
+        }
+        for r in bold_rows
+    ]
+    bold_requests.append({
         "updateDimensionProperties": {
             "range": {"sheetId": dash.id, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1},
             "properties": {"pixelSize": 320},
-            "fields": "pixelSize"
+            "fields": "pixelSize",
         }
-    }]})
+    })
+    spreadsheet.batch_update({"requests": bold_requests})
 
 
 def ensure_header_row():

@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 from src.config import BOT_TOKEN, TIMEZONE
-from src.sheets import ensure_header_row, setup_dashboard
+from src.sheets import ensure_header_row
 from src.handlers import (
     start_handler,
     add_start,
@@ -50,7 +50,6 @@ from src.handlers import (
 def main():
     print("Starting bot...")
     ensure_header_row()
-    setup_dashboard()
     print("Google Sheet ready.")
 
     app = Application.builder().token(BOT_TOKEN).build()
