@@ -6,7 +6,7 @@ import pytz
 from .parser import parse_expense
 from .sheets import (append_expense, get_today_expenses, get_recent_expenses,
                      get_balance_summary, delete_expense_row, update_expense_field,
-                     search_expenses, log_settlement, get_settlements)
+                     search_expenses, log_settlement, get_settlements, check_budget_alert)
 from .config import MAX_LIST_ENTRIES, USER_MAP, TIMEZONE
 
 
@@ -20,6 +20,28 @@ async def _notify_other_user(context, sender_id: int, summary: str):
         sender_name = USER_MAP.get(sender_id, "Someone")
         try:
             await context.bot.send_message(other_id, f"New expense by {sender_name}:\n{summary}")
+        except Exception:
+            pass
+
+
+async def _broadcast_budget_alert(context, alert: dict):
+    cat = alert["category"]
+    spent = alert["spent"]
+    budget = alert["budget"]
+    pct = alert["pct"]
+    if alert["over"]:
+        msg = (
+            f"Budget exceeded for {cat}!\n"
+            f"Spent: {spent:,.2f} / {budget:,.2f} ({pct:.0%})"
+        )
+    else:
+        msg = (
+            f"Budget warning: {cat} at {pct:.0%}\n"
+            f"Spent: {spent:,.2f} / {budget:,.2f}"
+        )
+    for uid in USER_MAP:
+        try:
+            await context.bot.send_message(uid, msg)
         except Exception:
             pass
 
@@ -89,7 +111,8 @@ def _date_keyboard() -> InlineKeyboardMarkup:
 
 # --- Save helper ---
 
-async def _do_save(context: ContextTypes.DEFAULT_TYPE, added_by: str):
+async def _do_save(context: ContextTypes.DEFAULT_TYPE, added_by: str) -> dict | None:
+    """Saves the expense and returns a budget alert dict if threshold crossed, else None."""
     d = context.user_data
     append_expense(
         description=d["description"],
@@ -100,6 +123,7 @@ async def _do_save(context: ContextTypes.DEFAULT_TYPE, added_by: str):
         added_by=added_by,
         date_str=d.get("date"),
     )
+    return check_budget_alert(d["category"])
 
 
 def _expense_summary(d: dict) -> str:
@@ -259,10 +283,12 @@ async def handle_date_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["date"] = value
     sender_name = context.user_data["sender_name"]
     try:
-        await _do_save(context, added_by=sender_name)
+        alert = await _do_save(context, added_by=sender_name)
         summary = _expense_summary(context.user_data)
         await query.edit_message_text("Saved!\n" + summary)
         await _notify_other_user(context, update.effective_user.id, summary)
+        if alert:
+            await _broadcast_budget_alert(context, alert)
     except Exception as e:
         await query.edit_message_text(f"Storage error, please try again.\n({e})")
 
@@ -295,10 +321,12 @@ async def handle_date_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["date"] = date_value
     sender_name = context.user_data["sender_name"]
     try:
-        await _do_save(context, added_by=sender_name)
+        alert = await _do_save(context, added_by=sender_name)
         summary = _expense_summary(context.user_data)
         await update.message.reply_text("Saved!\n" + summary)
         await _notify_other_user(context, update.effective_user.id, summary)
+        if alert:
+            await _broadcast_budget_alert(context, alert)
     except Exception as e:
         await update.message.reply_text(f"Storage error, please try again.\n({e})")
 

@@ -14,8 +14,26 @@ SHEET_NAME = "Expenses"
 DASHBOARD_NAME = "Dashboard"
 SETTLEMENTS_NAME = "Settlements"
 SETTLEMENT_HEADERS = ["Date", "From", "To", "Amount", "Note"]
+MONTHLY_SUMMARY_NAME = "Monthly Summary"
+BUDGET_NAME = "Budget"
 CATEGORIES = ["Raw Materials", "Labour", "Salary", "Maintenance", "Equipment",
                "Utilities", "Rent", "Transport", "Packaging", "Miscellaneous"]
+PAYERS = ["Ali", "Anurag"]
+PAYMENT_MODES = ["Cash", "UPI", "Binary"]
+
+# Default monthly budgets per category (₹)
+DEFAULT_BUDGETS = {
+    "Raw Materials": 50000,
+    "Labour":        30000,
+    "Salary":        40000,
+    "Maintenance":   10000,
+    "Equipment":     15000,
+    "Utilities":      5000,
+    "Rent":          20000,
+    "Transport":      8000,
+    "Packaging":     10000,
+    "Miscellaneous":  5000,
+}
 
 
 def _client():
@@ -184,6 +202,224 @@ def setup_dashboard():
     spreadsheet.batch_update({"requests": bold_requests})
 
 
+def setup_expenses_ux():
+    """
+    Applies to the Expenses sheet:
+      - Data validation dropdowns for Category (col E), Paid By (col F), Payment Mode (col G)
+      - Conditional formatting: colour rows by Payment Mode (Binary=blue, Cash=green, UPI=orange)
+      - Running total formula in column I (header: Running Total)
+    All done in a single batch_update call.
+    """
+    spreadsheet = _get_spreadsheet()
+    sheet = spreadsheet.worksheet(SHEET_NAME)
+    sid = sheet.id
+
+    cat_list   = ",".join(CATEGORIES)
+    payer_list = ",".join(PAYERS)
+    mode_list  = ",".join(PAYMENT_MODES)
+
+    # Column indices (0-based): E=4, F=5, G=6, I=8
+    def _validation(col_idx, values_str):
+        return {
+            "setDataValidation": {
+                "range": {"sheetId": sid, "startRowIndex": 1, "endRowIndex": 1000,
+                          "startColumnIndex": col_idx, "endColumnIndex": col_idx + 1},
+                "rule": {
+                    "condition": {"type": "ONE_OF_LIST",
+                                  "values": [{"userEnteredValue": v} for v in values_str.split(",")]},
+                    "showCustomUi": True,
+                    "strict": False,
+                },
+            }
+        }
+
+    def _cond_format(col_idx, value, rgb):
+        r, g, b = rgb
+        return {
+            "addConditionalFormatRule": {
+                "rule": {
+                    "ranges": [{"sheetId": sid, "startRowIndex": 1, "endRowIndex": 1000,
+                                "startColumnIndex": 0, "endColumnIndex": 9}],
+                    "booleanRule": {
+                        "condition": {
+                            "type": "TEXT_EQ",
+                            "values": [{"userEnteredValue": value}],
+                        },
+                        "format": {
+                            "backgroundColor": {"red": r, "green": g, "blue": b}
+                        },
+                    },
+                },
+                "index": 0,
+            }
+        }
+
+    requests = [
+        _validation(4, cat_list),    # Category
+        _validation(5, payer_list),  # Paid By
+        _validation(6, mode_list),   # Payment Mode
+        # Conditional formatting by Payment Mode column (G)
+        _cond_format(6, "Binary", (0.80, 0.88, 0.97)),   # light blue
+        _cond_format(6, "Cash",   (0.85, 0.96, 0.85)),   # light green
+        _cond_format(6, "UPI",    (1.00, 0.94, 0.80)),   # light orange/amber
+    ]
+    spreadsheet.batch_update({"requests": requests})
+
+    # Add Running Total header (col I = index 9) if not present
+    header_row = sheet.row_values(1)
+    if len(header_row) < 9 or header_row[8] != "Running Total":
+        sheet.update_cell(1, 9, "Running Total")
+
+    # Write running total formulas for rows 2..200 in one call
+    running_total_cells = [[f"=SUM($D$2:D{row})"] for row in range(2, 201)]
+    sheet.update(values=running_total_cells, range_name="I2:I201", value_input_option="USER_ENTERED")
+
+
+def setup_monthly_summary():
+    """
+    Creates/refreshes the Monthly Summary sheet.
+    Rows = last 12 months; Columns = categories + total.
+    All values are SUMPRODUCT formulas pulling from Expenses sheet.
+    """
+    spreadsheet = _get_spreadsheet()
+    try:
+        ms = spreadsheet.worksheet(MONTHLY_SUMMARY_NAME)
+        ms.clear()
+    except gspread.exceptions.WorksheetNotFound:
+        ms = spreadsheet.add_worksheet(title=MONTHLY_SUMMARY_NAME, rows=20, cols=len(CATEGORIES) + 2)
+
+    tz = pytz.timezone(TIMEZONE)
+    now = datetime.now(tz)
+
+    # Build list of last 12 months (YYYY-MM), newest first
+    months = []
+    for i in range(11, -1, -1):
+        # Go back i months from current month
+        y = now.year
+        m = now.month - i
+        while m <= 0:
+            m += 12
+            y -= 1
+        months.append(f"{y}-{m:02d}")
+
+    # Header row
+    header = ["Month"] + CATEGORIES + ["Total"]
+    data = [header]
+
+    for month in months:
+        row = [month]
+        for cat in CATEGORIES:
+            formula = (
+                f'=SUMPRODUCT('
+                f'(LEFT(Expenses!$A$2:$A$1000,7)="{month}")*'
+                f'(Expenses!$E$2:$E$1000="{cat}")*'
+                f'Expenses!$D$2:$D$1000)'
+            )
+            row.append(formula)
+        # Total for the month
+        row.append(f'=SUMPRODUCT((LEFT(Expenses!$A$2:$A$1000,7)="{month}")*Expenses!$D$2:$D$1000)')
+        data.append(row)
+
+    ms.update(values=data, range_name="A1", value_input_option="USER_ENTERED")
+    ms.freeze(rows=1, cols=1)
+
+    # Bold header row
+    sid = ms.id
+    spreadsheet.batch_update({"requests": [
+        {"repeatCell": {
+            "range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1,
+                      "startColumnIndex": 0, "endColumnIndex": len(header)},
+            "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+            "fields": "userEnteredFormat.textFormat.bold",
+        }},
+        {"updateDimensionProperties": {
+            "range": {"sheetId": sid, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1},
+            "properties": {"pixelSize": 100},
+            "fields": "pixelSize",
+        }},
+    ]})
+
+
+def setup_budget_tab():
+    """
+    Creates/refreshes the Budget sheet.
+    Columns: Category | Budget (₹/month) | This Month Actual | Remaining | % Used
+    Budgets are editable values; actuals pull live from Expenses sheet.
+    """
+    spreadsheet = _get_spreadsheet()
+    try:
+        bud = spreadsheet.worksheet(BUDGET_NAME)
+        bud.clear()
+    except gspread.exceptions.WorksheetNotFound:
+        bud = spreadsheet.add_worksheet(title=BUDGET_NAME, rows=len(CATEGORIES) + 5, cols=5)
+
+    header = ["Category", "Budget (₹/mo)", "This Month", "Remaining", "% Used"]
+    data = [header]
+
+    for i, cat in enumerate(CATEGORIES):
+        row_num = i + 2  # 1-indexed, row 1 = header
+        budget_val = DEFAULT_BUDGETS.get(cat, 0)
+        actual_formula = (
+            f'=SUMPRODUCT('
+            f'(LEFT(Expenses!$A$2:$A$1000,7)=TEXT(TODAY(),"YYYY-MM"))*'
+            f'(Expenses!$E$2:$E$1000="{cat}")*'
+            f'Expenses!$D$2:$D$1000)'
+        )
+        remaining = f"=B{row_num}-C{row_num}"
+        pct_used   = f'=IFERROR(C{row_num}/B{row_num},0)'
+        data.append([cat, budget_val, actual_formula, remaining, pct_used])
+
+    ms = bud
+    ms.update(values=data, range_name="A1", value_input_option="USER_ENTERED")
+    ms.freeze(rows=1)
+
+    sid = ms.id
+    # Bold header, widen col A, format col E as percentage
+    spreadsheet.batch_update({"requests": [
+        {"repeatCell": {
+            "range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1,
+                      "startColumnIndex": 0, "endColumnIndex": 5},
+            "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+            "fields": "userEnteredFormat.textFormat.bold",
+        }},
+        {"repeatCell": {
+            "range": {"sheetId": sid, "startRowIndex": 1, "endRowIndex": len(CATEGORIES) + 1,
+                      "startColumnIndex": 4, "endColumnIndex": 5},
+            "cell": {"userEnteredFormat": {"numberFormat": {"type": "PERCENT", "pattern": "0.0%"}}},
+            "fields": "userEnteredFormat.numberFormat",
+        }},
+        {"updateDimensionProperties": {
+            "range": {"sheetId": sid, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 1},
+            "properties": {"pixelSize": 160},
+            "fields": "pixelSize",
+        }},
+        # Conditional formatting: red if over budget (D < 0)
+        {"addConditionalFormatRule": {
+            "rule": {
+                "ranges": [{"sheetId": sid, "startRowIndex": 1, "endRowIndex": len(CATEGORIES) + 1,
+                            "startColumnIndex": 3, "endColumnIndex": 4}],
+                "booleanRule": {
+                    "condition": {"type": "NUMBER_LESS", "values": [{"userEnteredValue": "0"}]},
+                    "format": {"backgroundColor": {"red": 0.96, "green": 0.80, "blue": 0.80}},
+                },
+            },
+            "index": 0,
+        }},
+        # Conditional formatting: green if under 80% used
+        {"addConditionalFormatRule": {
+            "rule": {
+                "ranges": [{"sheetId": sid, "startRowIndex": 1, "endRowIndex": len(CATEGORIES) + 1,
+                            "startColumnIndex": 4, "endColumnIndex": 5}],
+                "booleanRule": {
+                    "condition": {"type": "NUMBER_LESS", "values": [{"userEnteredValue": "0.8"}]},
+                    "format": {"backgroundColor": {"red": 0.85, "green": 0.96, "blue": 0.85}},
+                },
+            },
+            "index": 0,
+        }},
+    ]})
+
+
 def ensure_header_row():
     sheet = _get_sheet()
     first_row = sheet.row_values(1)
@@ -203,6 +439,33 @@ def append_expense(description: str, amount: float, category: str,
 
     sheet = _get_sheet()
     sheet.append_row([date_str, time_str, description, amount, category, paid_by, payment_mode, added_by])
+
+
+def check_budget_alert(category: str) -> dict | None:
+    """
+    Returns an alert dict if this month's spend for the category has crossed
+    80% or 100% of the DEFAULT_BUDGETS threshold, else None.
+
+    Returns: {"category": str, "spent": float, "budget": float, "pct": float, "over": bool}
+    """
+    budget = DEFAULT_BUDGETS.get(category)
+    if not budget:
+        return None
+
+    tz = pytz.timezone(TIMEZONE)
+    month = datetime.now(tz).strftime("%Y-%m")
+    sheet = _get_sheet()
+    all_rows = sheet.get_all_records()
+
+    spent = sum(
+        float(r.get("Amount", 0))
+        for r in all_rows
+        if str(r.get("Date", "")).startswith(month) and r.get("Category") == category
+    )
+    pct = spent / budget
+    if pct >= 0.80:
+        return {"category": category, "spent": spent, "budget": budget, "pct": pct, "over": pct >= 1.0}
+    return None
 
 
 def get_today_expenses() -> list[dict]:
