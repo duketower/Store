@@ -1,5 +1,4 @@
 import gspread
-from google.oauth2.service_account import Credentials
 from datetime import datetime
 import pytz
 
@@ -17,9 +16,12 @@ CATEGORIES = ["Raw Materials", "Labour", "Salary", "Maintenance", "Equipment",
                "Utilities", "Rent", "Transport", "Packaging", "Miscellaneous"]
 
 
+def _client():
+    return gspread.service_account(filename=CREDENTIALS_FILE, scopes=SCOPES)
+
+
 def _get_sheet():
-    creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-    client = gspread.authorize(creds)
+    client = _client()
     spreadsheet = client.open_by_key(SPREADSHEET_ID)
     try:
         return spreadsheet.worksheet(SHEET_NAME)
@@ -28,9 +30,7 @@ def _get_sheet():
 
 
 def _get_spreadsheet():
-    creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-    client = gspread.authorize(creds)
-    return client.open_by_key(SPREADSHEET_ID)
+    return _client().open_by_key(SPREADSHEET_ID)
 
 
 def setup_dashboard():
