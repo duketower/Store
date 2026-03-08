@@ -277,10 +277,11 @@ def setup_expenses_ux():
     ]
     spreadsheet.batch_update({"requests": requests})
 
-    # Running Total: single ARRAYFORMULA in I1 header cell
-    # Clears any previously written per-row formulas first
-    sheet.update(values=[[""] for _ in range(200)], range_name="I2:I201", value_input_option="USER_ENTERED")
-    sheet.update_cell(1, 9, '=ARRAYFORMULA({"Running Total"; IF(D2:D<>"", MMULT(--(ROW(D2:D)>=TRANSPOSE(ROW(D2:D))), N(D2:D)), "")})')
+    # Ensure Running Total header exists in I1 (plain text, no formula)
+    # Per-row formulas are added by append_expense, not here
+    header_row = sheet.row_values(1)
+    if len(header_row) < 9 or header_row[8] != "Running Total":
+        sheet.update_cell(1, 9, "Running Total")
 
 
 def setup_monthly_summary():
@@ -436,10 +437,7 @@ def ensure_header_row():
         sheet.insert_row(HEADERS, index=1)
         sheet.freeze(rows=1)
         return
-    # Remove any duplicate header rows (row 2 onwards that look like headers)
-    second_row = sheet.row_values(2)
-    if second_row[:len(HEADERS)] == HEADERS:
-        sheet.delete_rows(2)
+    pass
 
 
 def append_expense(description: str, amount: float, category: str,
@@ -452,7 +450,11 @@ def append_expense(description: str, amount: float, category: str,
     time_str = now.strftime("%H:%M:%S")
 
     sheet = _get_sheet()
-    sheet.append_row([date_str, time_str, description, amount, category, paid_by, payment_mode, added_by])
+    sheet.append_row([date_str, time_str, description, amount, category, paid_by, payment_mode, added_by],
+                     table_range="A1")
+    # Add running total formula for this new row only
+    new_row = len(_real_rows(sheet.get_all_records())) + 1  # +1 for header
+    sheet.update_cell(new_row, 9, f"=SUM($D$2:D{new_row})")
 
 
 def check_budget_alert(category: str) -> dict | None:
