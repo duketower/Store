@@ -9,6 +9,18 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
+
+def _amt(r: dict) -> float:
+    try:
+        return float(r.get("Amount") or 0)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def _real_rows(rows: list[dict]) -> list[dict]:
+    """Filter out blank rows (e.g. created by ARRAYFORMULA in col I)."""
+    return [r for r in rows if str(r.get("Date", "")).strip()]
+
 HEADERS = ["Date", "Time", "Description", "Amount", "Category", "Paid By", "Payment Mode", "Added By"]
 SHEET_NAME = "Expenses"
 DASHBOARD_NAME = "Dashboard"
@@ -265,14 +277,10 @@ def setup_expenses_ux():
     ]
     spreadsheet.batch_update({"requests": requests})
 
-    # Add Running Total header (col I = index 9) if not present
-    header_row = sheet.row_values(1)
-    if len(header_row) < 9 or header_row[8] != "Running Total":
-        sheet.update_cell(1, 9, "Running Total")
-
-    # Write running total formulas for rows 2..200 in one call
-    running_total_cells = [[f"=SUM($D$2:D{row})"] for row in range(2, 201)]
-    sheet.update(values=running_total_cells, range_name="I2:I201", value_input_option="USER_ENTERED")
+    # Running Total: single ARRAYFORMULA in I1 header cell
+    # Clears any previously written per-row formulas first
+    sheet.update(values=[[""] for _ in range(200)], range_name="I2:I201", value_input_option="USER_ENTERED")
+    sheet.update_cell(1, 9, '=ARRAYFORMULA({"Running Total"; IF(D2:D<>"", MMULT(--(ROW(D2:D)>=TRANSPOSE(ROW(D2:D))), N(D2:D)), "")})')
 
 
 def setup_monthly_summary():
@@ -455,10 +463,10 @@ def check_budget_alert(category: str) -> dict | None:
     tz = pytz.timezone(TIMEZONE)
     month = datetime.now(tz).strftime("%Y-%m")
     sheet = _get_sheet()
-    all_rows = sheet.get_all_records()
+    all_rows = _real_rows(sheet.get_all_records())
 
     spent = sum(
-        float(r.get("Amount", 0))
+        _amt(r)
         for r in all_rows
         if str(r.get("Date", "")).startswith(month) and r.get("Category") == category
     )
@@ -472,7 +480,7 @@ def get_today_expenses() -> list[dict]:
     tz = pytz.timezone(TIMEZONE)
     today = datetime.now(tz).strftime("%Y-%m-%d")
     sheet = _get_sheet()
-    all_rows = sheet.get_all_records()
+    all_rows = _real_rows(sheet.get_all_records())
     return [r for r in all_rows if str(r.get("Date", "")) == today]
 
 
@@ -482,7 +490,7 @@ HEADER_COL = {h: i + 1 for i, h in enumerate(HEADERS)}
 def get_recent_expenses(n: int = 10, offset: int = 0) -> tuple[list[dict], bool]:
     """Returns (rows, has_more). offset counts from the newest entry."""
     sheet = _get_sheet()
-    all_rows = sheet.get_all_records()
+    all_rows = _real_rows(sheet.get_all_records())
     total = len(all_rows)
     end = total - offset
     start = max(0, end - n)
@@ -496,7 +504,7 @@ def get_recent_expenses(n: int = 10, offset: int = 0) -> tuple[list[dict], bool]
 def search_expenses(keyword: str, limit: int = 15) -> list[dict]:
     """Search all expenses by keyword (matches description or category, case-insensitive)."""
     sheet = _get_sheet()
-    all_rows = sheet.get_all_records()
+    all_rows = _real_rows(sheet.get_all_records())
     kw = keyword.lower().strip()
     matches = [
         r for r in all_rows
@@ -549,7 +557,7 @@ def log_settlement(from_user: str, to_user: str, amount: float, note: str = "") 
 
 def get_settlements(limit: int = 10) -> list[dict]:
     sheet = _get_settlements_sheet()
-    rows = sheet.get_all_records()
+    rows = _real_rows(sheet.get_all_records())
     return rows[-limit:]
 
 
@@ -565,7 +573,7 @@ def get_balance_summary(month: str = None) -> dict:
         month: Optional filter in 'YYYY-MM' format (e.g. '2026-03').
     """
     sheet = _get_sheet()
-    all_rows = sheet.get_all_records()
+    all_rows = _real_rows(sheet.get_all_records())
 
     if month:
         all_rows = [r for r in all_rows if str(r.get("Date", "")).startswith(month)]
@@ -574,9 +582,9 @@ def get_balance_summary(month: str = None) -> dict:
     anurag_rows = [r for r in all_rows if r.get("Paid By") == "Anurag" and r.get("Payment Mode") != "Binary"]
     binary_rows = [r for r in all_rows if r.get("Payment Mode") == "Binary"]
 
-    ali_personal = sum(float(r.get("Amount", 0)) for r in ali_rows)
-    anurag_personal = sum(float(r.get("Amount", 0)) for r in anurag_rows)
-    binary_total = sum(float(r.get("Amount", 0)) for r in binary_rows)
+    ali_personal = sum(_amt(r) for r in ali_rows)
+    anurag_personal = sum(_amt(r) for r in anurag_rows)
+    binary_total = sum(_amt(r) for r in binary_rows)
 
     diff = ali_personal - anurag_personal
     settlement = abs(diff) / 2

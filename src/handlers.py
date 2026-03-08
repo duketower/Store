@@ -10,6 +10,14 @@ from .sheets import (append_expense, get_today_expenses, get_recent_expenses,
 from .config import MAX_LIST_ENTRIES, USER_MAP, TIMEZONE
 
 
+def _amt(r: dict) -> float:
+    """Safe float conversion for Amount — handles empty string from Sheets."""
+    try:
+        return float(r.get("Amount") or 0)
+    except (ValueError, TypeError):
+        return 0.0
+
+
 def _get_other_user_id(sender_id: int) -> int | None:
     return next((uid for uid in USER_MAP if uid != sender_id), None)
 
@@ -351,11 +359,11 @@ async def summary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("No expenses recorded today yet.")
             return
 
-        total = sum(float(r.get("Amount", 0)) for r in rows)
-        binary = sum(float(r.get("Amount", 0)) for r in rows if r.get("Payment Mode") == "Binary")
-        ali_personal = sum(float(r.get("Amount", 0)) for r in rows
+        total = sum(_amt(r) for r in rows)
+        binary = sum(_amt(r) for r in rows if r.get("Payment Mode") == "Binary")
+        ali_personal = sum(_amt(r) for r in rows
                            if r.get("Paid By") == "Ali" and r.get("Payment Mode") != "Binary")
-        anurag_personal = sum(float(r.get("Amount", 0)) for r in rows
+        anurag_personal = sum(_amt(r) for r in rows
                               if r.get("Paid By") == "Anurag" and r.get("Payment Mode") != "Binary")
 
         await update.message.reply_text(
@@ -388,7 +396,7 @@ def _format_list_lines(rows: list[dict], start_num: int = 1) -> list[str]:
         date = str(r.get("Date", ""))
         time = str(r.get("Time", ""))[:5]
         desc = r.get("Description", "")
-        amt = float(r.get("Amount", 0))
+        amt = _amt(r)
         cat = r.get("Category", "")
         paid_by = r.get("Paid By", "")
         mode = r.get("Payment Mode", "")
@@ -440,7 +448,7 @@ def _entry_detail_text(r: dict) -> str:
     return (
         f"{r.get('Date', '')} {str(r.get('Time', ''))[:5]}\n"
         f"Description: {r.get('Description', '')}\n"
-        f"Amount: {float(r.get('Amount', 0)):.2f}\n"
+        f"Amount: {_amt(r):.2f}\n"
         f"Category: {r.get('Category', '')}\n"
         f"Paid By: {r.get('Paid By', '')}  |  {r.get('Payment Mode', '')}"
     )
@@ -693,7 +701,7 @@ async def search_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for r in reversed(rows):
             date = str(r.get("Date", ""))
             desc = r.get("Description", "")
-            amt = float(r.get("Amount", 0))
+            amt = _amt(r)
             cat = r.get("Category", "")
             paid_by = r.get("Paid By", "")
             mode = r.get("Payment Mode", "")
@@ -806,11 +814,11 @@ async def scheduled_daily_summary(context: ContextTypes.DEFAULT_TYPE):
             await _broadcast(context, "Daily Summary — No expenses recorded today.")
             return
 
-        total = sum(float(r.get("Amount", 0)) for r in rows)
-        binary = sum(float(r.get("Amount", 0)) for r in rows if r.get("Payment Mode") == "Binary")
-        ali = sum(float(r.get("Amount", 0)) for r in rows
+        total = sum(_amt(r) for r in rows)
+        binary = sum(_amt(r) for r in rows if r.get("Payment Mode") == "Binary")
+        ali = sum(_amt(r) for r in rows
                   if r.get("Paid By") == "Ali" and r.get("Payment Mode") != "Binary")
-        anurag = sum(float(r.get("Amount", 0)) for r in rows
+        anurag = sum(_amt(r) for r in rows
                      if r.get("Paid By") == "Anurag" and r.get("Payment Mode") != "Binary")
 
         text = (
