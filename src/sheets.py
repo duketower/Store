@@ -431,9 +431,15 @@ def setup_budget_tab():
 def ensure_header_row():
     sheet = _get_sheet()
     first_row = sheet.row_values(1)
-    if first_row != HEADERS:
+    # Only check the first len(HEADERS) columns — col I has ARRAYFORMULA
+    if first_row[:len(HEADERS)] != HEADERS:
         sheet.insert_row(HEADERS, index=1)
         sheet.freeze(rows=1)
+        return
+    # Remove any duplicate header rows (row 2 onwards that look like headers)
+    second_row = sheet.row_values(2)
+    if second_row[:len(HEADERS)] == HEADERS:
+        sheet.delete_rows(2)
 
 
 def append_expense(description: str, amount: float, category: str,
@@ -497,6 +503,7 @@ def get_recent_expenses(n: int = 10, offset: int = 0) -> tuple[list[dict], bool]
     result = all_rows[start:end]
     for i, row in enumerate(result):
         row["_sheet_row"] = start + i + 2  # +1 for header, +1 for 1-indexing
+    result.reverse()  # newest first
     has_more = start > 0
     return result, has_more
 

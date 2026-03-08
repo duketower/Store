@@ -382,7 +382,7 @@ def _list_keyboard(rows: list[dict], next_offset: int, has_more: bool) -> Inline
     """One numbered button per entry (newest-first). Adds Load More if more pages exist."""
     buttons = [
         InlineKeyboardButton(str(i), callback_data=f"entry:{r['_sheet_row']}")
-        for i, r in enumerate(reversed(rows), 1)
+        for i, r in enumerate(rows, 1)
     ]
     rows_kb = [buttons[i:i+5] for i in range(0, len(buttons), 5)]
     if has_more:
@@ -390,11 +390,29 @@ def _list_keyboard(rows: list[dict], next_offset: int, has_more: bool) -> Inline
     return InlineKeyboardMarkup(rows_kb)
 
 
+def _fmt_date(date_str: str) -> str:
+    """YYYY-MM-DD → DD-MM-YY"""
+    try:
+        d = datetime.strptime(str(date_str), "%Y-%m-%d")
+        return d.strftime("%d-%m-%y")
+    except ValueError:
+        return date_str
+
+
+def _fmt_time(time_str: str) -> str:
+    """HH:MM:SS or HH:MM → h:MM AM/PM"""
+    try:
+        t = datetime.strptime(str(time_str)[:5], "%H:%M")
+        return t.strftime("%-I:%M %p")
+    except ValueError:
+        return time_str
+
+
 def _format_list_lines(rows: list[dict], start_num: int = 1) -> list[str]:
     lines = []
-    for i, r in enumerate(reversed(rows), start_num):
-        date = str(r.get("Date", ""))
-        time = str(r.get("Time", ""))[:5]
+    for i, r in enumerate(rows, start_num):
+        date = _fmt_date(str(r.get("Date", "")))
+        time = _fmt_time(str(r.get("Time", "")))
         desc = r.get("Description", "")
         amt = _amt(r)
         cat = r.get("Category", "")
@@ -446,7 +464,7 @@ async def handle_list_more(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def _entry_detail_text(r: dict) -> str:
     return (
-        f"{r.get('Date', '')} {str(r.get('Time', ''))[:5]}\n"
+        f"{_fmt_date(str(r.get('Date', '')))} {_fmt_time(str(r.get('Time', '')))}\n"
         f"Description: {r.get('Description', '')}\n"
         f"Amount: {_amt(r):.2f}\n"
         f"Category: {r.get('Category', '')}\n"
