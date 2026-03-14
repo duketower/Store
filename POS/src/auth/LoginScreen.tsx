@@ -1,0 +1,303 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Delete, ShoppingCart } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
+import { verifyPin, verifyPassword, createSession, getActiveCashiers } from './authService'
+import type { Employee } from '@/types'
+import { ROLE_COLORS, ROLE_LABELS } from '@/constants/roles'
+import { cn } from '@/utils/cn'
+import { ROUTES } from '@/constants/routes'
+import { APP_NAME, PIN_LENGTH, MAX_PIN_ATTEMPTS, PIN_LOCKOUT_SECONDS } from '@/constants/app'
+import { ErrorBanner } from '@/components/feedback/ErrorBanner'
+
+type Screen = 'staff' | 'pin' | 'admin'
+
+export function LoginScreen() {
+  const navigate = useNavigate()
+  const setSession = useAuthStore((s) => s.setSession)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
+  const [screen, setScreen] = useState<Screen>('staff')
+  const [cashiers, setCashiers] = useState<Employee[]>([])
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
+  const [pin, setPin] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated()) navigate(ROUTES.BILLING, { replace: true })
+  }, [isAuthenticated, navigate])
+
+  useEffect(() => {
+    getActiveCashiers().then(setCashiers)
+  }, [])
+
+  const isLockedOut = lockoutUntil && new Date() < lockoutUntil
+
+  // Keyboard support for PIN screen
+  useEffect(() => {
+    if (screen !== 'pin') return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        if (!isLockedOut && !loading && pin.length < PIN_LENGTH) {
+          setPin((prev) => prev + e.key)
+        }
+      } else if (e.key === 'Backspace') {
+        setPin((prev) => prev.slice(0, -1))
+      } else if (e.key === 'Enter') {
+        if (!isLockedOut && !loading && pin.length === PIN_LENGTH) {
+          // trigger confirm via the existing handler — re-read pin from state via ref would be cleaner
+          // but calling handlePinConfirm here has stale closure; dispatch via button click instead
+          document.getElementById('pin-confirm-btn')?.click()
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [screen, pin, loading, isLockedOut])
+
+  const handleCardSelect = (employee: Employee) => {
+    setSelectedEmployee(employee)
+    setPin('')
+    setError('')
+    setAttempts(0)
+    setLockoutUntil(null)
+    setScreen('pin')
+  }
+
+  const handlePinDigit = (digit: string) => {
+    if (isLockedOut) return
+    if (pin.length < PIN_LENGTH) {
+      setPin((prev) => prev + digit)
+    }
+  }
+
+  const handlePinBackspace = () => {
+    setPin((prev) => prev.slice(0, -1))
+  }
+
+  const handlePinConfirm = async () => {
+    if (!selectedEmployee?.id || pin.length < PIN_LENGTH) return
+    if (isLockedOut) return
+
+    setLoading(true)
+    setError('')
+
+    try {
+      const employee = await verifyPin(selectedEmployee.id, pin)
+      if (employee) {
+        const session = createSession(employee)
+        setSession(session)
+        navigate(ROUTES.BILLING, { replace: true })
+      } else {
+        const newAttempts = attempts + 1
+        setAttempts(newAttempts)
+        setPin('')
+
+        if (newAttempts >= MAX_PIN_ATTEMPTS) {
+          const lockUntil = new Date(Date.now() + PIN_LOCKOUT_SECONDS * 1000)
+          setLockoutUntil(lockUntil)
+          setError(`Too many attempts. Locked for ${PIN_LOCKOUT_SECONDS} seconds.`)
+        } else {
+          setError(`Wrong PIN. ${MAX_PIN_ATTEMPTS - newAttempts} attempt${MAX_PIN_ATTEMPTS - newAttempts === 1 ? '' : 's'} remaining.`)
+        }
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const employee = await verifyPassword(username, password)
+      if (employee) {
+        const session = createSession(employee)
+        setSession(session)
+        navigate(ROUTES.BILLING, { replace: true })
+      } else {
+        setError('Invalid username or password.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="w-full max-w-4xl px-4">
+        {/* App title */}
+        <div className="mb-8 text-center">
+          <div className="mb-2 flex justify-center">
+            <div className="rounded-2xl bg-blue-600 p-3">
+              <ShoppingCart className="text-white" size={32} />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">{APP_NAME}</h1>
+        </div>
+
+        {/* Staff selection */}
+        {screen === 'staff' && (
+          <div className="card p-6">
+            <h2 className="mb-4 text-center text-base font-semibold text-gray-700">Select your name</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {cashiers.map((emp) => (
+                <button
+                  key={emp.id}
+                  onClick={() => handleCardSelect(emp)}
+                  className="flex flex-col items-center rounded-xl border-2 border-gray-200 bg-white p-4 text-center transition-all hover:border-blue-400 hover:bg-blue-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700">
+                    {emp.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{emp.name}</span>
+                  <span className={cn('mt-1 rounded px-1.5 py-0.5 text-xs font-medium', ROLE_COLORS[emp.role])}>
+                    {ROLE_LABELS[emp.role]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Admin login link */}
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setScreen('admin')}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Admin / Manager Login →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* PIN pad */}
+        {screen === 'pin' && selectedEmployee && (
+          <div className="mx-auto max-w-xs card p-6">
+            <div className="mb-6 text-center">
+              <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-700">
+                {selectedEmployee.name.charAt(0)}
+              </div>
+              <p className="text-base font-semibold text-gray-900">{selectedEmployee.name}</p>
+              <p className="text-sm text-gray-500">Enter your 4-digit PIN</p>
+            </div>
+
+            {/* PIN dots */}
+            <div className="mb-6 flex justify-center gap-3">
+              {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'h-4 w-4 rounded-full border-2 transition-all',
+                    i < pin.length
+                      ? 'border-blue-600 bg-blue-600'
+                      : 'border-gray-300 bg-transparent'
+                  )}
+                />
+              ))}
+            </div>
+
+            {error && <div className="mb-4"><ErrorBanner message={error} /></div>}
+
+            {/* Number pad */}
+            <div className="grid grid-cols-3 gap-2">
+              {['1','2','3','4','5','6','7','8','9'].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => handlePinDigit(d)}
+                  disabled={!!isLockedOut || loading}
+                  className="rounded-xl border border-gray-200 bg-white py-4 text-lg font-semibold text-gray-800 shadow-sm transition-all hover:bg-blue-50 hover:border-blue-300 active:scale-95 disabled:opacity-50"
+                >
+                  {d}
+                </button>
+              ))}
+              <button
+                onClick={handlePinBackspace}
+                disabled={!!isLockedOut || loading}
+                className="rounded-xl border border-gray-200 bg-white py-4 text-gray-500 shadow-sm transition-all hover:bg-gray-50 active:scale-95 disabled:opacity-50 flex items-center justify-center"
+              >
+                <Delete size={18} />
+              </button>
+              <button
+                onClick={() => handlePinDigit('0')}
+                disabled={!!isLockedOut || loading}
+                className="rounded-xl border border-gray-200 bg-white py-4 text-lg font-semibold text-gray-800 shadow-sm transition-all hover:bg-blue-50 hover:border-blue-300 active:scale-95 disabled:opacity-50"
+              >
+                0
+              </button>
+              <button
+                id="pin-confirm-btn"
+                onClick={handlePinConfirm}
+                disabled={pin.length < PIN_LENGTH || !!isLockedOut || loading}
+                className="rounded-xl bg-blue-600 py-4 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-40"
+              >
+                {loading ? '...' : 'OK'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => { setScreen('staff'); setPin(''); setError('') }}
+              className="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700"
+            >
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {/* Admin / Manager login */}
+        {screen === 'admin' && (
+          <div className="mx-auto max-w-sm card p-6">
+            <h2 className="mb-6 text-center text-base font-semibold text-gray-900">Admin / Manager Login</h2>
+
+            {error && <div className="mb-4"><ErrorBanner message={error} /></div>}
+
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input-field"
+                  placeholder="Enter username"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field"
+                  placeholder="Enter password"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !username || !password}
+                className="btn-primary w-full"
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+
+            <button
+              onClick={() => { setScreen('staff'); setError('') }}
+              className="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700"
+            >
+              ← Back to staff selection
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

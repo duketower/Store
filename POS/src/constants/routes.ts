@@ -1,0 +1,37 @@
+import type { Role } from '@/types'
+
+export const ROUTES = {
+  LOGIN: '/login',
+  DASHBOARD: '/dashboard',
+  BILLING: '/billing',
+  RECEIVE_STOCK: '/inventory/receive-stock',
+  PRODUCTS: '/inventory/products',
+  SHIFT_CLOSE: '/inventory/shift-close',
+  CUSTOMERS: '/customers',
+  REPORTS: '/reports',
+  USERS: '/users',
+  SETTINGS: '/settings',
+  MIGRATION: '/settings/migrate',
+  ERROR_LOG: '/settings/errors',
+} as const
+
+export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
+
+export interface NavItem {
+  label: string
+  path: RoutePath
+  icon: string
+  roles: Role[]
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: 'LayoutDashboard', roles: ['admin', 'manager'] },
+  { label: 'Billing', path: ROUTES.BILLING, icon: 'ShoppingCart', roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Receive Stock', path: ROUTES.RECEIVE_STOCK, icon: 'PackagePlus', roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Customers', path: ROUTES.CUSTOMERS, icon: 'Users', roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Products', path: ROUTES.PRODUCTS, icon: 'Package', roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Inventory', path: ROUTES.SHIFT_CLOSE, icon: 'Boxes', roles: ['admin', 'manager'] },
+  { label: 'Reports', path: ROUTES.REPORTS, icon: 'BarChart3', roles: ['admin', 'manager'] },
+  { label: 'Users', path: ROUTES.USERS, icon: 'UserCog', roles: ['admin'] },
+  { label: 'Settings', path: ROUTES.SETTINGS, icon: 'Settings', roles: ['admin'] },
+]
