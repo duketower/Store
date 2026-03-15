@@ -1,0 +1,8 @@
+{
+  "firebaseProjectId": "REPLACE-WITH-PROJECT-ID",
+  "hostingTarget": "REPLACE-WITH-PROJECT-ID",
+  "dedicatedGmail": "clientname.pos@gmail.com",
+  "customDomain": "",
+  "status": "active",
+  "notes": "Onboarded on YYYY-MM-DD | Plan: pro | Owner: Name | WhatsApp: +91..."
+}

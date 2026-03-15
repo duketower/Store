@@ -1,0 +1,19 @@
+{
+  "name": "store-pos-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Multi-client POS build platform — manages clients, builds, and deploys.",
+  "scripts": {
+    "client:new":       "tsx scripts/new-client.ts",
+    "client:validate":  "tsx scripts/validate-client.ts",
+    "client:build":     "tsx scripts/build-client.ts",
+    "client:build-all": "tsx scripts/build-all.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "zod": "^3.24.0",
+    "@types/node": "^22.0.0",
+    "typescript": "~5.6.2"
+  }
+}

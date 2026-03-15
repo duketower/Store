@@ -1,0 +1,19 @@
+{
+  "store": {
+    "name": "Your Store Name",
+    "address": "Street Address, Area",
+    "city": "City, State",
+    "phone": "+91 XXXXX XXXXX",
+    "gstin": "",
+    "upiVpa": "store@upi",
+    "sheetsWebAppUrl": ""
+  },
+  "brand": {
+    "themeColor": "#1e40af",
+    "appName": "Store POS",
+    "shortName": "POS"
+  },
+  "plan": "pro",
+  "clientId": "REPLACE-WITH-FOLDER-NAME",
+  "licenseExpiresAt": "2027-01-01"
+}

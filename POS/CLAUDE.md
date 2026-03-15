@@ -208,3 +208,37 @@ feat: add FEFO batch deduction on sale complete
 fix: correct CGST/SGST split for 12% slab
 refactor: split db.ts into schema/index/seed/queries
 ```
+
+---
+
+## Multi-Client Distribution Rules
+
+This POS is sold to multiple clients. Each client gets their own build with their config baked in.
+The architecture: one codebase → per-client build → client gets a minified bundle (no source access).
+
+**Config rules:**
+- Never hardcode store name, GSTIN, UPI ID, phone, Firebase project ID, logo path, or plan in app code.
+- All client-specific values come from `CLIENT_CONFIG` in `@/constants/clientConfig`.
+- In dev mode (no `CLIENT` env var), `CLIENT_CONFIG` falls back to `STORE_CONFIG` defaults — dev workflow unchanged.
+
+**Feature gating rules:**
+- Never check `CLIENT_CONFIG.plan === 'pro'` directly in UI. Always use `hasFeature(CLIENT_CONFIG.plan, 'feature')`.
+- Never add a new plan-gated feature without first updating `PlanFeature` union type in `src/types/clientConfig.ts`
+  AND `PLAN_FEATURES` matrix in `src/constants/features.ts`.
+- Any route restricted to a plan tier must use `ProtectedFeatureRoute` in `routes/index.tsx` — nav hiding alone is not enough.
+
+**Build rules:**
+- Never import from `clients/` inside `src/`. Only `vite.config.ts` may read client build files.
+- Never bake admin secrets, service account keys, or private automation credentials into client bundles.
+- `__CLIENT_CONFIG__` and `__APP_BUILD__` are compile-time constants — they must be serialisable (JSON-safe).
+
+**Dev mode fallback must always work:**
+- Do not break the existing localStorage settings override behaviour in `storeConfig.ts`.
+- The app must work identically in dev (no CLIENT) and in client builds.
+
+**File locations for the multi-client system:**
+- `src/types/clientConfig.ts` — ClientConfig + AppBuild types, PlanTier, PlanFeature
+- `src/constants/clientConfig.ts` — CLIENT_CONFIG reader + dev fallback
+- `src/constants/features.ts` — plan feature matrix + hasFeature() + isLicenseExpired()
+- `src/components/common/ProtectedFeatureRoute.tsx` — route-level plan guard
+- `src/components/common/ExpiredLicenseScreen.tsx` — shown when license is expired
