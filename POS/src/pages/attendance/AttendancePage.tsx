@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ChevronLeft, ChevronRight, Download, Plus, Edit2, UserCheck, UserX,
-  Clock, CheckCircle, XCircle, MinusCircle, Calendar,
+  Clock, CheckCircle, XCircle, Calendar,
 } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
@@ -190,7 +190,7 @@ function BoardTab({ today }: { today: Date }) {
     try {
       const rows = await getLeaveExport(year, month)
       const header = ['Name', 'Role/Designation', 'Month', 'Allotment', 'Present', 'Absent', 'Half Day', 'Leave Days Used', 'Remaining Balance', 'Pending Leaves']
-      const data = rows.map(r => [r.name, r.roleOrDesignation, r.month, r.allotment, r.present, r.absent, r.halfDay, r.leaveDaysUsed, r.remainingBalance, r.pendingLeaves])
+      const data = rows.map(r => [r.name, r.roleOrDesignation, r.month, String(r.allotment), String(r.present), String(r.absent), String(r.halfDay), String(r.leaveDaysUsed), String(r.remainingBalance), String(r.pendingLeaves)])
       downloadCsv([header, ...data], `attendance-${year}-${pad(month)}.csv`)
       addToast('success', 'CSV downloaded')
     } catch {

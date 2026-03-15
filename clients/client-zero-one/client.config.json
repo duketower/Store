@@ -1,0 +1,24 @@
+{
+  "store": {
+    "name": "Zero One",
+    "address": "Plot No 12, Companybagh, Nawabganj",
+    "city": "Barabanki, Uttar Pradesh 225001",
+    "phone": "8965000033",
+    "gstin": "09AANCB3692D1ZG",
+    "upiVpa": "03.anurag-5@okicici",
+    "sheetsWebAppUrl": ""
+  },
+  "brand": {
+    "themeColor": "#0f172a",
+    "appName": "Zero One",
+    "shortName": "01"
+  },
+  "staff": [
+    { "name": "Anurag", "role": "admin" },
+    { "name": "Ali",    "role": "manager" },
+    { "name": "Chintu", "role": "cashier" }
+  ],
+  "plan": "pro",
+  "clientId": "zero-one",
+  "licenseExpiresAt": "2030-01-01"
+}
