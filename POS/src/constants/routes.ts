@@ -19,10 +19,16 @@ export const ROUTES = {
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 
+// Must stay in sync with the ICONS map in Sidebar.tsx.
+// Adding a new icon here without adding it to Sidebar's ICONS map causes a missing icon at runtime.
+export type NavIconName =
+  | 'ShoppingCart' | 'PackagePlus' | 'Users' | 'Package'
+  | 'Boxes' | 'BarChart3' | 'UserCog' | 'Settings' | 'LayoutDashboard' | 'Truck'
+
 export interface NavItem {
   label: string
   path: RoutePath
-  icon: string
+  icon: NavIconName
   roles: Role[]
   // Optional plan-tier gate. If set, this nav item is hidden (and route blocked)
   // for plans that don't include this feature. Checked via hasFeature().

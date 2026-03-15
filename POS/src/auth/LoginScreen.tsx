@@ -7,7 +7,8 @@ import type { Employee } from '@/types'
 import { ROLE_COLORS, ROLE_LABELS } from '@/constants/roles'
 import { cn } from '@/utils/cn'
 import { ROUTES } from '@/constants/routes'
-import { APP_NAME, PIN_LENGTH, MAX_PIN_ATTEMPTS, PIN_LOCKOUT_SECONDS } from '@/constants/app'
+import { PIN_LENGTH, MAX_PIN_ATTEMPTS, PIN_LOCKOUT_SECONDS } from '@/constants/app'
+import { CLIENT_CONFIG } from '@/constants/clientConfig'
 import { ErrorBanner } from '@/components/feedback/ErrorBanner'
 
 type Screen = 'staff' | 'pin'
@@ -118,7 +119,7 @@ export function LoginScreen() {
               <ShoppingCart className="text-white" size={32} />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{APP_NAME}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{CLIENT_CONFIG.brand.appName}</h1>
         </div>
 
         {/* Staff selection */}

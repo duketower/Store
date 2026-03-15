@@ -3,6 +3,7 @@ import { Save, RotateCcw, DatabaseZap, AlertTriangle, Info } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { CLIENT_CONFIG, APP_BUILD } from '@/constants/clientConfig'
+import { isLicenseExpired } from '@/constants/features'
 import { useUiStore } from '@/stores/uiStore'
 import { type StoreConfig, loadStoreConfig, saveStoreConfig } from '@/utils/storeConfig'
 import { ROUTES } from '@/constants/routes'
@@ -108,9 +109,9 @@ export function SettingsPage() {
             { label: 'App',       value: CLIENT_CONFIG.brand.appName },
             { label: 'Client ID', value: CLIENT_CONFIG.clientId },
             { label: 'Plan',      value: CLIENT_CONFIG.plan.charAt(0).toUpperCase() + CLIENT_CONFIG.plan.slice(1) },
-            { label: 'License',   value: new Date(CLIENT_CONFIG.licenseExpiresAt) > new Date()
-                ? `Active until ${new Date(CLIENT_CONFIG.licenseExpiresAt).toLocaleDateString('en-IN')}`
-                : '⚠ Expired' },
+            { label: 'License',   value: isLicenseExpired(CLIENT_CONFIG.licenseExpiresAt)
+                ? '⚠ Expired'
+                : `Active until ${new Date(CLIENT_CONFIG.licenseExpiresAt).toLocaleDateString('en-IN')}` },
             { label: 'Version',   value: APP_BUILD.version },
             { label: 'Build',     value: `${APP_BUILD.gitCommit} · ${new Date(APP_BUILD.builtAt).toLocaleDateString('en-IN')}` },
           ].map(({ label, value }) => (
