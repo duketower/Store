@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
+import { ProtectedFeatureRoute } from '@/components/common/ProtectedFeatureRoute'
 import { LoginScreen } from '@/auth/LoginScreen'
 import { AppShell } from '@/components/layout/AppShell'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
@@ -29,41 +30,60 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+        <Route index element={<Navigate to={ROUTES.BILLING} replace />} />
 
-        <Route path={ROUTES.DASHBOARD} element={<ProtectedRoute requiredRoles={['admin', 'manager']}><DashboardPage /></ProtectedRoute>} />
+        {/* Plan-gated: dashboard requires 'dashboard' feature (pro+) */}
+        <Route
+          path={ROUTES.DASHBOARD}
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager']}>
+              <ProtectedFeatureRoute feature="dashboard">
+                <DashboardPage />
+              </ProtectedFeatureRoute>
+            </ProtectedRoute>
+          }
+        />
 
+        {/* Always available (free tier) */}
         <Route path={ROUTES.BILLING} element={<BillingPage />} />
-
         <Route path={ROUTES.PRODUCTS} element={<ProductsPage />} />
-
         <Route path={ROUTES.RECEIVE_STOCK} element={<ReceiveStockPage />} />
+        <Route path={ROUTES.SHIFT_CLOSE} element={
+          <ProtectedRoute requiredRoles={['admin', 'manager', 'cashier']}>
+            <ShiftClosePage />
+          </ProtectedRoute>
+        } />
 
+        {/* Plan-gated: vendors requires 'rtv' feature (pro+) */}
         <Route
           path={ROUTES.VENDORS}
           element={
             <ProtectedRoute requiredRoles={['admin', 'manager']}>
-              <VendorsPage />
+              <ProtectedFeatureRoute feature="rtv">
+                <VendorsPage />
+              </ProtectedFeatureRoute>
             </ProtectedRoute>
           }
         />
 
+        {/* Plan-gated: customers requires 'credit_ledger' feature (pro+) */}
         <Route
-          path={ROUTES.SHIFT_CLOSE}
+          path={ROUTES.CUSTOMERS}
           element={
-            <ProtectedRoute requiredRoles={['admin', 'manager', 'cashier']}>
-              <ShiftClosePage />
-            </ProtectedRoute>
+            <ProtectedFeatureRoute feature="credit_ledger">
+              <CustomersPage />
+            </ProtectedFeatureRoute>
           }
         />
 
-        <Route path={ROUTES.CUSTOMERS} element={<CustomersPage />} />
-
+        {/* Plan-gated: reports requires 'reports' feature (pro+) */}
         <Route
           path={ROUTES.REPORTS}
           element={
             <ProtectedRoute requiredRoles={['admin', 'manager']}>
-              <ReportsPage />
+              <ProtectedFeatureRoute feature="reports">
+                <ReportsPage />
+              </ProtectedFeatureRoute>
             </ProtectedRoute>
           }
         />

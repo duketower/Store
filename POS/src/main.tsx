@@ -7,34 +7,49 @@ import { flushOutbox } from './services/sync/outbox'
 import { initErrorMonitoring } from './services/firebase/errorLogger'
 import { ensureAnonymousAuth } from './services/firebase/auth'
 import { startFirestoreListeners } from './services/sync/firestoreListener'
+import { ExpiredLicenseScreen } from './components/common/ExpiredLicenseScreen'
+import { CLIENT_CONFIG } from './constants/clientConfig'
+import { isLicenseExpired } from './constants/features'
 import './styles/globals.css'
 
 // Catch uncaught errors and unhandled rejections → Firestore errors collection
 initErrorMonitoring()
 
-// Await seed before mounting so fresh-device IndexedDB is ready
-seedDatabase()
-  .catch(console.error)
-  .finally(async () => {
-    // Establish anonymous Firebase Auth session so Firestore rules (request.auth != null) pass.
-    // Best-effort: never blocks mount if offline or Auth is unavailable.
-    await ensureAnonymousAuth().catch((err) =>
-      console.warn('[Auth] Anonymous sign-in failed (offline?):', err)
-    )
+const root = createRoot(document.getElementById('root')!)
 
-    // Real-time Firestore → Dexie sync: keep local stock/customer data current across devices.
-    // Must start after auth so the onSnapshot subscriptions pass security rules.
-    startFirestoreListeners()
+// License gate: if subscription has expired, show locked screen instead of mounting the app.
+// This prevents access to all data and functionality on expired builds.
+if (isLicenseExpired(CLIENT_CONFIG.licenseExpiresAt)) {
+  root.render(
+    <StrictMode>
+      <ExpiredLicenseScreen />
+    </StrictMode>
+  )
+} else {
+  // Await seed before mounting so fresh-device IndexedDB is ready
+  seedDatabase()
+    .catch(console.error)
+    .finally(async () => {
+      // Establish anonymous Firebase Auth session so Firestore rules (request.auth != null) pass.
+      // Best-effort: never blocks mount if offline or Auth is unavailable.
+      await ensureAnonymousAuth().catch((err) =>
+        console.warn('[Auth] Anonymous sign-in failed (offline?):', err)
+      )
 
-    // Flush any sales that failed to sync while offline, and re-flush whenever connectivity returns
-    flushOutbox()
-    window.addEventListener('online', flushOutbox)
+      // Real-time Firestore → Dexie sync: keep local stock/customer data current across devices.
+      // Must start after auth so the onSnapshot subscriptions pass security rules.
+      startFirestoreListeners()
 
-    createRoot(document.getElementById('root')!).render(
-      <StrictMode>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </StrictMode>
-    )
-  })
+      // Flush any sales that failed to sync while offline, and re-flush whenever connectivity returns
+      flushOutbox()
+      window.addEventListener('online', flushOutbox)
+
+      root.render(
+        <StrictMode>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </StrictMode>
+      )
+    })
+}

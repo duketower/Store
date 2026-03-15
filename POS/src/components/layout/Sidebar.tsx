@@ -8,7 +8,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { NAV_ITEMS } from '@/constants/routes'
 import { useUiStore } from '@/stores/uiStore'
 import { cn } from '@/utils/cn'
-import { APP_NAME } from '@/constants/app'
+import { CLIENT_CONFIG } from '@/constants/clientConfig'
+import { hasFeature } from '@/constants/features'
 import { getPendingCreditRequestCount } from '@/db/queries/customers'
 
 const ICONS: Record<string, LucideIcon> = {
@@ -25,16 +26,21 @@ export function Sidebar() {
     getPendingCreditRequestCount().then(setCreditRequestCount)
   }, [])
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => role && item.roles.includes(role)
-  )
+  // Filter by role AND plan feature (two independent gates).
+  // A cashier on a pro plan sees fewer items than an admin on a pro plan.
+  // An admin on a free plan sees fewer items than an admin on a pro plan.
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (!role || !item.roles.includes(role)) return false
+    if (item.feature && !hasFeature(CLIENT_CONFIG.plan, item.feature)) return false
+    return true
+  })
 
   return (
     <aside className="flex h-full w-56 flex-col border-r border-gray-200 bg-white">
-      {/* Logo */}
+      {/* Logo — uses per-client brand app name */}
       <div className="flex h-14 items-center border-b border-gray-200 px-4">
         <ShoppingCart className="mr-2 text-blue-600" size={20} />
-        <span className="text-sm font-bold text-gray-900">{APP_NAME}</span>
+        <span className="text-sm font-bold text-gray-900">{CLIENT_CONFIG.brand.appName}</span>
       </div>
 
       {/* Nav items */}
