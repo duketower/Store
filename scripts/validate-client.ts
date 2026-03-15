@@ -16,6 +16,13 @@ const ROOT = resolve(__dirname, '..')
 
 // ---- Zod schema --------------------------------------------------------
 
+const StaffMemberSchema = z.object({
+  name: z.string().min(1, 'Staff name is required'),
+  role: z.enum(['admin', 'manager', 'cashier'], {
+    errorMap: () => ({ message: 'role must be "admin", "manager", or "cashier"' }),
+  }),
+})
+
 const ClientConfigSchema = z.object({
   store: z.object({
     name:            z.string().min(1, 'Store name is required'),
@@ -31,6 +38,13 @@ const ClientConfigSchema = z.object({
     appName:    z.string().min(1, 'App name is required'),
     shortName:  z.string().min(1, 'Short name is required'),
   }),
+  // Staff from the requirement form — must have at least one admin
+  staff: z.array(StaffMemberSchema)
+    .min(1, 'At least one staff member is required')
+    .refine(
+      (s) => s.some((m) => m.role === 'admin'),
+      'At least one staff member must have role "admin"'
+    ),
   plan:             z.enum(['free', 'pro', 'enterprise']),
   clientId:         z.string().regex(/^[a-z0-9-]+$/, 'clientId must be kebab-case (lowercase letters, numbers, hyphens)'),
   licenseExpiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'licenseExpiresAt must be YYYY-MM-DD'),

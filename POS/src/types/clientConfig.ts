@@ -25,6 +25,15 @@ export type PlanFeature =
   | 'api_webhooks'
   | 'custom_branding'
 
+// Staff member from the client's requirement form.
+// Passwords are NOT stored here (config is committed to git).
+// Default credentials are set by seed.ts and communicated to the client on handover.
+// Default passwords: admin → "Admin@1234", manager → "Manager@1234", cashier PIN → "1234"
+export interface StaffMember {
+  name: string
+  role: 'admin' | 'manager' | 'cashier'
+}
+
 export interface ClientConfig {
   store: {
     name: string
@@ -40,6 +49,9 @@ export interface ClientConfig {
     appName: string      // full name shown on home screen
     shortName: string    // short name for PWA icon label
   }
+  // Staff from the client's requirement form — seeded into IndexedDB on first app load.
+  // If absent (dev mode), seed.ts uses hardcoded dev defaults instead.
+  staff?: StaffMember[]
   plan: PlanTier
   clientId: string             // unique kebab-case slug (matches folder name)
   licenseExpiresAt: string     // ISO date string — checked at app boot
