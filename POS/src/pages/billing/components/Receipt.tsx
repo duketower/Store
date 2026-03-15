@@ -1,9 +1,10 @@
-import { Printer } from 'lucide-react'
+import { Printer, MessageCircle } from 'lucide-react'
 import type { Sale, SaleItem, Payment } from '@/types'
 import { formatCurrency } from '@/utils/currency'
 import { formatDateTime } from '@/utils/date'
 import { calcGstInclusive, groupByGstSlab } from '@/utils/gst'
 import { loadStoreConfig } from '@/utils/storeConfig'
+import { formatReceiptText } from '@/utils/receiptText'
 
 interface ReceiptItem extends SaleItem {
   productName: string
@@ -32,14 +33,23 @@ export function Receipt({ sale, items, payments, cashierName, change, onPrint }:
 
   return (
     <div>
-      {/* Print button (hidden on print) */}
-      {onPrint && (
-        <div className="mb-4 flex justify-end print:hidden">
+      {/* Action buttons (hidden on print) */}
+      <div className="mb-4 flex justify-end gap-2 print:hidden">
+        <button
+          onClick={() => {
+            const text = formatReceiptText(sale, items, payments, STORE_CONFIG.name, cashierName)
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+          }}
+          className="btn-secondary flex items-center gap-2 text-green-700 border-green-200 hover:bg-green-50"
+        >
+          <MessageCircle size={16} /> WhatsApp
+        </button>
+        {onPrint && (
           <button onClick={onPrint} className="btn-secondary flex items-center gap-2">
-            <Printer size={16} /> Print Receipt
+            <Printer size={16} /> Print
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Receipt content */}
       <div id="receipt-print" className="font-mono text-xs leading-relaxed max-w-xs mx-auto">

@@ -13,7 +13,7 @@ import type { Product } from '@/types'
 import { BarcodeInput } from './components/BarcodeInput'
 import { ProductSearch } from './components/ProductSearch'
 import { Cart } from './components/Cart'
-import { PaymentModal, type PaymentEntry } from './components/PaymentModal'
+import { CheckoutPanel, type PaymentEntry } from './components/CheckoutPanel'
 import { Modal } from '@/components/common/Modal'
 import { Receipt } from './components/Receipt'
 
@@ -22,7 +22,6 @@ export function BillingPage() {
   const { addToast, setLowStockCount } = useUiStore()
   const { employeeId, name: cashierName } = useAuth()
 
-  const [paymentOpen, setPaymentOpen] = useState(false)
   const [receiptSaleId, setReceiptSaleId] = useState<number | null>(null)
   const [receiptData, setReceiptData] = useState<Awaited<ReturnType<typeof getSaleWithItems>> | null>(null)
   const [voidConfirmOpen, setVoidConfirmOpen] = useState(false)
@@ -38,7 +37,6 @@ export function BillingPage() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'F2') { e.preventDefault(); setPaymentOpen(true) }
       if (e.key === 'F8') { e.preventDefault(); if (items.length > 0) setVoidConfirmOpen(true) }
     }
     window.addEventListener('keydown', handler)
@@ -79,7 +77,7 @@ export function BillingPage() {
 
   const handlePaymentComplete = async (payments: PaymentEntry[], _change: number, customerId?: number) => {
     if (!employeeId) return
-    const { grandTotal, subtotal, itemDiscount, taxTotal } = totals()
+    const { grandTotal, subtotal, itemDiscount, billDiscountAmount, taxTotal } = totals()
     const currentItems = useCartStore.getState().items
     try {
       const billNo = await generateBillNumber()
@@ -90,7 +88,7 @@ export function BillingPage() {
         customerId,
         cartItems: currentItems,
         subtotal,
-        discount: itemDiscount,
+        discount: itemDiscount + billDiscountAmount,
         taxTotal,
         grandTotal,
         payments: payments.map((p) => ({
@@ -100,7 +98,6 @@ export function BillingPage() {
         })),
       })
       clearCart()
-      setPaymentOpen(false)
       await refreshLowStock()
       const data = await getSaleWithItems(saleId)
       setReceiptData(data)
@@ -138,13 +135,12 @@ export function BillingPage() {
     }
   }
 
-  const { grandTotal } = totals()
-
   return (
     <div className="flex h-full">
-      <BarcodeInput onScan={handleBarcodeScan} enabled={!paymentOpen} />
+      <BarcodeInput onScan={handleBarcodeScan} enabled={true} />
 
-      <div className="flex w-80 flex-col border-r border-gray-200 bg-white">
+      {/* LEFT: Product search */}
+      <div className="flex w-72 flex-col border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-3">
             <ScanLine size={16} className="text-blue-600 flex-shrink-0" />
@@ -154,13 +150,14 @@ export function BillingPage() {
         </div>
         <div className="p-4">
           <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500 space-y-1">
-            <p><kbd className="rounded bg-gray-200 px-1 py-0.5 font-mono text-xs">F2</kbd> Open payment</p>
+            <p><kbd className="rounded bg-gray-200 px-1 py-0.5 font-mono text-xs">F2–F5</kbd> Payment method</p>
             <p><kbd className="rounded bg-gray-200 px-1 py-0.5 font-mono text-xs">F8</kbd> Void bill</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden bg-white">
+      {/* MIDDLE: Cart items */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-white border-r border-gray-200">
         <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">
             Current Bill
@@ -177,16 +174,14 @@ export function BillingPage() {
           )}
         </div>
         <div className="flex-1 overflow-hidden">
-          <Cart onPay={() => setPaymentOpen(true)} />
+          <Cart />
         </div>
       </div>
 
-      <PaymentModal
-        open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        grandTotal={grandTotal}
-        billNo="PENDING"
+      {/* RIGHT: Checkout panel (always visible) */}
+      <CheckoutPanel
         onComplete={handlePaymentComplete}
+        disabled={items.length === 0}
       />
 
       {receiptData && (

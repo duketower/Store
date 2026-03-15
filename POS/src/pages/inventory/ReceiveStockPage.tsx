@@ -1,14 +1,17 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Plus, Trash2, Save, Search } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { searchProducts, getLowStockProducts } from '@/db/queries/products'
 import { addBatch } from '@/db/queries/batches'
+import { getActiveVendors } from '@/db/queries/vendors'
+import { createGrn } from '@/db/queries/grns'
 import { db } from '@/db'
 import { useUiStore } from '@/stores/uiStore'
-import { syncProductToFirestore, syncBatchToFirestore } from '@/services/firestoreSync'
+import { useAuth } from '@/hooks/useAuth'
+import { syncProductToFirestore, syncBatchToFirestore } from '@/services/firebase/sync'
 import { formatCurrency } from '@/utils/currency'
-import type { Product } from '@/types'
+import type { Product, Vendor } from '@/types'
 
 interface GrnLine {
   product: Product
@@ -20,11 +23,19 @@ interface GrnLine {
 }
 
 export function ReceiveStockPage() {
-  const [vendor, setVendor] = useState('')
+  const [vendorId, setVendorId] = useState<number | '' | 'other'>('')
+  const [vendorFreeText, setVendorFreeText] = useState('')
+  const [invoiceNo, setInvoiceNo] = useState('')
+  const [vendors, setVendors] = useState<Vendor[]>([])
   const [lines, setLines] = useState<GrnLine[]>([])
   const [saving, setSaving] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const { addToast, setLowStockCount } = useUiStore()
+  const { employeeId } = useAuth()
+
+  useEffect(() => {
+    getActiveVendors().then(setVendors)
+  }, [])
 
   const addLine = (product: Product) => {
     // Default batch no based on date
@@ -70,8 +81,22 @@ export function ReceiveStockPage() {
     setSaving(true)
     try {
       const synced: Array<{ batchId: number; productId: number }> = []
+      const vendorName =
+        vendorId === 'other' || vendorId === ''
+          ? vendorFreeText.trim() || undefined
+          : vendors.find((v) => v.id === vendorId)?.name
 
-      await db.transaction('rw', [db.batches, db.products], async () => {
+      let savedGrnId = 0
+      await db.transaction('rw', [db.batches, db.products, db.grns], async () => {
+        const grnId = await createGrn({
+          vendorName,
+          invoiceNo: invoiceNo.trim() || undefined,
+          createdAt: new Date(),
+          createdBy: employeeId ?? 0,
+          totalValue: lines.reduce((s, l) => s + l.purchasePrice * l.qty, 0),
+          lineCount: lines.length,
+        })
+        savedGrnId = grnId
         for (const line of lines) {
           const productId = line.product.id!
           const batchId = await addBatch({
@@ -82,6 +107,9 @@ export function ReceiveStockPage() {
             purchasePrice: line.purchasePrice,
             qtyRemaining: line.qty,
             createdAt: new Date(),
+            vendor: vendorName,
+            invoiceNo: invoiceNo.trim() || undefined,
+            grnId,
           })
           // Increment product stock
           await db.products
@@ -107,9 +135,11 @@ export function ReceiveStockPage() {
       const lowStock = await getLowStockProducts()
       setLowStockCount(lowStock.length)
 
-      addToast('success', `GRN saved — ${lines.length} item(s) received`)
+      addToast('success', `GRN #${savedGrnId} saved — ${lines.length} item(s) received`)
       setLines([])
-      setVendor('')
+      setVendorId('')
+      setVendorFreeText('')
+      setInvoiceNo('')
     } catch (err) {
       addToast('error', 'Failed to save GRN')
       console.error(err)
@@ -124,11 +154,38 @@ export function ReceiveStockPage() {
         {/* Vendor */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Supplier</label>
+          {vendors.length > 0 ? (
+            <select
+              value={vendorId}
+              onChange={(e) => setVendorId(e.target.value === '' ? '' : e.target.value === 'other' ? 'other' : parseInt(e.target.value))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            >
+              <option value="">— Select vendor —</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}{v.phone ? ` · ${v.phone}` : ''}</option>
+              ))}
+              <option value="other">Other (type below)</option>
+            </select>
+          ) : null}
+          {(vendors.length === 0 || vendorId === 'other') && (
+            <input
+              type="text"
+              value={vendorFreeText}
+              onChange={(e) => setVendorFreeText(e.target.value)}
+              placeholder="e.g. Amul Distributor, Local Market…"
+              className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${vendors.length > 0 ? 'mt-2' : ''}`}
+            />
+          )}
+        </div>
+
+        {/* Invoice Number */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Invoice / Bill No <span className="text-gray-400 font-normal">(optional)</span></label>
           <input
             type="text"
-            value={vendor}
-            onChange={(e) => setVendor(e.target.value)}
-            placeholder="e.g. Amul Distributor, Local Market…"
+            value={invoiceNo}
+            onChange={(e) => setInvoiceNo(e.target.value)}
+            placeholder="e.g. INV-2024-001"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
           />
         </div>
@@ -235,7 +292,7 @@ export function ReceiveStockPage() {
         {lines.length > 0 && (
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
             <span className="text-sm text-gray-600">
-              {lines.length} item(s) · Total value:{' '}
+              {lines.length} item(s) · {lines.reduce((sum, l) => sum + l.qty, 0).toFixed(2).replace(/\.00$/, '')} units · Total value:{' '}
               <span className="font-semibold text-gray-900">
                 {formatCurrency(lines.reduce((sum, l) => sum + l.purchasePrice * l.qty, 0))}
               </span>

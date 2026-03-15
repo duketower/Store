@@ -7,6 +7,7 @@ import { BillingPage } from '@/pages/billing/BillingPage'
 import { ProductsPage } from '@/pages/inventory/ProductsPage'
 import { ReceiveStockPage } from '@/pages/inventory/ReceiveStockPage'
 import { ShiftClosePage } from '@/pages/inventory/ShiftClosePage'
+import { VendorsPage } from '@/pages/inventory/VendorsPage'
 import { CustomersPage } from '@/pages/customers/CustomersPage'
 import { ReportsPage } from '@/pages/reports/ReportsPage'
 import { UsersPage } from '@/pages/users/UsersPage'
@@ -37,6 +38,15 @@ export function AppRoutes() {
         <Route path={ROUTES.PRODUCTS} element={<ProductsPage />} />
 
         <Route path={ROUTES.RECEIVE_STOCK} element={<ReceiveStockPage />} />
+
+        <Route
+          path={ROUTES.VENDORS}
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager']}>
+              <VendorsPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path={ROUTES.SHIFT_CLOSE}

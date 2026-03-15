@@ -2,18 +2,10 @@ import { Trash2, Plus, Minus } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import type { CartItem } from '@/types'
 import { formatCurrency } from '@/utils/currency'
-import { calcGstInclusive, groupByGstSlab } from '@/utils/gst'
-import { cn } from '@/utils/cn'
+import { calcGstInclusive } from '@/utils/gst'
 
-interface CartProps {
-  onPay: () => void
-}
-
-export function Cart({ onPay }: CartProps) {
-  const { items, removeItem, updateQty, totals } = useCartStore()
-  const { subtotal, itemDiscount, taxTotal, grandTotal } = totals()
-
-  const gstSlabs = groupByGstSlab(items)
+export function Cart() {
+  const { items, removeItem, updateQty } = useCartStore()
 
   if (items.length === 0) {
     return (
@@ -27,7 +19,6 @@ export function Cart({ onPay }: CartProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Item list */}
       <div className="flex-1 overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-gray-50 border-b border-gray-200">
@@ -51,39 +42,6 @@ export function Cart({ onPay }: CartProps) {
           </tbody>
         </table>
       </div>
-
-      {/* Totals footer */}
-      <div className="border-t border-gray-200 bg-white px-4 py-3 space-y-1.5">
-        <TotalRow label="Subtotal" value={subtotal} />
-        {itemDiscount > 0 && (
-          <TotalRow label="Discount" value={-itemDiscount} className="text-green-600" />
-        )}
-
-        {/* GST breakdown by slab */}
-        {gstSlabs.filter((s) => s.rate > 0).map((slab) => (
-          <div key={slab.rate} className="flex justify-between text-xs text-gray-500">
-            <span>CGST {slab.rate / 2}% + SGST {slab.rate / 2}%</span>
-            <span>{formatCurrency(slab.cgst + slab.sgst)}</span>
-          </div>
-        ))}
-
-        {taxTotal > 0 && (
-          <TotalRow label="Total GST" value={taxTotal} className="text-gray-500 text-xs" />
-        )}
-
-        <div className="border-t border-gray-200 pt-2 mt-2">
-          <TotalRow label="Grand Total" value={grandTotal} bold />
-        </div>
-
-        <button
-          onClick={onPay}
-          disabled={items.length === 0}
-          className="btn-primary w-full mt-3 py-3 text-base font-bold"
-        >
-          Pay {formatCurrency(grandTotal)}
-        </button>
-        <p className="text-center text-xs text-gray-400">Press F2 to open payment</p>
-      </div>
     </div>
   )
 }
@@ -92,7 +50,6 @@ interface CartRowProps {
   item: CartItem
   onUpdateQty: (qty: number) => void
   onRemove: () => void
-  // onDiscount: (amount: number) => void
 }
 
 function CartRow({ item, onUpdateQty, onRemove }: CartRowProps) {
@@ -150,18 +107,3 @@ function CartRow({ item, onUpdateQty, onRemove }: CartRowProps) {
   )
 }
 
-interface TotalRowProps {
-  label: string
-  value: number
-  bold?: boolean
-  className?: string
-}
-
-function TotalRow({ label, value, bold, className }: TotalRowProps) {
-  return (
-    <div className={cn('flex justify-between', bold ? 'text-base font-bold text-gray-900' : 'text-sm text-gray-600', className)}>
-      <span>{label}</span>
-      <span className={value < 0 ? 'text-green-600' : ''}>{formatCurrency(Math.abs(value))}</span>
-    </div>
-  )
-}

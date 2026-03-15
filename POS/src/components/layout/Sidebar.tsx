@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   ShoppingCart, PackagePlus, Users, Package, Boxes, BarChart3, UserCog, Settings, LayoutDashboard,
@@ -8,6 +9,7 @@ import { NAV_ITEMS } from '@/constants/routes'
 import { useUiStore } from '@/stores/uiStore'
 import { cn } from '@/utils/cn'
 import { APP_NAME } from '@/constants/app'
+import { getPendingCreditRequestCount } from '@/db/queries/customers'
 
 const ICONS: Record<string, LucideIcon> = {
   ShoppingCart, PackagePlus, Users, Package, Boxes, BarChart3, UserCog, Settings, LayoutDashboard,
@@ -16,6 +18,12 @@ const ICONS: Record<string, LucideIcon> = {
 export function Sidebar() {
   const { role } = useAuth()
   const lowStockCount = useUiStore((s) => s.lowStockCount)
+  const creditRequestCount = useUiStore((s) => s.creditRequestCount)
+  const setCreditRequestCount = useUiStore((s) => s.setCreditRequestCount)
+
+  useEffect(() => {
+    getPendingCreditRequestCount().then(setCreditRequestCount)
+  }, [])
 
   const visibleItems = NAV_ITEMS.filter(
     (item) => role && item.roles.includes(role)
@@ -48,9 +56,14 @@ export function Sidebar() {
             >
               {Icon && <Icon size={18} />}
               <span className="flex-1">{item.label}</span>
-              {item.label === 'Billing' && lowStockCount > 0 && (
+              {item.label === 'Products' && lowStockCount > 0 && (
                 <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
                   {lowStockCount}
+                </span>
+              )}
+              {item.label === 'Customers' && creditRequestCount > 0 && (
+                <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                  {creditRequestCount}
                 </span>
               )}
             </NavLink>

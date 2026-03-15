@@ -1,6 +1,6 @@
 import { db } from '@/db'
 import type { Product } from '@/types'
-import { syncProductToFirestore } from '@/services/firestoreSync'
+import { syncProductToFirestore } from '@/services/firebase/sync'
 
 export async function getProductByBarcode(barcode: string): Promise<Product | undefined> {
   return db.products.where('barcode').equals(barcode).first()

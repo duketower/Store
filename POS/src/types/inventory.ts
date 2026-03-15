@@ -1,3 +1,14 @@
+export interface Vendor {
+  id?: number
+  name: string
+  phone?: string
+  gstin?: string
+  address?: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 export type SessionStatus = 'open' | 'closed'
 
 export interface DaySession {
@@ -29,4 +40,35 @@ export interface AuditLogEntry {
   detail: string       // JSON: { before, after, reason }
   userId: number
   createdAt: Date
+}
+
+export interface Grn {
+  id?: number
+  vendorName?: string
+  invoiceNo?: string
+  createdAt: Date
+  createdBy: number   // employeeId
+  totalValue: number
+  lineCount: number
+}
+
+export interface RtvSession {
+  id?: number
+  vendorName?: string
+  invoiceNo?: string  // reference back to vendor's invoice
+  reason: string
+  createdAt: Date
+  createdBy: number
+  totalValue: number
+  lineCount: number
+}
+
+export interface RtvItem {
+  id?: number
+  rtvId: number
+  productId: number
+  batchId: number
+  batchNo: string
+  qty: number
+  purchasePrice: number
 }

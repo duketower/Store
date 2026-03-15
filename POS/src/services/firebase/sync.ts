@@ -4,7 +4,7 @@
  * Never throws — a sync failure must never break the local POS flow.
  */
 import { doc, setDoc, Timestamp } from 'firebase/firestore'
-import { firestore } from './firebase'
+import { firestore } from '.'
 
 function toTimestamp(date: Date): Timestamp {
   return Timestamp.fromDate(date instanceof Date ? date : new Date(date))

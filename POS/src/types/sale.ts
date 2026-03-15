@@ -1,5 +1,5 @@
 export type SaleStatus = 'completed' | 'pending_sync' | 'voided'
-export type PaymentMethod = 'cash' | 'upi' | 'credit' | 'split'
+export type PaymentMethod = 'cash' | 'upi' | 'credit' | 'card' | 'split'
 
 export interface Sale {
   id?: number

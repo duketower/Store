@@ -6,7 +6,7 @@ import { Modal } from '@/components/common/Modal'
 import { db } from '@/db'
 import { useUiStore } from '@/stores/uiStore'
 import type { Employee, Role } from '@/types'
-import { syncEmployeeToFirestore } from '@/services/firestoreSync'
+import { syncEmployeeToFirestore } from '@/services/firebase/sync'
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
@@ -79,7 +79,7 @@ export function UsersPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
-                    {emp.role === 'cashier' ? '4-digit PIN' : 'Username + Password'}
+                    {'4-digit PIN'}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {emp.isActive ? (
@@ -150,22 +150,22 @@ function EmployeeFormModal({
     )
   }, [editEmployee, open])
 
-  const isCashier = form.role === 'cashier'
-  const credLabel = isCashier ? '4-digit PIN' : 'Password'
+  const isCashier = true  // all roles now use PIN
+  const credLabel = '4-digit PIN'
 
   const handleSave = async () => {
     if (!form.name.trim()) { addToast('error', 'Name is required'); return }
     if (!editEmployee && !form.credential) { addToast('error', `${credLabel} is required`); return }
     if (isCashier && form.credential && form.credential.length !== 4) { addToast('error', 'PIN must be 4 digits'); return }
-    if (!isCashier && form.credential && form.credential.length < 6) { addToast('error', 'Password needs 6+ characters'); return }
+    
 
     setSaving(true)
     try {
       const patch: Partial<Employee> = { name: form.name, role: form.role, isActive: editEmployee?.isActive ?? true }
       if (form.credential) {
         const hash = await bcrypt.hash(form.credential, 10)
-        patch.pinHash = isCashier ? hash : undefined
-        patch.passwordHash = isCashier ? undefined : hash
+        patch.pinHash = hash
+        // passwordHash no longer used for login
       }
       let empId: number
       if (editEmployee) {
@@ -208,10 +208,10 @@ function EmployeeFormModal({
           <label className="block text-xs font-medium text-gray-600 mb-1">
             {editEmployee ? `New ${credLabel} (leave blank to keep)` : `${credLabel} *`}
           </label>
-          <input type={isCashier ? 'tel' : 'password'} value={form.credential}
+          <input type="tel" value={form.credential}
             onChange={(e) => setForm((f) => ({ ...f, credential: e.target.value }))}
-            maxLength={isCashier ? 4 : undefined}
-            placeholder={isCashier ? 'e.g. 1234' : 'Min. 6 characters'}
+            maxLength={4}
+            placeholder="e.g. 1234"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
         </div>
         <div className="flex justify-end gap-3 pt-2">

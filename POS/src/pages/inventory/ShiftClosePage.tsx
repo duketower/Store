@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { DollarSign, TrendingUp, TrendingDown, Printer, CheckCircle } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Printer, CheckCircle, Hash } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
 import { useSessionStore } from '@/stores/sessionStore'
@@ -35,7 +35,20 @@ export function ShiftClosePage() {
   const [openingFloat, setOpeningFloat] = useState('')
   const [report, setReport] = useState<ZReport | null>(null)
   const [closed, setClosed] = useState(false)
+  const [showDenomCounter, setShowDenomCounter] = useState(false)
+  const [denoms, setDenoms] = useState<Record<number, string>>({})
   const reportRef = useRef<HTMLDivElement>(null)
+
+  const DENOM_VALUES = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1]
+
+  const denomTotal = DENOM_VALUES.reduce((sum, d) => {
+    const count = parseInt(denoms[d] ?? '0') || 0
+    return sum + d * count
+  }, 0)
+
+  const applyDenomTotal = () => {
+    setClosingCash(String(denomTotal))
+  }
 
   useEffect(() => {
     loadReport()
@@ -211,6 +224,61 @@ export function ShiftClosePage() {
             <InfoCard label="Opening Float" value={formatCurrency(currentSession.openingFloat)} />
             <InfoCard label="Cash Sales Today" value={formatCurrency(report?.cashTotal ?? 0)} />
             <InfoCard label="Expected Cash" value={formatCurrency(report?.expectedCash ?? 0)} highlight />
+          </div>
+
+          {/* Denomination counter */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowDenomCounter((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              <span className="flex items-center gap-2">
+                <Hash size={14} className="text-gray-400" />
+                Count by Denomination
+              </span>
+              <span className="text-xs text-blue-600">
+                {showDenomCounter ? 'Hide' : 'Use calculator'}
+              </span>
+            </button>
+
+            {showDenomCounter && (
+              <div className="p-4 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {DENOM_VALUES.map((d) => (
+                    <div key={d} className="flex items-center gap-2">
+                      <span className="w-16 text-sm text-right font-mono text-gray-600 flex-shrink-0">₹{d}</span>
+                      <span className="text-gray-300 text-xs">×</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denoms[d] ?? ''}
+                        onChange={(e) => setDenoms((prev) => ({ ...prev, [d]: e.target.value }))}
+                        placeholder="0"
+                        className="flex-1 min-w-0 rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-blue-400 focus:outline-none"
+                      />
+                      <span className="w-20 text-sm text-right text-gray-500 flex-shrink-0">
+                        {d * (parseInt(denoms[d] ?? '0') || 0) > 0
+                          ? `= ₹${(d * (parseInt(denoms[d] ?? '0') || 0)).toLocaleString()}`
+                          : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                  <span className="text-sm font-semibold text-gray-900">
+                    Total: ₹{denomTotal.toLocaleString()}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={applyDenomTotal}
+                    className="btn-primary text-sm py-1"
+                  >
+                    Use this total
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

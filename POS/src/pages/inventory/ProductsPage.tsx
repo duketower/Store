@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Edit2, AlertTriangle, Sliders } from 'lucide-react'
+import { Plus, Search, Edit2, AlertTriangle, Sliders, Printer } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { getAllProducts, upsertProduct, adjustStock } from '@/db/queries/products'
@@ -18,12 +18,18 @@ const EMPTY_FORM: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
   unit: 'pcs',
   soldByWeight: false,
   sellingPrice: 0,
+  costPrice: 0,
   mrp: 0,
   taxRate: 0,
   hsnCode: '',
   stock: 0,
   reorderLevel: 5,
   isActive: true,
+}
+
+function calcMargin(sellingPrice: number, costPrice?: number): number | null {
+  if (!costPrice || costPrice <= 0 || sellingPrice <= 0) return null
+  return ((sellingPrice - costPrice) / sellingPrice) * 100
 }
 
 export function ProductsPage() {
@@ -79,6 +85,7 @@ export function ProductsPage() {
       unit: product.unit,
       soldByWeight: product.soldByWeight,
       sellingPrice: product.sellingPrice,
+      costPrice: product.costPrice ?? 0,
       mrp: product.mrp,
       taxRate: product.taxRate,
       hsnCode: product.hsnCode,
@@ -87,6 +94,30 @@ export function ProductsPage() {
       isActive: product.isActive ?? true,
     })
     setModalOpen(true)
+  }
+
+  const printLabel = (p: Product) => {
+    const win = window.open('', '_blank', 'width=320,height=200')
+    if (!win) return
+    win.document.write(`
+      <html><head><title>Label</title>
+      <style>
+        @page { size: 80mm 40mm; margin: 0; }
+        body { font-family: monospace; margin: 6px; width: 72mm; }
+        .name { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; }
+        .price { font-size: 18px; font-weight: bold; margin-top: 2px; }
+        .sub { font-size: 10px; color: #555; }
+        .barcode { font-size: 9px; margin-top: 4px; letter-spacing: 1px; }
+      </style></head><body>
+      <div class="sub">${p.category} · ${p.unit}</div>
+      <div class="name">${p.name}</div>
+      <div class="price">MRP &#8377;${p.mrp.toFixed(2)}</div>
+      ${p.taxRate > 0 ? `<div class="sub">Incl. GST ${p.taxRate}% | HSN: ${p.hsnCode || '—'}</div>` : ''}
+      ${p.barcode ? `<div class="barcode">||||| ${p.barcode} |||||</div>` : ''}
+      <script>window.onload=()=>{window.print();window.close();}<\/script>
+      </body></html>
+    `)
+    win.document.close()
   }
 
   const openAdjust = (product: Product) => {
@@ -173,67 +204,97 @@ export function ProductsPage() {
             <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
               <th className="px-4 py-3 text-left">Product</th>
               <th className="px-4 py-3 text-left">Category</th>
+              <th className="px-4 py-3 text-right">Cost</th>
               <th className="px-4 py-3 text-right">Selling Price</th>
+              <th className="px-4 py-3 text-center">Margin</th>
               <th className="px-4 py-3 text-right">MRP</th>
               <th className="px-4 py-3 text-center">GST</th>
               <th className="px-4 py-3 text-right">Stock</th>
               <th className="px-4 py-3 text-right">Reorder</th>
-              {canEdit && <th className="px-4 py-3 w-12"></th>}
+              <th className="px-4 py-3 w-20"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">No products found</td>
+                <td colSpan={10} className="px-4 py-10 text-center text-gray-400">No products found</td>
               </tr>
             )}
-            {filtered.map((p) => (
-              <tr key={p.id} className={`hover:bg-gray-50 ${isLowStock(p) ? 'bg-amber-50 hover:bg-amber-100' : ''}`}>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {isLowStock(p) && <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />}
-                    <div>
-                      <p className="font-medium text-gray-900">{p.name}</p>
-                      <p className="text-xs text-gray-400">{p.sku} · {p.barcode ?? '—'}</p>
+            {filtered.map((p) => {
+              const margin = calcMargin(p.sellingPrice, p.costPrice)
+              return (
+                <tr key={p.id} className={`hover:bg-gray-50 ${isLowStock(p) ? 'bg-amber-50 hover:bg-amber-100' : ''}`}>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {isLowStock(p) && <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />}
+                      <div>
+                        <p className="font-medium text-gray-900">{p.name}</p>
+                        <p className="text-xs text-gray-400">{p.sku} · {p.barcode ?? '—'}</p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{p.category}</td>
-                <td className="px-4 py-3 text-right font-medium text-gray-900">{formatCurrency(p.sellingPrice)}</td>
-                <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(p.mrp)}</td>
-                <td className="px-4 py-3 text-center">
-                  {p.taxRate > 0 ? (
-                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{p.taxRate}%</span>
-                  ) : (
-                    <span className="text-gray-400 text-xs">Nil</span>
-                  )}
-                </td>
-                <td className={`px-4 py-3 text-right font-semibold ${isLowStock(p) ? 'text-amber-600' : 'text-gray-900'}`}>
-                  {p.stock} {p.unit}
-                </td>
-                <td className="px-4 py-3 text-right text-gray-400">{p.reorderLevel}</td>
-                {canEdit && (
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{p.category}</td>
+                  <td className="px-4 py-3 text-right text-gray-500 text-sm">
+                    {p.costPrice ? formatCurrency(p.costPrice) : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium text-gray-900">{formatCurrency(p.sellingPrice)}</td>
+                  <td className="px-4 py-3 text-center">
+                    {margin !== null ? (
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        margin >= 20 ? 'bg-green-50 text-green-700' :
+                        margin >= 10 ? 'bg-yellow-50 text-yellow-700' :
+                        'bg-red-50 text-red-600'
+                      }`}>
+                        {margin.toFixed(1)}%
+                      </span>
+                    ) : (
+                      <span className="text-gray-300 text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(p.mrp)}</td>
+                  <td className="px-4 py-3 text-center">
+                    {p.taxRate > 0 ? (
+                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{p.taxRate}%</span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Nil</span>
+                    )}
+                  </td>
+                  <td className={`px-4 py-3 text-right font-semibold ${isLowStock(p) ? 'text-amber-600' : 'text-gray-900'}`}>
+                    {p.stock} {p.unit}
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-400">{p.reorderLevel}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <button
-                        onClick={() => openEdit(p)}
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                        title="Edit product"
+                        onClick={() => printLabel(p)}
+                        className="rounded p-1 text-gray-400 hover:bg-purple-50 hover:text-purple-600"
+                        title="Print label"
                       >
-                        <Edit2 size={14} />
+                        <Printer size={14} />
                       </button>
-                      <button
-                        onClick={() => openAdjust(p)}
-                        className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
-                        title="Adjust stock"
-                      >
-                        <Sliders size={14} />
-                      </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => openEdit(p)}
+                            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                            title="Edit product"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => openAdjust(p)}
+                            className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+                            title="Adjust stock"
+                          >
+                            <Sliders size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
-                )}
-              </tr>
-            ))}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -362,10 +423,27 @@ function ProductForm({
           </select>
         </div>
         <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Cost Price (₹)</label>
+          <input type="number" value={form.costPrice || ''} min={0} step={0.01}
+            onChange={(e) => onChange({ costPrice: parseFloat(e.target.value) || 0 })}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+            placeholder="Purchase / landed cost" />
+        </div>
+        <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Selling Price (₹) *</label>
-          <input type="number" value={form.sellingPrice || ''} min={0} step={0.01}
-            onChange={(e) => onChange({ sellingPrice: parseFloat(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+          <div className="relative">
+            <input type="number" value={form.sellingPrice || ''} min={0} step={0.01}
+              onChange={(e) => onChange({ sellingPrice: parseFloat(e.target.value) || 0 })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            {form.costPrice && form.costPrice > 0 && form.sellingPrice > 0 && (
+              <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold ${
+                calcMargin(form.sellingPrice, form.costPrice)! >= 20 ? 'text-green-600' :
+                calcMargin(form.sellingPrice, form.costPrice)! >= 10 ? 'text-yellow-600' : 'text-red-500'
+              }`}>
+                {calcMargin(form.sellingPrice, form.costPrice)!.toFixed(1)}% margin
+              </span>
+            )}
+          </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">MRP (₹)</label>

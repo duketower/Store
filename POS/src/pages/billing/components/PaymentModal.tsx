@@ -28,7 +28,7 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
   const [tab, setTab] = useState<Tab>('cash')
   const [cashTendered, setCashTendered] = useState('')
   const [splitPayments, setSplitPayments] = useState<Record<PaymentMethod, string>>({
-    cash: '', upi: '', credit: '', split: '',
+    cash: '', upi: '', credit: '', card: '', split: '',
   })
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [customerSearch, setCustomerSearch] = useState('')

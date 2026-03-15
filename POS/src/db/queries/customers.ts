@@ -1,6 +1,10 @@
 import { db } from '@/db'
 import type { Customer, CreditLedgerEntry } from '@/types'
-import { syncCustomerToFirestore } from '@/services/firestoreSync'
+import { syncCustomerToFirestore } from '@/services/firebase/sync'
+
+export async function getPendingCreditRequestCount(): Promise<number> {
+  return db.customers.filter((c) => c.creditRequested === true).count()
+}
 
 export async function getCustomerByPhone(phone: string): Promise<Customer | undefined> {
   return db.customers.where('phone').equals(phone).first()
@@ -46,6 +50,22 @@ export async function getCreditHistory(customerId: number): Promise<CreditLedger
 
 export async function addCreditLedgerEntry(entry: Omit<CreditLedgerEntry, 'id'>): Promise<number> {
   return db.credit_ledger.add(entry)
+}
+
+export async function requestCreditLine(customerId: number): Promise<void> {
+  await db.customers.where('id').equals(customerId).modify({ creditRequested: true, updatedAt: new Date() })
+}
+
+export async function approveCreditLine(customerId: number, limit: number): Promise<void> {
+  await db.customers.where('id').equals(customerId).modify({ creditApproved: true, creditRequested: false, creditLimit: limit, updatedAt: new Date() })
+}
+
+export async function declineCreditRequest(customerId: number): Promise<void> {
+  await db.customers.where('id').equals(customerId).modify({ creditRequested: false, updatedAt: new Date() })
+}
+
+export async function revokeCreditLine(customerId: number): Promise<void> {
+  await db.customers.where('id').equals(customerId).modify({ creditApproved: false, creditRequested: false, creditLimit: 0, updatedAt: new Date() })
 }
 
 export async function upsertCustomer(

@@ -4,7 +4,7 @@
  * Never throws — falls back to zeros on failure (offline or rules issue).
  */
 import { collection, query, where, onSnapshot, Timestamp, type QuerySnapshot, type DocumentData } from 'firebase/firestore'
-import { firestore } from './firebase'
+import { firestore } from '.'
 
 export interface TodaySalesSummary {
   totalBills: number

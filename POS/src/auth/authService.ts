@@ -50,6 +50,6 @@ export function isSessionExpired(session: AuthSession): boolean {
   return new Date() > session.expiresAt
 }
 
-export async function getActiveCashiers(): Promise<Employee[]> {
-  return db.employees.filter((e) => e.isActive && e.role === 'cashier').toArray()
+export async function getActiveEmployees(): Promise<Employee[]> {
+  return db.employees.filter((e) => e.isActive === true).sortBy('name')
 }

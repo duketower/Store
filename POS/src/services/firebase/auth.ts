@@ -1,5 +1,5 @@
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth'
-import { auth } from './firebase'
+import { auth } from '.'
 
 /**
  * Resolves when a Firebase anonymous session is established (or already exists).

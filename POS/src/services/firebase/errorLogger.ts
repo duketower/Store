@@ -3,7 +3,7 @@
  * Never throws. Call initErrorMonitoring() once in main.tsx before mounting.
  */
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
-import { firestore, auth } from './firebase'
+import { firestore, auth } from '.'
 
 async function logToFirestore(type: string, message: string, stack?: string): Promise<void> {
   try {

@@ -4,7 +4,7 @@ import { ShoppingCart, TrendingUp, AlertTriangle, Clock, PackageX, ArrowRight } 
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useAuth } from '@/hooks/useAuth'
-import { subscribeTodaySalesSummary } from '@/services/firestoreQueries'
+import { subscribeTodaySalesSummary } from '@/services/firebase/queries'
 import { getLowStockProducts } from '@/db/queries/products'
 import { getNearExpiryBatches } from '@/db/queries/batches'
 import { formatCurrency } from '@/utils/currency'

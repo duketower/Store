@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, ChevronRight, CreditCard, History } from 'lucide-react'
+import { Plus, Search, ChevronRight, CreditCard, History, AlertTriangle, ShieldCheck, ShieldOff } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import {
@@ -9,13 +9,20 @@ import {
   getCreditHistory,
   addCreditLedgerEntry,
   updateCreditBalance,
+  requestCreditLine,
+  approveCreditLine,
+  declineCreditRequest,
+  revokeCreditLine,
+  getPendingCreditRequestCount,
 } from '@/db/queries/customers'
 import { useUiStore } from '@/stores/uiStore'
+import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency } from '@/utils/currency'
 import type { Customer, CreditLedgerEntry } from '@/types'
 
 export function CustomersPage() {
-  const { addToast } = useUiStore()
+  const { addToast, setCreditRequestCount } = useUiStore()
+  const { role } = useAuth()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Customer | null>(null)
@@ -24,6 +31,17 @@ export function CustomersPage() {
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
   const [collectOpen, setCollectOpen] = useState(false)
   const [collectAmount, setCollectAmount] = useState('')
+
+  // Credit approval modal state
+  const [approveModalOpen, setApproveModalOpen] = useState(false)
+  const [approveTarget, setApproveTarget] = useState<Customer | null>(null)
+  const [approveLimit, setApproveLimit] = useState('1000')
+
+  const isManagerOrAdmin = role === 'admin' || role === 'manager'
+  const pendingRequests = customers.filter((c) => c.creditRequested === true)
+
+  const refreshCreditBadge = () =>
+    getPendingCreditRequestCount().then(setCreditRequestCount)
 
   const load = async () => {
     const all = await getAllCustomers()
@@ -34,10 +52,7 @@ export function CustomersPage() {
 
   const handleSearch = async (q: string) => {
     setQuery(q)
-    if (q.trim().length < 2) {
-      load()
-      return
-    }
+    if (q.trim().length < 2) { load(); return }
     const res = await searchCustomers(q)
     setCustomers(res)
   }
@@ -48,56 +63,109 @@ export function CustomersPage() {
     setHistory(ledger)
   }
 
-  const openAdd = () => {
-    setEditCustomer(null)
-    setFormOpen(true)
-  }
-
-  const openEdit = (c: Customer) => {
-    setEditCustomer(c)
-    setFormOpen(true)
-  }
+  const openAdd = () => { setEditCustomer(null); setFormOpen(true) }
+  const openEdit = (c: Customer) => { setEditCustomer(c); setFormOpen(true) }
 
   const handleCollect = async () => {
     const amount = parseFloat(collectAmount)
-    if (!selected || isNaN(amount) || amount <= 0) {
-      addToast('error', 'Enter a valid amount')
-      return
-    }
-    if (amount > selected.currentBalance) {
-      addToast('error', `Amount exceeds outstanding balance of ${formatCurrency(selected.currentBalance)}`)
-      return
-    }
-
+    if (!selected || isNaN(amount) || amount <= 0) { addToast('error', 'Enter a valid amount'); return }
+    if (amount > selected.currentBalance) { addToast('error', `Amount exceeds balance of ${formatCurrency(selected.currentBalance)}`); return }
     try {
       await updateCreditBalance(selected.id!, -amount)
-      await addCreditLedgerEntry({
-        customerId: selected.id!,
-        entryType: 'credit',
-        amount,
-        notes: 'Cash payment received',
-        createdAt: new Date(),
-      })
+      await addCreditLedgerEntry({ customerId: selected.id!, entryType: 'credit', amount, notes: 'Cash payment received', createdAt: new Date() })
       addToast('success', `Collected ${formatCurrency(amount)} from ${selected.name}`)
       setCollectOpen(false)
       setCollectAmount('')
-      // Refresh
       await load()
-      const updated = customers.find((c) => c.id === selected.id)
-      if (updated) {
-        const refreshed = { ...updated, currentBalance: updated.currentBalance - amount }
-        setSelected(refreshed)
-        const ledger = await getCreditHistory(selected.id!)
-        setHistory(ledger)
-      }
-    } catch (err) {
+      const refreshed = { ...selected, currentBalance: selected.currentBalance - amount }
+      setSelected(refreshed)
+      setHistory(await getCreditHistory(selected.id!))
+    } catch {
       addToast('error', 'Failed to record payment')
     }
   }
 
+  const handleRequestCredit = async (c: Customer) => {
+    await requestCreditLine(c.id!)
+    addToast('success', `Credit request submitted — pending approval`)
+    await load()
+    refreshCreditBadge()
+    setSelected({ ...c, creditRequested: true })
+  }
+
+  const openApprove = (c: Customer) => {
+    setApproveTarget(c)
+    setApproveLimit(c.creditLimit > 0 ? String(c.creditLimit) : '1000')
+    setApproveModalOpen(true)
+  }
+
+  const handleApprove = async () => {
+    if (!approveTarget?.id) return
+    const limit = parseInt(approveLimit) || 0
+    await approveCreditLine(approveTarget.id, limit)
+    addToast('success', `Credit approved for ${approveTarget.name}`)
+    refreshCreditBadge()
+    setApproveModalOpen(false)
+    setApproveTarget(null)
+    await load()
+    if (selected?.id === approveTarget.id) setSelected({ ...approveTarget, creditApproved: true, creditRequested: false, creditLimit: limit })
+  }
+
+  const handleDecline = async (c: Customer) => {
+    await declineCreditRequest(c.id!)
+    addToast('info', `Credit request declined for ${c.name}`)
+    await load()
+    refreshCreditBadge()
+    if (selected?.id === c.id) setSelected({ ...c, creditRequested: false })
+  }
+
+  const handleRevoke = async (c: Customer) => {
+    await revokeCreditLine(c.id!)
+    addToast('info', `Credit line revoked for ${c.name}`)
+    await load()
+    if (selected?.id === c.id) setSelected({ ...c, creditApproved: false, creditRequested: false, creditLimit: 0 })
+  }
+
   return (
     <PageContainer title="Customers" subtitle={`${customers.length} customers`}>
-      <div className="flex gap-4 h-[calc(100vh-10rem)]">
+
+      {/* Pending credit requests banner — admin/manager only */}
+      {isManagerOrAdmin && pendingRequests.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle size={16} className="text-amber-600" />
+            <p className="text-sm font-semibold text-amber-700">
+              {pendingRequests.length} pending credit request{pendingRequests.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {pendingRequests.map((c) => (
+              <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                  <p className="text-xs text-gray-400">{c.phone ?? 'No phone'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openApprove(c)}
+                    className="text-xs bg-green-600 text-white rounded-md px-3 py-1 hover:bg-green-700 transition-colors"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleDecline(c)}
+                    className="text-xs bg-red-50 text-red-600 border border-red-200 rounded-md px-3 py-1 hover:bg-red-100 transition-colors"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-4 h-[calc(100vh-12rem)]">
         {/* Left: Customer list */}
         <div className="w-72 flex-shrink-0 flex flex-col gap-3">
           <div className="flex gap-2">
@@ -132,12 +200,9 @@ export function CustomersPage() {
                   <p className="text-sm font-medium text-gray-900">{c.name}</p>
                   <p className="text-xs text-gray-400">{c.phone ?? 'No phone'}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {c.currentBalance > 0 && (
-                    <span className="text-xs font-semibold text-red-600">
-                      {formatCurrency(c.currentBalance)}
-                    </span>
-                  )}
+                <div className="flex items-center gap-1.5">
+                  {c.creditRequested && <span className="w-2 h-2 rounded-full bg-amber-400" title="Credit request pending" />}
+                  {c.creditApproved && <ShieldCheck size={12} className="text-green-500" />}
                   <ChevronRight size={14} className="text-gray-300" />
                 </div>
               </button>
@@ -163,17 +228,14 @@ export function CustomersPage() {
                     <h2 className="text-lg font-semibold text-gray-900">{selected.name}</h2>
                     <p className="text-sm text-gray-500">{selected.phone ?? 'No phone'}</p>
                   </div>
-                  <button
-                    onClick={() => openEdit(selected)}
-                    className="text-sm text-blue-600 hover:underline"
-                  >
+                  <button onClick={() => openEdit(selected)} className="text-sm text-blue-600 hover:underline">
                     Edit
                   </button>
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-4">
                   <div className="rounded-lg bg-red-50 p-3">
-                    <p className="text-xs font-medium text-red-600 mb-1">Outstanding (Udhaar)</p>
+                    <p className="text-xs font-medium text-red-600 mb-1">Outstanding Credit</p>
                     <p className="text-xl font-bold text-red-700">{formatCurrency(selected.currentBalance)}</p>
                   </div>
                   <div className="rounded-lg bg-gray-50 p-3">
@@ -194,6 +256,68 @@ export function CustomersPage() {
                     <CreditCard size={16} />
                     Collect Payment
                   </button>
+                )}
+              </div>
+
+              {/* Credit Line section */}
+              <div className="rounded-lg border border-gray-200 bg-white p-5">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Credit Line</h3>
+
+                {selected.creditApproved ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <ShieldCheck size={16} />
+                      <span className="text-sm font-medium">Approved — limit {formatCurrency(selected.creditLimit)}</span>
+                    </div>
+                    {isManagerOrAdmin && (
+                      <button
+                        onClick={() => handleRevoke(selected)}
+                        className="flex items-center gap-1 text-xs text-red-600 border border-red-200 rounded-md px-2 py-1 hover:bg-red-50"
+                      >
+                        <ShieldOff size={12} />
+                        Revoke
+                      </button>
+                    )}
+                  </div>
+                ) : selected.creditRequested ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-600">
+                      <AlertTriangle size={15} />
+                      <span className="text-sm">Request pending approval</span>
+                    </div>
+                    {isManagerOrAdmin && (
+                      <div className="flex gap-2">
+                        <button onClick={() => openApprove(selected)} className="text-xs bg-green-600 text-white rounded-md px-3 py-1 hover:bg-green-700">
+                          Approve
+                        </button>
+                        <button onClick={() => handleDecline(selected)} className="text-xs text-red-600 border border-red-200 rounded-md px-3 py-1 hover:bg-red-50">
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-400">Not enabled</p>
+                    <div className="flex gap-2">
+                      {!isManagerOrAdmin && (
+                        <button
+                          onClick={() => handleRequestCredit(selected)}
+                          className="text-xs text-blue-600 border border-blue-200 rounded-md px-3 py-1 hover:bg-blue-50"
+                        >
+                          Request Credit Line
+                        </button>
+                      )}
+                      {isManagerOrAdmin && (
+                        <button
+                          onClick={() => openApprove(selected)}
+                          className="text-xs bg-green-600 text-white rounded-md px-3 py-1 hover:bg-green-700"
+                        >
+                          Enable Credit
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -235,14 +359,12 @@ export function CustomersPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         editCustomer={editCustomer}
-        onSaved={async () => {
-          await load()
-          setFormOpen(false)
-        }}
+        onSaved={async () => { await load(); setFormOpen(false) }}
+        role={role}
       />
 
       {/* Collect payment modal */}
-      <Modal open={collectOpen} onClose={() => setCollectOpen(false)} title="Collect Udhaar Payment" size="sm">
+      <Modal open={collectOpen} onClose={() => setCollectOpen(false)} title="Collect Credit Payment" size="sm">
         <div className="space-y-4">
           <div>
             <p className="text-sm text-gray-600 mb-1">
@@ -268,6 +390,31 @@ export function CustomersPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Approve credit modal */}
+      {approveModalOpen && approveTarget && (
+        <Modal open onClose={() => setApproveModalOpen(false)} title={`Approve Credit — ${approveTarget.name}`} size="sm">
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">Set the maximum credit limit for this customer.</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Credit Limit (₹)</label>
+              <input
+                type="number"
+                value={approveLimit}
+                onChange={(e) => setApproveLimit(e.target.value)}
+                min={0}
+                step={100}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setApproveModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
+              <button onClick={handleApprove} className="btn-primary flex-1">Approve Credit</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </PageContainer>
   )
 }
@@ -277,14 +424,16 @@ function CustomerFormModal({
   onClose,
   editCustomer,
   onSaved,
+  role,
 }: {
   open: boolean
   onClose: () => void
   editCustomer: Customer | null
   onSaved: () => void
+  role: string | null
 }) {
   const { addToast } = useUiStore()
-  const [form, setForm] = useState({ name: '', phone: '', creditLimit: 1000, loyaltyPoints: 0 })
+  const [form, setForm] = useState({ name: '', phone: '', creditLimit: 0, loyaltyPoints: 0 })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -296,7 +445,7 @@ function CustomerFormModal({
         loyaltyPoints: editCustomer.loyaltyPoints,
       })
     } else {
-      setForm({ name: '', phone: '', creditLimit: 1000, loyaltyPoints: 0 })
+      setForm({ name: '', phone: '', creditLimit: 0, loyaltyPoints: 0 })
     }
   }, [editCustomer, open])
 
@@ -308,6 +457,8 @@ function CustomerFormModal({
         ...form,
         id: editCustomer?.id,
         currentBalance: editCustomer?.currentBalance ?? 0,
+        creditApproved: editCustomer?.creditApproved ?? false,
+        creditRequested: editCustomer?.creditRequested ?? false,
         createdAt: editCustomer?.createdAt ?? new Date(),
         updatedAt: new Date(),
       })
@@ -334,10 +485,14 @@ function CustomerFormModal({
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Credit Limit (₹)</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Credit Limit (₹)
+            {role !== 'admin' && <span className="ml-1 text-gray-400">(Admin only)</span>}
+          </label>
           <input type="number" value={form.creditLimit} min={0}
+            disabled={role !== 'admin'}
             onChange={(e) => setForm((f) => ({ ...f, creditLimit: parseInt(e.target.value) || 0 }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed" />
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="btn-secondary">Cancel</button>

@@ -211,14 +211,16 @@ export async function seedDatabase(): Promise<void> {
     })
   }
 
-  // Seed customers with credit balances
-  await db.customers.bulkAdd([
+  // Seed customers with credit balances (bulkPut = upsert so stale data gets corrected)
+  await db.customers.bulkPut([
     {
       name: 'Ramesh Kumar',
       phone: '9876543210',
       creditLimit: 2000,
       currentBalance: 850,  // owes ₹850
       loyaltyPoints: 120,
+      creditApproved: true,
+      creditRequested: false,
       createdAt: now,
       updatedAt: now,
     },
@@ -228,6 +230,8 @@ export async function seedDatabase(): Promise<void> {
       creditLimit: 1000,
       currentBalance: 0,
       loyaltyPoints: 45,
+      creditApproved: true,
+      creditRequested: false,
       createdAt: now,
       updatedAt: now,
     },

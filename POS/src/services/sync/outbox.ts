@@ -1,5 +1,5 @@
 import { db } from '@/db'
-import { syncSaleToFirestore, syncProductToFirestore, syncCustomerToFirestore } from '@/services/firestoreSync'
+import { syncSaleToFirestore, syncProductToFirestore, syncCustomerToFirestore } from '@/services/firebase/sync'
 
 /**
  * Flush pending outbox entries to Firestore.

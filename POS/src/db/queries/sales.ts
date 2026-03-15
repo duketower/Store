@@ -3,7 +3,7 @@ import type { Sale, SaleItem, Payment, CartItem } from '@/types'
 import { deductStockFEFO } from './batches'
 import { updateStock } from './products'
 import { updateCreditBalance, addCreditLedgerEntry } from './customers'
-import { syncSaleToFirestore, syncProductToFirestore, syncBatchToFirestore, syncCustomerToFirestore } from '@/services/firestoreSync'
+import { syncSaleToFirestore, syncProductToFirestore, syncBatchToFirestore, syncCustomerToFirestore } from '@/services/firebase/sync'
 
 export interface CreateSaleInput {
   billNo: string

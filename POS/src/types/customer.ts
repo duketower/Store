@@ -5,6 +5,8 @@ export interface Customer {
   creditLimit: number
   currentBalance: number  // positive = they owe us
   loyaltyPoints: number
+  creditApproved: boolean   // admin/manager must enable before credit sales allowed
+  creditRequested: boolean  // cashier can flag a request; admin/manager approves
   createdAt: Date
   updatedAt: Date
 }

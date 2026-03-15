@@ -7,6 +7,7 @@ export interface Product {
   unit: string           // display unit: 'kg', 'g', 'pcs', 'litre', 'ml'
   soldByWeight: boolean  // if true, billing page reads from scale
   sellingPrice: number   // tax-inclusive MRP for retail
+  costPrice?: number     // purchase/cost price for margin calculation
   mrp: number
   taxRate: number        // total GST %: 0, 5, 12, 18, 28
   hsnCode: string
@@ -28,4 +29,7 @@ export interface Batch {
   purchasePrice: number
   qtyRemaining: number
   createdAt: Date
+  vendor?: string     // vendor name saved at time of GRN
+  invoiceNo?: string  // vendor's invoice/bill number
+  grnId?: number      // links batch to its GRN session
 }
