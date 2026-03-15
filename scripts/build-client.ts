@@ -50,7 +50,7 @@ console.log(`🔨 Building client: ${clientId}`)
 mkdirSync(outputDir, { recursive: true })
 
 try {
-  execSync(`npm run build -- --outDir "${outputDir}"`, {
+  execSync(`npm run build -- --outDir "${outputDir}" --emptyOutDir`, {
     cwd: posDir,
     env: { ...process.env, CLIENT: clientId },
     stdio: 'inherit',
