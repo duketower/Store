@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  ShoppingCart, PackagePlus, Users, Package, Boxes, BarChart3, UserCog, Settings, LayoutDashboard, Truck,
+  ShoppingCart, PackagePlus, Users, Package, Boxes, BarChart3, UserCog, Settings, LayoutDashboard, Truck, CalendarDays,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,7 +13,7 @@ import { hasFeature } from '@/constants/features'
 import { getPendingCreditRequestCount } from '@/db/queries/customers'
 
 const ICONS: Record<string, LucideIcon> = {
-  ShoppingCart, PackagePlus, Users, Package, Boxes, BarChart3, UserCog, Settings, LayoutDashboard, Truck,
+  ShoppingCart, PackagePlus, Users, Package, Boxes, BarChart3, UserCog, Settings, LayoutDashboard, Truck, CalendarDays,
 }
 
 export function Sidebar() {

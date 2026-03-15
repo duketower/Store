@@ -8,6 +8,7 @@ export interface Employee {
   passwordHash?: string  // admin/manager only
   isActive: boolean
   createdAt: Date
+  monthlyLeaveAllotment?: number  // default 3 when absent; admin-editable per employee
 }
 
 export interface AuthSession {

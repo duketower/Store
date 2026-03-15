@@ -15,6 +15,7 @@ import { UsersPage } from '@/pages/users/UsersPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { MigrationPage } from '@/pages/settings/MigrationPage'
 import { ErrorLogPage } from '@/pages/settings/ErrorLogPage'
+import { AttendancePage } from '@/pages/attendance/AttendancePage'
 import { ROUTES } from '@/constants/routes'
 
 export function AppRoutes() {
@@ -121,6 +122,16 @@ export function AppRoutes() {
             <ProtectedRoute requiredRoles={['admin']}>
               <ErrorLogPage />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Plan-gated: attendance requires 'attendance' feature (pro+) */}
+        <Route
+          path={ROUTES.ATTENDANCE}
+          element={
+            <ProtectedFeatureRoute feature="attendance">
+              <AttendancePage />
+            </ProtectedFeatureRoute>
           }
         />
       </Route>

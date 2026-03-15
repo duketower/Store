@@ -140,13 +140,13 @@ function EmployeeFormModal({
   onSaved: () => void
 }) {
   const { addToast } = useUiStore()
-  const [form, setForm] = useState({ name: '', role: 'cashier' as Role, credential: '' })
+  const [form, setForm] = useState({ name: '', role: 'cashier' as Role, credential: '', monthlyLeaveAllotment: 3 })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     setForm(editEmployee
-      ? { name: editEmployee.name, role: editEmployee.role, credential: '' }
-      : { name: '', role: 'cashier', credential: '' }
+      ? { name: editEmployee.name, role: editEmployee.role, credential: '', monthlyLeaveAllotment: editEmployee.monthlyLeaveAllotment ?? 3 }
+      : { name: '', role: 'cashier', credential: '', monthlyLeaveAllotment: 3 }
     )
   }, [editEmployee, open])
 
@@ -161,7 +161,7 @@ function EmployeeFormModal({
 
     setSaving(true)
     try {
-      const patch: Partial<Employee> = { name: form.name, role: form.role, isActive: editEmployee?.isActive ?? true }
+      const patch: Partial<Employee> = { name: form.name, role: form.role, isActive: editEmployee?.isActive ?? true, monthlyLeaveAllotment: form.monthlyLeaveAllotment }
       if (form.credential) {
         const hash = await bcrypt.hash(form.credential, 10)
         patch.pinHash = hash
@@ -213,6 +213,13 @@ function EmployeeFormModal({
             maxLength={4}
             placeholder="e.g. 1234"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Monthly Leave Allotment</label>
+          <input type="number" value={form.monthlyLeaveAllotment} min={0} max={31}
+            onChange={(e) => setForm((f) => ({ ...f, monthlyLeaveAllotment: Math.max(0, Math.min(31, Number(e.target.value))) }))}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+          <p className="text-xs text-gray-400 mt-1">Number of paid leaves per month (default: 3)</p>
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="btn-secondary">Cancel</button>

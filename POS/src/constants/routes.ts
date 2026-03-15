@@ -15,6 +15,7 @@ export const ROUTES = {
   SETTINGS: '/settings',
   MIGRATION: '/settings/migrate',
   ERROR_LOG: '/settings/errors',
+  ATTENDANCE: '/attendance',
 } as const
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
@@ -23,7 +24,7 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 // Adding a new icon here without adding it to Sidebar's ICONS map causes a missing icon at runtime.
 export type NavIconName =
   | 'ShoppingCart' | 'PackagePlus' | 'Users' | 'Package'
-  | 'Boxes' | 'BarChart3' | 'UserCog' | 'Settings' | 'LayoutDashboard' | 'Truck'
+  | 'Boxes' | 'BarChart3' | 'UserCog' | 'Settings' | 'LayoutDashboard' | 'Truck' | 'CalendarDays'
 
 export interface NavItem {
   label: string
@@ -44,6 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Vendors',      path: ROUTES.VENDORS,       icon: 'Truck',           roles: ['admin', 'manager'],            feature: 'rtv' },
   { label: 'Shift',        path: ROUTES.SHIFT_CLOSE,   icon: 'Boxes',           roles: ['admin', 'manager', 'cashier'] },
   { label: 'Reports',      path: ROUTES.REPORTS,       icon: 'BarChart3',       roles: ['admin', 'manager'],            feature: 'reports' },
+  { label: 'Attendance',   path: ROUTES.ATTENDANCE,    icon: 'CalendarDays',    roles: ['admin', 'manager', 'cashier'], feature: 'attendance' },
   { label: 'Users',        path: ROUTES.USERS,         icon: 'UserCog',         roles: ['admin'] },
   { label: 'Settings',     path: ROUTES.SETTINGS,      icon: 'Settings',        roles: ['admin'] },
 ]

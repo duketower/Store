@@ -23,6 +23,7 @@ const PLAN_FEATURES: Record<PlanTier, PlanFeature[]> = {
     'sheets_export',
     'advanced_reports',
     'weighing_scale',
+    'attendance',
   ],
   enterprise: [
     'billing',
@@ -37,6 +38,7 @@ const PLAN_FEATURES: Record<PlanTier, PlanFeature[]> = {
     'sheets_export',
     'advanced_reports',
     'weighing_scale',
+    'attendance',
     'api_webhooks',
     'custom_branding',
   ],

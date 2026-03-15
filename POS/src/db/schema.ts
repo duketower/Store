@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Employee, Product, Batch, Customer, CreditLedgerEntry, Sale, SaleItem, Payment, DaySession, OutboxEntry, AuditLogEntry, Vendor, Grn, RtvSession, RtvItem } from '@/types'
+import type { Employee, Product, Batch, Customer, CreditLedgerEntry, Sale, SaleItem, Payment, DaySession, OutboxEntry, AuditLogEntry, Vendor, Grn, RtvSession, RtvItem, ExternalStaff, AttendanceLog, LeaveRequest } from '@/types'
 import { DB_NAME } from '@/constants/app'
 
 export class PosDatabase extends Dexie {
@@ -18,6 +18,9 @@ export class PosDatabase extends Dexie {
   grns!: Table<Grn>
   rtvs!: Table<RtvSession>
   rtv_items!: Table<RtvItem>
+  staff_external!: Table<ExternalStaff>
+  attendance_logs!: Table<AttendanceLog>
+  leave_requests!: Table<LeaveRequest>
 
   constructor() {
     super(DB_NAME)
@@ -81,5 +84,36 @@ export class PosDatabase extends Dexie {
       rtvs:          '++id, createdAt, createdBy',
       rtv_items:     '++id, rtvId, productId, batchId',
     })
+
+    // v5: Attendance & Leave Management
+    // Backfills monthlyLeaveAllotment = 3 on all existing employees.
+    this.version(5)
+      .stores({
+        employees:        '++id, role, isActive',
+        products:         '++id, barcode, sku, category, stock, reorderLevel',
+        batches:          '++id, productId, expiryDate, batchNo, grnId',
+        customers:        '++id, phone, name',
+        sales:            '++id, billNo, customerId, cashierId, status, createdAt',
+        sale_items:       '++id, saleId, productId, batchId',
+        payments:         '++id, saleId, method, createdAt',
+        credit_ledger:    '++id, customerId, saleId, entryType, createdAt',
+        day_sessions:     '++id, openedBy, status, openedAt',
+        outbox:           '++id, action, createdAt',
+        audit_log:        '++id, action, entityType, createdAt, userId',
+        vendors:          '++id, name, isActive',
+        grns:             '++id, createdAt, createdBy',
+        rtvs:             '++id, createdAt, createdBy',
+        rtv_items:        '++id, rtvId, productId, batchId',
+        staff_external:   '++id, name, isActive',
+        attendance_logs:  '++id, staffId, date, [staffType+date], status, loggedBy',
+        leave_requests:   '++id, employeeId, status, startDate, [employeeId+status]',
+      })
+      .upgrade(tx =>
+        tx.table('employees').toCollection().modify((emp: Employee) => {
+          if (emp.monthlyLeaveAllotment === undefined) {
+            emp.monthlyLeaveAllotment = 3
+          }
+        })
+      )
   }
 }

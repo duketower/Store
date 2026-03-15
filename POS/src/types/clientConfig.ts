@@ -21,6 +21,7 @@ export type PlanFeature =
   | 'sheets_export'
   | 'advanced_reports'
   | 'weighing_scale'
+  | 'attendance'
   // enterprise only
   | 'api_webhooks'
   | 'custom_branding'
