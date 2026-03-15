@@ -9,7 +9,7 @@ import { ensureAnonymousAuth } from './services/firebase/auth'
 import { startFirestoreListeners } from './services/sync/firestoreListener'
 import { ExpiredLicenseScreen } from './components/common/ExpiredLicenseScreen'
 import { CLIENT_CONFIG } from './constants/clientConfig'
-import { isLicenseExpired } from './constants/features'
+import { isLicenseExpired, hasFeature } from './constants/features'
 import './styles/globals.css'
 
 // Catch uncaught errors and unhandled rejections → Firestore errors collection
@@ -30,19 +30,23 @@ if (isLicenseExpired(CLIENT_CONFIG.licenseExpiresAt)) {
   seedDatabase()
     .catch(console.error)
     .finally(async () => {
-      // Establish anonymous Firebase Auth session so Firestore rules (request.auth != null) pass.
-      // Best-effort: never blocks mount if offline or Auth is unavailable.
-      await ensureAnonymousAuth().catch((err) =>
-        console.warn('[Auth] Anonymous sign-in failed (offline?):', err)
-      )
+      // Firebase sync is a Pro+ feature — only establish auth and start listeners when the plan
+      // includes firebase_sync. Free-plan builds run fully offline with no Firebase calls.
+      if (hasFeature(CLIENT_CONFIG.plan, 'firebase_sync')) {
+        // Establish anonymous Firebase Auth session so Firestore rules (request.auth != null) pass.
+        // Best-effort: never blocks mount if offline or Auth is unavailable.
+        await ensureAnonymousAuth().catch((err) =>
+          console.warn('[Auth] Anonymous sign-in failed (offline?):', err)
+        )
 
-      // Real-time Firestore → Dexie sync: keep local stock/customer data current across devices.
-      // Must start after auth so the onSnapshot subscriptions pass security rules.
-      startFirestoreListeners()
+        // Real-time Firestore → Dexie sync: keep local stock/customer data current across devices.
+        // Must start after auth so the onSnapshot subscriptions pass security rules.
+        startFirestoreListeners()
 
-      // Flush any sales that failed to sync while offline, and re-flush whenever connectivity returns
-      flushOutbox()
-      window.addEventListener('online', flushOutbox)
+        // Flush any sales that failed to sync while offline, and re-flush whenever connectivity returns
+        flushOutbox()
+        window.addEventListener('online', flushOutbox)
+      }
 
       root.render(
         <StrictMode>

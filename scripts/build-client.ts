@@ -11,7 +11,7 @@
  */
 
 import { execSync } from 'child_process'
-import { existsSync, mkdirSync, readFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { validateClient } from './validate-client.js'
@@ -38,7 +38,7 @@ const posDir     = resolve(ROOT, 'POS')
 const deployConfig = JSON.parse(
   readFileSync(resolve(clientDir, 'deploy.config.json'), 'utf-8')
 )
-const { firebaseProjectId, status } = deployConfig
+const { firebaseProjectId, hostingTarget, status } = deployConfig
 
 if (status === 'inactive') {
   console.log(`⏭  Skipping inactive client: ${clientId}`)
@@ -62,18 +62,41 @@ try {
 
 console.log(`\n✅ Build complete → ${outputDir}`)
 
-// Step 3: Deploy to Firebase Hosting
-console.log(`🚀 Deploying to Firebase project: ${firebaseProjectId}`)
+// Step 3: Write firebase.json + .firebaserc into the deployment folder so the Firebase CLI
+// knows which folder to serve and which project/target to deploy to.
+const deployDir = resolve(ROOT, `deployments/client-${clientId}`)
+const target = hostingTarget ?? firebaseProjectId
+
+const firebaseJson = {
+  hosting: {
+    target,
+    public: 'dist',
+    ignore: ['firebase.json', '**/.*', '**/node_modules/**'],
+    rewrites: [{ source: '**', destination: '/index.html' }],
+  },
+}
+const firebaseRc = {
+  projects: { default: firebaseProjectId },
+  targets: {
+    [firebaseProjectId]: {
+      hosting: { [target]: [target] },
+    },
+  },
+}
+writeFileSync(resolve(deployDir, 'firebase.json'), JSON.stringify(firebaseJson, null, 2))
+writeFileSync(resolve(deployDir, '.firebaserc'), JSON.stringify(firebaseRc, null, 2))
+
+// Step 4: Deploy to Firebase Hosting
+console.log(`🚀 Deploying to Firebase project: ${firebaseProjectId} (target: ${target})`)
 
 try {
-  execSync(`firebase deploy --only hosting --project ${firebaseProjectId}`, {
-    cwd: outputDir,
-    stdio: 'inherit',
-  })
+  execSync(
+    `firebase deploy --only hosting:${target} --project ${firebaseProjectId}`,
+    { cwd: deployDir, stdio: 'inherit' }
+  )
 } catch {
   console.error(`\n❌ Deploy failed for "${clientId}"`)
   console.error('   Ensure firebase-tools is installed: npm install -g firebase-tools')
-  console.error(`   And that firebase.json exists in: ${outputDir}`)
   process.exit(1)
 }
 

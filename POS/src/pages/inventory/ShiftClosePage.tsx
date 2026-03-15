@@ -10,6 +10,8 @@ import { formatCurrency } from '@/utils/currency'
 import { db } from '@/db'
 import { exportShiftToSheets } from '@/services/sync/sheetsExport'
 import { loadStoreConfig } from '@/utils/storeConfig'
+import { CLIENT_CONFIG } from '@/constants/clientConfig'
+import { hasFeature } from '@/constants/features'
 
 interface ZReport {
   totalBills: number
@@ -150,11 +152,11 @@ export function ShiftClosePage() {
       setClosed(true)
       addToast('success', 'Shift closed successfully')
 
-      // Fire-and-forget export to Google Sheets
+      // Fire-and-forget export to Google Sheets (Pro+ feature only)
       const { sheetsWebAppUrl } = loadStoreConfig()
       const today = new Date().toISOString().slice(0, 10)
       const gstTotal = report.gstByRate.reduce((s, g) => s + g.taxAmount, 0)
-      exportShiftToSheets(
+      if (hasFeature(CLIENT_CONFIG.plan, 'sheets_export') && sheetsWebAppUrl) exportShiftToSheets(
         {
           date: today,
           cashierName: session!.name,

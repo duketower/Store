@@ -82,18 +82,20 @@ export async function runMigration(onProgress: ProgressCallback): Promise<void> 
   onProgress({ stage: 'Customers', done: customers.length, total: customers.length })
 
   // ── Employees ────────────────────────────────────────────────────────────────
-  // pinHash / passwordHash are bcrypt hashes — safe to store in Firestore.
+  // Strip credential hashes before syncing to Firestore — hashes stay in IndexedDB only.
+  // This prevents bcrypt hashes from being readable by any device with anonymous auth.
   const employees = await db.employees.toArray()
   onProgress({ stage: 'Employees', done: 0, total: employees.length })
   await batchWrite(
     'employees',
-    employees.map((e) => ({
-      id: e.id!,
-      data: {
-        ...e,
-        createdAt: toTs(e.createdAt),
-      },
-    }))
+    employees.map((e) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { passwordHash, pinHash, ...safeFields } = e
+      return {
+        id: e.id!,
+        data: { ...safeFields, createdAt: toTs(e.createdAt) },
+      }
+    })
   )
   onProgress({ stage: 'Employees', done: employees.length, total: employees.length })
 

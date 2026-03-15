@@ -20,9 +20,13 @@ service cloud.firestore {
     match /products/{id}     { allow read, write: if request.auth != null; }
     match /batches/{id}      { allow read, write: if request.auth != null; }
     match /customers/{id}    { allow read, write: if request.auth != null; }
-    match /employees/{id}    { allow read, write: if request.auth != null; }
     match /day_sessions/{id} { allow read, write: if request.auth != null; }
     match /outbox/{id}       { allow read, write: if request.auth != null; }
+
+    // Employee records — credential hashes (passwordHash, pinHash) are stripped before syncing
+    // (see migration.ts). Only name, role, isActive are stored here for cross-device visibility.
+    // Write access is intentionally kept so the migration can push initial records.
+    match /employees/{id}    { allow read, write: if request.auth != null; }
 
     // Global counters (bill number deduplication across devices).
     match /counters/{id}     { allow read, write: if request.auth != null; }
