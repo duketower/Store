@@ -3,7 +3,7 @@ import { BarChart3, Package, AlertTriangle, Download, Receipt, Truck, CreditCard
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { Receipt as ReceiptView } from '@/pages/billing/components/Receipt'
-import { getAllProducts, searchProducts, getLowStockProducts } from '@/db/queries/products'
+import { getAllProducts, searchProducts } from '@/db/queries/products'
 import { getNearExpiryBatches, getBatchesForProduct } from '@/db/queries/batches'
 import { getSaleWithItems, processReturn, type ReturnItem } from '@/db/queries/sales'
 import { getAllCustomers, updateCreditBalance, addCreditLedgerEntry } from '@/db/queries/customers'
@@ -71,7 +71,6 @@ export function ReportsPage() {
   const [viewReceiptData, setViewReceiptData] = useState<{
     sale: Sale; items: Array<SaleItem & { productName: string; unit: string }>; payments: Payment[]; cashierName: string
   } | null>(null)
-  const [viewGrnInvoice, setViewGrnInvoice] = useState<string | null>(null)
   const { employeeId } = useAuth()
 
   // Bills filters
@@ -783,128 +782,115 @@ export function ReportsPage() {
       {/* GRN History */}
       {tab === 'grn' && (
         <div className="space-y-3">
-          {/* Filters */}
-          <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-              <input
-                type="text"
-                value={grnSearch}
-                onChange={(e) => setGrnSearch(e.target.value)}
-                placeholder="Search product, batch no, vendor or invoice no…"
-                className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {([
-                { val: '', label: 'All' },
-                { val: 'active', label: 'Active' },
-                { val: 'near_expiry', label: 'Near Expiry' },
-                { val: 'expired', label: 'Expired' },
-                { val: 'depleted', label: 'Depleted' },
-              ]).map(({ val, label }) => (
-                <button key={val} onClick={() => setGrnStatus(val)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${grnStatus === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}>
-                  {label}
-                </button>
-              ))}
-              <div className="ml-auto flex items-center gap-2">
-                <select value={grnSort} onChange={(e) => setGrnSort(e.target.value as typeof grnSort)}
-                  className="rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none">
-                  <option value="date_desc">Newest received</option>
-                  <option value="date_asc">Oldest received</option>
-                  <option value="expiry_asc">Expiry soonest</option>
-                  <option value="expiry_desc">Expiry latest</option>
-                  <option value="product_asc">Product A→Z</option>
-                </select>
-                {grnFiltersActive && (
-                  <button onClick={() => { setGrnSearch(''); setGrnStatus(''); setGrnSort('date_desc') }}
-                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
-                    <X size={12} /> Clear
-                  </button>
-                )}
-                <span className="text-xs text-gray-400">
-                  {grnFiltersActive ? `${filteredGrn.length} of ${grnData?.length ?? 0}` : `${grnData?.length ?? 0} entries`}
-                </span>
-                <button onClick={exportGrnCSV} disabled={!grnData?.length} className="btn-secondary flex items-center gap-1 text-xs">
-                  <Download size={12} /> CSV
-                </button>
-              </div>
-            </div>
-          </div>
-
           {loading ? (
             <p className="text-sm text-gray-400">Loading…</p>
-          ) : grnData && grnData.length === 0 ? (
+          ) : grnListData && grnListData.length === 0 ? (
             <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
               <Truck size={32} className="mx-auto mb-3 opacity-30" />
               <p>No GRN entries yet</p>
             </div>
-          ) : filteredGrn.length === 0 ? (
-            <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
-              <Search size={32} className="mx-auto mb-3 opacity-30" />
-              <p>No entries match your filters</p>
-            </div>
-          ) : (
+          ) : grnListData ? (
             <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="border-b border-gray-200 bg-gray-50">
                   <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    <th className="px-4 py-3 text-left">Product</th>
-                    <th className="px-4 py-3 text-left">Batch No</th>
+                    <th className="px-4 py-3 text-left">GRN ID</th>
+                    <th className="px-4 py-3 text-left">Date & Time</th>
                     <th className="px-4 py-3 text-left">Vendor</th>
                     <th className="px-4 py-3 text-left">Invoice No</th>
-                    <th className="px-4 py-3 text-left">Expiry</th>
-                    <th className="px-4 py-3 text-right">Qty Remaining</th>
-                    <th className="px-4 py-3 text-right">Purchase Price</th>
-                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 text-right">Products</th>
+                    <th className="px-4 py-3 text-right">Total Value</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredGrn.map((batch) => {
-                    const expiry = new Date(batch.expiryDate)
-                    const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000)
-                    const isExpired = daysLeft <= 0
-                    const isNearExpiry = daysLeft > 0 && daysLeft <= NEAR_EXPIRY_DAYS
-                    return (
-                      <tr key={batch.id} className={isExpired ? 'bg-red-50' : isNearExpiry ? 'bg-amber-50' : 'hover:bg-gray-50'}>
-                        <td className="px-4 py-3 font-medium text-gray-900">{batch.productName}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-gray-600">{batch.batchNo}</td>
-                        <td className="px-4 py-3 text-xs text-gray-600">{batch.vendor ?? <span className="text-gray-300">—</span>}</td>
-                        <td className="px-4 py-3">
-                          {batch.invoiceNo ? (
-                            <button onClick={() => setViewGrnInvoice(batch.invoiceNo!)} className="font-mono text-xs text-blue-700 hover:underline">
-                              {batch.invoiceNo}
-                            </button>
-                          ) : <span className="text-gray-300 text-xs">—</span>}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-gray-600">
-                          {expiry.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          {isExpired && <span className="ml-1 text-red-600 font-medium">(expired)</span>}
-                          {isNearExpiry && <span className="ml-1 text-amber-600">({daysLeft}d left)</span>}
-                        </td>
-                        <td className="px-4 py-3 text-right text-gray-700">{batch.qtyRemaining}</td>
-                        <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(batch.purchasePrice)}</td>
-                        <td className="px-4 py-3 text-center">
-                          {isExpired ? (
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Expired</span>
-                          ) : isNearExpiry ? (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Near Expiry</span>
-                          ) : batch.qtyRemaining === 0 ? (
-                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Depleted</span>
-                          ) : (
-                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Active</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
+                  {grnListData.map((grn) => (
+                    <tr key={grn.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => openGrnDetail(grn.id!)}
+                          className="font-mono text-sm font-bold text-blue-700 hover:underline"
+                        >
+                          GRN-{String(grn.id).padStart(4, '0')}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">
+                        {new Date(grn.createdAt).toLocaleString('en-IN', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{grn.vendorName ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-600">{grn.invoiceNo ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{grn.lineCount}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(grn.totalValue)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          )}
+          ) : null}
         </div>
       )}
+
+      {/* RTV Tab */}
+      {tab === 'rtv' && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <button onClick={() => setNewRtvOpen(true)} className="btn-primary flex items-center gap-2 text-sm">
+              <Plus size={14} /> New RTV
+            </button>
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-gray-400">Loading…</p>
+          ) : rtvData && rtvData.length === 0 ? (
+            <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
+              <RotateCcw size={32} className="mx-auto mb-3 opacity-30" />
+              <p>No return-to-vendor records yet</p>
+            </div>
+          ) : rtvData ? (
+            <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="border-b border-gray-200 bg-gray-50">
+                  <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left">RTV ID</th>
+                    <th className="px-4 py-3 text-left">Date & Time</th>
+                    <th className="px-4 py-3 text-left">Vendor</th>
+                    <th className="px-4 py-3 text-left">Reason</th>
+                    <th className="px-4 py-3 text-right">Items</th>
+                    <th className="px-4 py-3 text-right">Total Value</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {rtvData.map((rtv) => (
+                    <tr key={rtv.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => openRtvDetail(rtv.id!)}
+                          className="font-mono text-sm font-bold text-orange-700 hover:underline"
+                        >
+                          RTV-{String(rtv.id).padStart(4, '0')}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">
+                        {new Date(rtv.createdAt).toLocaleString('en-IN', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{rtv.vendorName ?? <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate">{rtv.reason}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{rtv.lineCount}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(rtv.totalValue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* Credit Tab */}
       {tab === 'credit' && (
         <div className="space-y-4">
@@ -1080,48 +1066,202 @@ export function ReportsPage() {
         </Modal>
       )}
 
-      {/* GRN Invoice Detail Modal */}
-      {viewGrnInvoice && (
-        <Modal open onClose={() => setViewGrnInvoice(null)} title={`GRN — Invoice ${viewGrnInvoice}`} size="lg">
-          <div className="space-y-3">
-            {(() => {
-              const invoiceBatches = (grnData ?? []).filter((b) => b.invoiceNo === viewGrnInvoice)
-              const totalValue = invoiceBatches.reduce((s, b) => s + b.purchasePrice * b.qtyRemaining, 0)
-              return (
-                <>
-                  <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="border-b border-gray-200 bg-gray-50">
-                        <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                          <th className="px-3 py-2 text-left">Product</th>
-                          <th className="px-3 py-2 text-left">Batch No</th>
-                          <th className="px-3 py-2 text-left">Expiry</th>
-                          <th className="px-3 py-2 text-right">Qty</th>
-                          <th className="px-3 py-2 text-right">Purchase Price</th>
-                          <th className="px-3 py-2 text-right">Value</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {invoiceBatches.map((b) => (
-                          <tr key={b.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 font-medium text-gray-900">{b.productName}</td>
-                            <td className="px-3 py-2 font-mono text-xs text-gray-600">{b.batchNo}</td>
-                            <td className="px-3 py-2 text-xs text-gray-600">{new Date(b.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">{b.qtyRemaining}</td>
-                            <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(b.purchasePrice)}</td>
-                            <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCurrency(b.purchasePrice * b.qtyRemaining)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="flex justify-between items-center px-1">
-                    <span className="text-sm text-gray-500">{invoiceBatches.length} line(s) · Vendor: <span className="font-medium text-gray-700">{invoiceBatches[0]?.vendor ?? '—'}</span></span>
-                    <span className="text-sm font-semibold text-gray-900">Total: {formatCurrency(totalValue)}</span>
-                  </div>
-                </>
-              )
-            })()}
+      {/* GRN Detail Modal */}
+      {viewGrnId !== null && (
+        <Modal open onClose={() => { setViewGrnId(null); setViewGrnBatches(null) }} title={`GRN-${String(viewGrnId).padStart(4, '0')}`} size="lg">
+          {viewGrnBatches === null ? (
+            <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-gray-200 bg-gray-50">
+                    <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="px-3 py-2 text-left">Product</th>
+                      <th className="px-3 py-2 text-left">Batch No</th>
+                      <th className="px-3 py-2 text-left">Mfg Date</th>
+                      <th className="px-3 py-2 text-left">Expiry</th>
+                      <th className="px-3 py-2 text-right">Qty Received</th>
+                      <th className="px-3 py-2 text-right">Purchase Price</th>
+                      <th className="px-3 py-2 text-right">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {viewGrnBatches.map((b) => (
+                      <tr key={b.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 font-medium text-gray-900">{b.productName}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-gray-600">{b.batchNo}</td>
+                        <td className="px-3 py-2 text-xs text-gray-500">{b.mfgDate ? new Date(b.mfgDate).toLocaleDateString('en-IN') : '—'}</td>
+                        <td className="px-3 py-2 text-xs text-gray-600">{new Date(b.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{b.qtyRemaining}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(b.purchasePrice)}</td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCurrency(b.purchasePrice * b.qtyRemaining)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-between items-center px-1">
+                <span className="text-sm text-gray-500">{viewGrnBatches.length} product line(s)</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  Total: {formatCurrency(viewGrnBatches.reduce((s, b) => s + b.purchasePrice * b.qtyRemaining, 0))}
+                </span>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {/* RTV Detail Modal */}
+      {viewRtvId !== null && (
+        <Modal open onClose={() => { setViewRtvId(null); setViewRtvItems(null) }} title={`RTV-${String(viewRtvId).padStart(4, '0')}`} size="lg">
+          {viewRtvItems === null ? (
+            <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-gray-200 bg-gray-50">
+                    <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="px-3 py-2 text-left">Product</th>
+                      <th className="px-3 py-2 text-left">Batch No</th>
+                      <th className="px-3 py-2 text-right">Qty Returned</th>
+                      <th className="px-3 py-2 text-right">Purchase Price</th>
+                      <th className="px-3 py-2 text-right">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {viewRtvItems.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 font-medium text-gray-900">{item.productName}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-gray-600">{item.batchNo}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{item.qty}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(item.purchasePrice)}</td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCurrency(item.purchasePrice * item.qty)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-between items-center px-1">
+                <span className="text-sm text-gray-500">{viewRtvItems.length} item(s)</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  Total: {formatCurrency(viewRtvItems.reduce((s, i) => s + i.purchasePrice * i.qty, 0))}
+                </span>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {/* New RTV Modal */}
+      {newRtvOpen && (
+        <Modal open onClose={() => { setNewRtvOpen(false); setRtvLines([]); setRtvVendor(''); setRtvInvoiceNo(''); setRtvReason(''); setRtvProductSearch(''); setRtvProductResults([]) }} title="New Return to Vendor" size="lg">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Vendor / Supplier</label>
+                <input type="text" value={rtvVendor} onChange={(e) => setRtvVendor(e.target.value)}
+                  placeholder="Vendor name…" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Ref <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" value={rtvInvoiceNo} onChange={(e) => setRtvInvoiceNo(e.target.value)}
+                  placeholder="e.g. INV-2024-001" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Reason for Return *</label>
+              <input type="text" value={rtvReason} onChange={(e) => setRtvReason(e.target.value)}
+                placeholder="e.g. Damaged goods, Wrong item, Near expiry…" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            </div>
+
+            {/* Product search */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Add Products to Return</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                <input type="text" value={rtvProductSearch} onChange={(e) => handleRtvProductSearch(e.target.value)}
+                  placeholder="Search product by name, SKU or barcode…"
+                  className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              </div>
+              {rtvProductResults.length > 0 && (
+                <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-sm max-h-40 overflow-y-auto">
+                  {rtvProductResults.map((p) => (
+                    <button key={p.id} onClick={() => addRtvLine(p)}
+                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 text-left">
+                      <span className="text-sm text-gray-800">{p.name}</span>
+                      <span className="text-xs text-gray-400">Stock: {p.stock} {p.unit}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* RTV Lines */}
+            {rtvLines.length > 0 && (
+              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-gray-200 bg-gray-50">
+                    <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <th className="px-3 py-2 text-left">Product</th>
+                      <th className="px-3 py-2 text-left w-36">Batch</th>
+                      <th className="px-3 py-2 text-right w-24">Qty</th>
+                      <th className="px-3 py-2 text-right w-28">Price</th>
+                      <th className="px-3 py-2 w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {rtvLines.map((line, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2 text-sm font-medium text-gray-900">{line.productName}</td>
+                        <td className="px-3 py-2">
+                          <select value={line.batchId}
+                            onChange={(e) => handleRtvBatchChange(idx, parseInt(e.target.value))}
+                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none">
+                            {(rtvBatchMap[line.productId] ?? []).map((b) => (
+                              <option key={b.id} value={b.id}>{b.batchNo} (avail: {b.qtyRemaining})</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input type="number" value={line.qty} min={0.001} max={line.availableQty} step={0.001}
+                            onChange={(e) => updateRtvLine(idx, { qty: Math.min(parseFloat(e.target.value) || 0, line.availableQty) })}
+                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-blue-400 focus:outline-none" />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input type="number" value={line.purchasePrice || ''} min={0} step={0.01}
+                            onChange={(e) => updateRtvLine(idx, { purchasePrice: parseFloat(e.target.value) || 0 })}
+                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-blue-400 focus:outline-none" />
+                        </td>
+                        <td className="px-3 py-2">
+                          <button onClick={() => setRtvLines((prev) => prev.filter((_, i) => i !== idx))}
+                            className="rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-500">
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="border-t border-gray-100 px-3 py-2 flex justify-end">
+                  <span className="text-sm font-semibold text-gray-900">
+                    Total: {formatCurrency(rtvLines.reduce((s, l) => s + l.purchasePrice * l.qty, 0))}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={() => { setNewRtvOpen(false); setRtvLines([]); setRtvVendor(''); setRtvInvoiceNo(''); setRtvReason(''); setRtvProductSearch(''); setRtvProductResults([]) }}
+                className="btn-secondary flex-1">Cancel</button>
+              <button onClick={handleRtvSave}
+                disabled={rtvSaving || rtvLines.length === 0 || !rtvReason.trim()}
+                className="btn-primary flex-1">
+                {rtvSaving ? 'Saving…' : 'Save RTV'}
+              </button>
+            </div>
           </div>
         </Modal>
       )}

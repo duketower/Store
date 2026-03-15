@@ -1,10 +1,14 @@
 import bcrypt from 'bcryptjs'
 import { db } from './index'
 
-// Idempotent seed — checks before inserting
+// Idempotent seed — each section has its own guard
 export async function seedDatabase(): Promise<void> {
   const employeeCount = await db.employees.count()
-  if (employeeCount > 0) return  // already seeded
+  if (employeeCount > 0) {
+    // Employees already seeded — only run the newer sections below
+    await seedGrnsAndRtvs()
+    return
+  }
 
   const SALT_ROUNDS = 10
 
@@ -236,4 +240,151 @@ export async function seedDatabase(): Promise<void> {
       updatedAt: now,
     },
   ])
+
+  await seedGrnsAndRtvs()
+}
+
+async function seedGrnsAndRtvs(): Promise<void> {
+  if (await db.grns.count() > 0) return  // already seeded
+
+  const now = new Date()
+  const admin = await db.employees.where('role').equals('admin').first()
+  const createdBy = admin?.id ?? 1
+
+  const butter = await db.products.where('sku').equals('DAIRY-001').first()
+  const milk   = await db.products.where('sku').equals('DAIRY-002').first()
+  const salt   = await db.products.where('sku').equals('GROCERY-001').first()
+  const oil    = await db.products.where('sku').equals('OIL-001').first()
+  const rice   = await db.products.where('sku').equals('RICE-001').first()
+  const biscuit = await db.products.where('sku').equals('BISCUIT-001').first()
+
+  // ── GRN 1: Amul Distributor, 7 days ago ──────────────────────────────
+  const grn1Value = 230 * 20 + 58 * 48
+  const grn1Id = await db.grns.add({
+    vendorName: 'Amul Distributor',
+    invoiceNo: 'INV-2024-0142',
+    createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+    createdBy,
+    totalValue: grn1Value,
+    lineCount: 2,
+  })
+
+  const grn1Batch1Id = butter?.id ? await db.batches.add({
+    productId: butter.id,
+    batchNo: 'BTR-2403',
+    mfgDate: new Date('2024-08-01'),
+    expiryDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
+    purchasePrice: 230,
+    qtyRemaining: 20,
+    createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+    vendor: 'Amul Distributor',
+    invoiceNo: 'INV-2024-0142',
+    grnId: grn1Id,
+  }) : null
+
+  const grn1Batch2Id = milk?.id ? await db.batches.add({
+    productId: milk.id,
+    batchNo: 'MLK-2401',
+    mfgDate: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
+    expiryDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+    purchasePrice: 58,
+    qtyRemaining: 48,
+    createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+    vendor: 'Amul Distributor',
+    invoiceNo: 'INV-2024-0142',
+    grnId: grn1Id,
+  }) : null
+
+  // ── GRN 2: Hindustan Distributors, 3 days ago ─────────────────────────
+  const grn2Value = 18 * 100 + 118 * 24
+  const grn2Id = await db.grns.add({
+    vendorName: 'Hindustan Distributors',
+    invoiceNo: 'HD/2024/558',
+    createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+    createdBy,
+    totalValue: grn2Value,
+    lineCount: 2,
+  })
+
+  const grn2Batch1Id = salt?.id ? await db.batches.add({
+    productId: salt.id,
+    batchNo: 'SALT-2401',
+    expiryDate: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
+    purchasePrice: 18,
+    qtyRemaining: 100,
+    createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+    vendor: 'Hindustan Distributors',
+    invoiceNo: 'HD/2024/558',
+    grnId: grn2Id,
+  }) : null
+
+  const grn2Batch2Id = oil?.id ? await db.batches.add({
+    productId: oil.id,
+    batchNo: 'OIL-2401',
+    expiryDate: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000),
+    purchasePrice: 118,
+    qtyRemaining: 24,
+    createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+    vendor: 'Hindustan Distributors',
+    invoiceNo: 'HD/2024/558',
+    grnId: grn2Id,
+  }) : null
+
+  // ── RTV 1: 5 pcs Amul Butter returned (damaged packaging), 5 days ago ──
+  if (grn1Batch1Id && butter?.id) {
+    const rtv1Id = await db.rtvs.add({
+      vendorName: 'Amul Distributor',
+      invoiceNo: 'INV-2024-0142',
+      reason: 'Damaged packaging — 5 pcs crushed on delivery',
+      createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      createdBy,
+      totalValue: 230 * 5,
+      lineCount: 1,
+    })
+    await db.rtv_items.add({
+      rtvId: rtv1Id,
+      productId: butter.id,
+      batchId: grn1Batch1Id,
+      batchNo: 'BTR-2403',
+      qty: 5,
+      purchasePrice: 230,
+    })
+  }
+
+  // ── RTV 2: 10 kg Basmati Rice + 12 pcs biscuit (wrong batch), 2 days ago ──
+  const riceB = rice?.id ? await db.batches.where('productId').equals(rice.id).first() : null
+  if (riceB?.id && rice?.id) {
+    const rtv2Id = await db.rtvs.add({
+      vendorName: 'Agro Fresh Suppliers',
+      reason: 'Wrong batch supplied — expiry date mismatch on invoice',
+      createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      createdBy,
+      totalValue: 72 * 10 + (biscuit?.id ? 20 * 12 : 0),
+      lineCount: biscuit?.id ? 2 : 1,
+    })
+    await db.rtv_items.add({
+      rtvId: rtv2Id,
+      productId: rice.id,
+      batchId: riceB.id,
+      batchNo: riceB.batchNo,
+      qty: 10,
+      purchasePrice: 72,
+    })
+    if (biscuit?.id) {
+      const biscuitB = await db.batches.where('productId').equals(biscuit.id).first()
+      if (biscuitB?.id) {
+        await db.rtv_items.add({
+          rtvId: rtv2Id,
+          productId: biscuit.id,
+          batchId: biscuitB.id,
+          batchNo: biscuitB.batchNo,
+          qty: 12,
+          purchasePrice: 20,
+        })
+      }
+    }
+  }
+
+  // suppress unused-var warnings for batch IDs we only needed for RTV linking
+  void grn1Batch2Id; void grn2Batch1Id; void grn2Batch2Id
 }

@@ -1,15 +1,20 @@
-import { STORE_CONFIG } from '@/constants/app'
+// Store config with localStorage override layer.
+// The base defaults come from CLIENT_CONFIG (baked in at build time per client).
+// Admins can override any field via Settings → Store Details — saved to localStorage.
+// On reset-to-defaults, reverts to the build-time CLIENT_CONFIG values.
 
-export type StoreConfig = typeof STORE_CONFIG
+import { CLIENT_CONFIG } from '@/constants/clientConfig'
+
+export type StoreConfig = typeof CLIENT_CONFIG.store
 
 const SETTINGS_KEY = 'pos_store_config'
 
 export function loadStoreConfig(): StoreConfig {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    if (raw) return { ...STORE_CONFIG, ...JSON.parse(raw) }
+    if (raw) return { ...CLIENT_CONFIG.store, ...JSON.parse(raw) }
   } catch { /* ignore */ }
-  return { ...STORE_CONFIG }
+  return { ...CLIENT_CONFIG.store }
 }
 
 export function saveStoreConfig(config: StoreConfig) {

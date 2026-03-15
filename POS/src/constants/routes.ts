@@ -1,4 +1,5 @@
 import type { Role } from '@/types'
+import type { PlanFeature } from '@/types/clientConfig'
 
 export const ROUTES = {
   LOGIN: '/login',
@@ -23,17 +24,20 @@ export interface NavItem {
   path: RoutePath
   icon: string
   roles: Role[]
+  // Optional plan-tier gate. If set, this nav item is hidden (and route blocked)
+  // for plans that don't include this feature. Checked via hasFeature().
+  feature?: PlanFeature
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: 'LayoutDashboard', roles: ['admin', 'manager'] },
-  { label: 'Billing', path: ROUTES.BILLING, icon: 'ShoppingCart', roles: ['admin', 'manager', 'cashier'] },
-  { label: 'Receive Stock', path: ROUTES.RECEIVE_STOCK, icon: 'PackagePlus', roles: ['admin', 'manager', 'cashier'] },
-  { label: 'Customers', path: ROUTES.CUSTOMERS, icon: 'Users', roles: ['admin', 'manager', 'cashier'] },
-  { label: 'Products', path: ROUTES.PRODUCTS, icon: 'Package', roles: ['admin', 'manager', 'cashier'] },
-  { label: 'Vendors', path: ROUTES.VENDORS, icon: 'Truck', roles: ['admin', 'manager'] },
-  { label: 'Shift', path: ROUTES.SHIFT_CLOSE, icon: 'Boxes', roles: ['admin', 'manager', 'cashier'] },
-  { label: 'Reports', path: ROUTES.REPORTS, icon: 'BarChart3', roles: ['admin', 'manager'] },
-  { label: 'Users', path: ROUTES.USERS, icon: 'UserCog', roles: ['admin'] },
-  { label: 'Settings', path: ROUTES.SETTINGS, icon: 'Settings', roles: ['admin'] },
+  { label: 'Dashboard',    path: ROUTES.DASHBOARD,    icon: 'LayoutDashboard', roles: ['admin', 'manager'],            feature: 'dashboard' },
+  { label: 'Billing',      path: ROUTES.BILLING,       icon: 'ShoppingCart',    roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Receive Stock',path: ROUTES.RECEIVE_STOCK, icon: 'PackagePlus',     roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Customers',    path: ROUTES.CUSTOMERS,     icon: 'Users',           roles: ['admin', 'manager', 'cashier'], feature: 'credit_ledger' },
+  { label: 'Products',     path: ROUTES.PRODUCTS,      icon: 'Package',         roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Vendors',      path: ROUTES.VENDORS,       icon: 'Truck',           roles: ['admin', 'manager'],            feature: 'rtv' },
+  { label: 'Shift',        path: ROUTES.SHIFT_CLOSE,   icon: 'Boxes',           roles: ['admin', 'manager', 'cashier'] },
+  { label: 'Reports',      path: ROUTES.REPORTS,       icon: 'BarChart3',       roles: ['admin', 'manager'],            feature: 'reports' },
+  { label: 'Users',        path: ROUTES.USERS,         icon: 'UserCog',         roles: ['admin'] },
+  { label: 'Settings',     path: ROUTES.SETTINGS,      icon: 'Settings',        roles: ['admin'] },
 ]
