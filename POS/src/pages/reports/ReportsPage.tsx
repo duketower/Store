@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { BarChart3, Package, AlertTriangle, Download, Receipt, Truck, CreditCard, CheckCircle, Search, X, RotateCcw, Plus, Trash2 } from 'lucide-react'
+import { BarChart3, Package, AlertTriangle, Download, Receipt, Truck, CreditCard, CheckCircle, Search, X, RotateCcw, Plus, Trash2, Printer } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { Receipt as ReceiptView } from '@/pages/billing/components/Receipt'
-import { getAllProducts, searchProducts } from '@/db/queries/products'
+import { getAllProducts, searchProducts, getProductByBarcode } from '@/db/queries/products'
 import { getNearExpiryBatches, getBatchesForProduct } from '@/db/queries/batches'
 import { getSaleWithItems, processReturn, type ReturnItem } from '@/db/queries/sales'
 import { getAllCustomers, updateCreditBalance, addCreditLedgerEntry } from '@/db/queries/customers'
@@ -13,6 +13,8 @@ import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
 import { NEAR_EXPIRY_DAYS } from '@/constants/app'
 import { useAuth } from '@/hooks/useAuth'
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
+import { loadStoreConfig } from '@/utils/storeConfig'
 import type { Product, Sale, SaleItem, Payment, Batch, Customer, CreditLedgerEntry, Grn, RtvSession, RtvItem } from '@/types'
 
 type ReportTab = 'sales' | 'stock' | 'bills' | 'grn' | 'rtv' | 'credit'
@@ -44,9 +46,13 @@ export function ReportsPage() {
   const [grnListData, setGrnListData] = useState<Grn[] | null>(null)
   const [viewGrnId, setViewGrnId] = useState<number | null>(null)
   const [viewGrnBatches, setViewGrnBatches] = useState<Array<Batch & { productName: string }> | null>(null)
+  const [viewGrnSession, setViewGrnSession] = useState<Grn | null>(null)
+  const [viewGrnCreatorName, setViewGrnCreatorName] = useState('')
   const [rtvData, setRtvData] = useState<RtvSession[] | null>(null)
   const [viewRtvId, setViewRtvId] = useState<number | null>(null)
   const [viewRtvItems, setViewRtvItems] = useState<Array<RtvItem & { productName: string }> | null>(null)
+  const [viewRtvSession, setViewRtvSession] = useState<RtvSession | null>(null)
+  const [viewRtvCreatorName, setViewRtvCreatorName] = useState('')
   const [newRtvOpen, setNewRtvOpen] = useState(false)
   const [rtvVendor, setRtvVendor] = useState('')
   const [rtvInvoiceNo, setRtvInvoiceNo] = useState('')
@@ -72,6 +78,17 @@ export function ReportsPage() {
     sale: Sale; items: Array<SaleItem & { productName: string; unit: string }>; payments: Payment[]; cashierName: string
   } | null>(null)
   const { employeeId } = useAuth()
+  const STORE_CONFIG = loadStoreConfig()
+
+  useBarcodeScanner({
+    onScan: async (barcode: string) => {
+      if (!newRtvOpen) return
+      const product = await getProductByBarcode(barcode)
+      if (!product) return
+      await addRtvLine(product)
+    },
+    enabled: newRtvOpen,
+  })
 
   // Bills filters
   const [billSearch, setBillSearch] = useState('')
@@ -364,15 +381,29 @@ export function ReportsPage() {
   }
 
   const openGrnDetail = async (grnId: number) => {
+    const session = grnListData?.find((g) => g.id === grnId) ?? null
+    setViewGrnSession(session)
     setViewGrnId(grnId)
+    setViewGrnBatches(null)
     const batches = await getGrnBatches(grnId)
     setViewGrnBatches(batches)
+    if (session?.createdBy) {
+      const emp = await db.employees.get(session.createdBy)
+      setViewGrnCreatorName(emp?.name ?? `Employee #${session.createdBy}`)
+    }
   }
 
   const openRtvDetail = async (rtvId: number) => {
+    const session = rtvData?.find((r) => r.id === rtvId) ?? null
+    setViewRtvSession(session)
     setViewRtvId(rtvId)
+    setViewRtvItems(null)
     const items = await getRtvItems(rtvId)
     setViewRtvItems(items)
+    if (session?.createdBy) {
+      const emp = await db.employees.get(session.createdBy)
+      setViewRtvCreatorName(emp?.name ?? `Employee #${session.createdBy}`)
+    }
   }
 
   const handleRtvProductSearch = async (q: string) => {
@@ -1066,88 +1097,157 @@ export function ReportsPage() {
         </Modal>
       )}
 
-      {/* GRN Detail Modal */}
+      {/* GRN Receipt Modal */}
       {viewGrnId !== null && (
-        <Modal open onClose={() => { setViewGrnId(null); setViewGrnBatches(null) }} title={`GRN-${String(viewGrnId).padStart(4, '0')}`} size="lg">
+        <Modal open onClose={() => { setViewGrnId(null); setViewGrnBatches(null); setViewGrnSession(null) }} title="" size="lg">
           {viewGrnBatches === null ? (
             <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-gray-200 bg-gray-50">
-                    <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      <th className="px-3 py-2 text-left">Product</th>
-                      <th className="px-3 py-2 text-left">Batch No</th>
-                      <th className="px-3 py-2 text-left">Mfg Date</th>
-                      <th className="px-3 py-2 text-left">Expiry</th>
-                      <th className="px-3 py-2 text-right">Qty Received</th>
-                      <th className="px-3 py-2 text-right">Purchase Price</th>
-                      <th className="px-3 py-2 text-right">Value</th>
+          ) : viewGrnSession && (
+            <div>
+              {/* Print button */}
+              <div className="mb-4 flex justify-end print:hidden">
+                <button onClick={() => window.print()} className="btn-secondary flex items-center gap-2">
+                  <Printer size={16} /> Print GRN
+                </button>
+              </div>
+
+              {/* GRN Slip */}
+              <div className="border border-gray-300 rounded-lg p-6 space-y-4 font-mono text-sm">
+                {/* Header */}
+                <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-4">
+                  <p className="text-base font-bold text-gray-900 not-italic">{STORE_CONFIG.name}</p>
+                  <p className="text-lg font-bold tracking-widest text-gray-800">GOODS RECEIVED NOTE</p>
+                  <p className="text-xs text-gray-500 font-bold tracking-wide">GRN-{String(viewGrnSession.id).padStart(4, '0')}</p>
+                </div>
+
+                {/* Meta grid */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                  <div><span className="text-gray-500">From Vendor: </span><span className="font-bold">{viewGrnSession.vendorName ?? '—'}</span></div>
+                  <div><span className="text-gray-500">Date: </span><span className="font-bold">{new Date(viewGrnSession.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
+                  {viewGrnSession.invoiceNo && (
+                    <div><span className="text-gray-500">Vendor Invoice No: </span><span className="font-bold">{viewGrnSession.invoiceNo}</span></div>
+                  )}
+                  <div><span className="text-gray-500">Received by: </span><span className="font-bold">{viewGrnCreatorName}</span></div>
+                </div>
+
+                {/* Items table */}
+                <table className="w-full text-xs border-collapse mt-2">
+                  <thead>
+                    <tr className="border-b-2 border-gray-400">
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">#</th>
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">Product</th>
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">Batch No</th>
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">Mfg Date</th>
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">Expiry</th>
+                      <th className="py-1.5 text-right text-gray-600 font-semibold">Qty</th>
+                      <th className="py-1.5 text-right text-gray-600 font-semibold">Rate (₹)</th>
+                      <th className="py-1.5 text-right text-gray-600 font-semibold">Amount (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {viewGrnBatches.map((b) => (
-                      <tr key={b.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 font-medium text-gray-900">{b.productName}</td>
-                        <td className="px-3 py-2 font-mono text-xs text-gray-600">{b.batchNo}</td>
-                        <td className="px-3 py-2 text-xs text-gray-500">{b.mfgDate ? new Date(b.mfgDate).toLocaleDateString('en-IN') : '—'}</td>
-                        <td className="px-3 py-2 text-xs text-gray-600">{new Date(b.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                        <td className="px-3 py-2 text-right text-gray-700">{b.qtyRemaining}</td>
-                        <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(b.purchasePrice)}</td>
-                        <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCurrency(b.purchasePrice * b.qtyRemaining)}</td>
+                  <tbody>
+                    {viewGrnBatches.map((b, idx) => (
+                      <tr key={b.id} className="border-b border-gray-200">
+                        <td className="py-1.5">{idx + 1}</td>
+                        <td className="py-1.5">{b.productName}</td>
+                        <td className="py-1.5">{b.batchNo}</td>
+                        <td className="py-1.5">{b.mfgDate ? new Date(b.mfgDate).toLocaleDateString('en-IN') : '—'}</td>
+                        <td className="py-1.5">{new Date(b.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        <td className="py-1.5 text-right">{b.qtyRemaining}</td>
+                        <td className="py-1.5 text-right">{b.purchasePrice.toFixed(2)}</td>
+                        <td className="py-1.5 text-right font-semibold">{(b.purchasePrice * b.qtyRemaining).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-400">
+                      <td colSpan={7} className="py-2 text-right font-bold text-gray-700">Total Purchase Value:</td>
+                      <td className="py-2 text-right font-bold text-base">₹{viewGrnBatches.reduce((s, b) => s + b.purchasePrice * b.qtyRemaining, 0).toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
-              </div>
-              <div className="flex justify-between items-center px-1">
-                <span className="text-sm text-gray-500">{viewGrnBatches.length} product line(s)</span>
-                <span className="text-sm font-semibold text-gray-900">
-                  Total: {formatCurrency(viewGrnBatches.reduce((s, b) => s + b.purchasePrice * b.qtyRemaining, 0))}
-                </span>
+
+                {/* Signature lines */}
+                <div className="grid grid-cols-2 gap-12 pt-10 text-xs text-gray-500">
+                  <div className="border-t border-gray-500 pt-1 text-center">Received by (Store)</div>
+                  <div className="border-t border-gray-500 pt-1 text-center">Delivered by (Vendor)</div>
+                </div>
               </div>
             </div>
           )}
         </Modal>
       )}
 
-      {/* RTV Detail Modal */}
+      {/* RTV Slip Modal */}
       {viewRtvId !== null && (
-        <Modal open onClose={() => { setViewRtvId(null); setViewRtvItems(null) }} title={`RTV-${String(viewRtvId).padStart(4, '0')}`} size="lg">
+        <Modal open onClose={() => { setViewRtvId(null); setViewRtvItems(null); setViewRtvSession(null) }} title="" size="lg">
           {viewRtvItems === null ? (
             <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-gray-200 bg-gray-50">
-                    <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      <th className="px-3 py-2 text-left">Product</th>
-                      <th className="px-3 py-2 text-left">Batch No</th>
-                      <th className="px-3 py-2 text-right">Qty Returned</th>
-                      <th className="px-3 py-2 text-right">Purchase Price</th>
-                      <th className="px-3 py-2 text-right">Value</th>
+          ) : viewRtvSession && (
+            <div>
+              {/* Print button */}
+              <div className="mb-4 flex justify-end print:hidden">
+                <button onClick={() => window.print()} className="btn-secondary flex items-center gap-2">
+                  <Printer size={16} /> Print Slip
+                </button>
+              </div>
+
+              {/* Slip */}
+              <div className="border border-gray-300 rounded-lg p-6 space-y-4 font-mono text-sm">
+                {/* Header */}
+                <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-4">
+                  <p className="text-base font-bold text-gray-900 not-italic">{STORE_CONFIG.name}</p>
+                  <p className="text-lg font-bold tracking-widest text-gray-800">RETURN TO VENDOR</p>
+                  <p className="text-xs text-gray-500 font-bold tracking-wide">RTV-{String(viewRtvSession.id).padStart(4, '0')}</p>
+                </div>
+
+                {/* Meta grid */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                  <div><span className="text-gray-500">To Vendor: </span><span className="font-bold">{viewRtvSession.vendorName ?? '—'}</span></div>
+                  <div><span className="text-gray-500">Date: </span><span className="font-bold">{new Date(viewRtvSession.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
+                  {viewRtvSession.invoiceNo && (
+                    <div><span className="text-gray-500">Ref Invoice: </span><span className="font-bold">{viewRtvSession.invoiceNo}</span></div>
+                  )}
+                  <div><span className="text-gray-500">Prepared by: </span><span className="font-bold">{viewRtvCreatorName}</span></div>
+                  <div className="col-span-2"><span className="text-gray-500">Reason: </span><span className="font-bold">{viewRtvSession.reason}</span></div>
+                </div>
+
+                {/* Items table */}
+                <table className="w-full text-xs border-collapse mt-2">
+                  <thead>
+                    <tr className="border-b-2 border-gray-400">
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">#</th>
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">Product</th>
+                      <th className="py-1.5 text-left text-gray-600 font-semibold">Batch No</th>
+                      <th className="py-1.5 text-right text-gray-600 font-semibold">Qty</th>
+                      <th className="py-1.5 text-right text-gray-600 font-semibold">Rate (₹)</th>
+                      <th className="py-1.5 text-right text-gray-600 font-semibold">Amount (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {viewRtvItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 font-medium text-gray-900">{item.productName}</td>
-                        <td className="px-3 py-2 font-mono text-xs text-gray-600">{item.batchNo}</td>
-                        <td className="px-3 py-2 text-right text-gray-700">{item.qty}</td>
-                        <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(item.purchasePrice)}</td>
-                        <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCurrency(item.purchasePrice * item.qty)}</td>
+                  <tbody>
+                    {viewRtvItems.map((item, idx) => (
+                      <tr key={item.id} className="border-b border-gray-200">
+                        <td className="py-1.5">{idx + 1}</td>
+                        <td className="py-1.5">{item.productName}</td>
+                        <td className="py-1.5">{item.batchNo}</td>
+                        <td className="py-1.5 text-right">{item.qty}</td>
+                        <td className="py-1.5 text-right">{item.purchasePrice.toFixed(2)}</td>
+                        <td className="py-1.5 text-right font-semibold">{(item.purchasePrice * item.qty).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-400">
+                      <td colSpan={5} className="py-2 text-right font-bold text-gray-700">Total Return Value:</td>
+                      <td className="py-2 text-right font-bold text-base">₹{viewRtvItems.reduce((s, i) => s + i.purchasePrice * i.qty, 0).toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
-              </div>
-              <div className="flex justify-between items-center px-1">
-                <span className="text-sm text-gray-500">{viewRtvItems.length} item(s)</span>
-                <span className="text-sm font-semibold text-gray-900">
-                  Total: {formatCurrency(viewRtvItems.reduce((s, i) => s + i.purchasePrice * i.qty, 0))}
-                </span>
+
+                {/* Signature lines */}
+                <div className="grid grid-cols-2 gap-12 pt-10 text-xs text-gray-500">
+                  <div className="border-t border-gray-500 pt-1 text-center">Authorised Signatory (Store)</div>
+                  <div className="border-t border-gray-500 pt-1 text-center">Vendor Acknowledgement & Stamp</div>
+                </div>
               </div>
             </div>
           )}
@@ -1158,6 +1258,11 @@ export function ReportsPage() {
       {newRtvOpen && (
         <Modal open onClose={() => { setNewRtvOpen(false); setRtvLines([]); setRtvVendor(''); setRtvInvoiceNo(''); setRtvReason(''); setRtvProductSearch(''); setRtvProductResults([]) }} title="New Return to Vendor" size="lg">
           <div className="space-y-4">
+            {/* Scanner indicator */}
+            <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Scanner ready — scan barcode to add product instantly
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Vendor / Supplier</label>

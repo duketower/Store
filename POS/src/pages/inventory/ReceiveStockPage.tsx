@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { Plus, Trash2, Save, Search } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
-import { searchProducts, getLowStockProducts } from '@/db/queries/products'
+import { searchProducts, getLowStockProducts, getProductByBarcode } from '@/db/queries/products'
 import { addBatch } from '@/db/queries/batches'
 import { getActiveVendors } from '@/db/queries/vendors'
 import { createGrn } from '@/db/queries/grns'
 import { db } from '@/db'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { syncProductToFirestore, syncBatchToFirestore } from '@/services/firebase/sync'
 import { formatCurrency } from '@/utils/currency'
 import type { Product, Vendor } from '@/types'
@@ -53,6 +54,15 @@ export function ReceiveStockPage() {
     ])
     setSearchOpen(false)
   }
+
+  useBarcodeScanner({
+    onScan: async (barcode: string) => {
+      const product = await getProductByBarcode(barcode)
+      if (!product) { addToast('warning', `No product found for barcode: ${barcode}`); return }
+      addLine(product)
+    },
+    enabled: true,
+  })
 
   const updateLine = (idx: number, patch: Partial<GrnLine>) => {
     setLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)))
@@ -151,6 +161,11 @@ export function ReceiveStockPage() {
   return (
     <PageContainer title="Receive Stock" subtitle="Record vendor deliveries (GRN)">
       <div className="max-w-4xl space-y-4">
+        {/* Scanner indicator */}
+        <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 w-fit">
+          <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          Scanner ready — scan barcode to add product
+        </div>
         {/* Vendor */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Supplier</label>
