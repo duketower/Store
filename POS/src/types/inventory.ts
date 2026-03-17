@@ -72,3 +72,21 @@ export interface RtvItem {
   qty: number
   purchasePrice: number
 }
+
+export type CashEntryCategory =
+  | 'supplies'
+  | 'vendor_payment'
+  | 'salary_advance'
+  | 'utilities'
+  | 'transport'
+  | 'other'
+
+export interface CashEntry {
+  id?: number
+  sessionId?: number       // day_session id at time of entry
+  amount: number
+  category: CashEntryCategory
+  note?: string
+  authorizedBy: number     // employeeId
+  createdAt: Date
+}

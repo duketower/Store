@@ -6,6 +6,8 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { useUiStore } from '@/stores/uiStore'
 import { openSession, closeSession } from '@/db/queries/daySessions'
 import { getTodaySales, getTodayCashTotal } from '@/db/queries/sales'
+import { getTodayCashEntries, getTodayCashOutTotal } from '@/db/queries/cashEntries'
+import type { CashEntry } from '@/types'
 import { formatCurrency } from '@/utils/currency'
 import { db } from '@/db'
 import { exportShiftToSheets } from '@/services/sync/sheetsExport'
@@ -20,6 +22,8 @@ interface ZReport {
   upiTotal: number
   creditTotal: number
   openingFloat: number
+  cashOutTotal: number
+  cashEntries: CashEntry[]
   expectedCash: number
   gstByRate: Array<{ rate: number; taxAmount: number }>
   topProducts: Array<{ name: string; qty: number; total: number }>
@@ -58,7 +62,11 @@ export function ShiftClosePage() {
 
   const loadReport = async () => {
     const sales = await getTodaySales()
-    const cashTotal = await getTodayCashTotal()
+    const [cashTotal, cashOutTotal, cashEntries] = await Promise.all([
+      getTodayCashTotal(),
+      getTodayCashOutTotal(),
+      getTodayCashEntries(),
+    ])
 
     let upiTotal = 0
     let creditTotal = 0
@@ -106,7 +114,9 @@ export function ShiftClosePage() {
       upiTotal,
       creditTotal,
       openingFloat: openFloat,
-      expectedCash: openFloat + cashTotal,
+      cashOutTotal,
+      cashEntries,
+      expectedCash: openFloat + cashTotal - cashOutTotal,
       gstByRate,
       topProducts,
     })
@@ -203,7 +213,7 @@ export function ShiftClosePage() {
                 <input type="number" value={openingFloat} min={0} step={1}
                   onChange={(e) => setOpeningFloat(e.target.value)}
                   placeholder="Cash in drawer at start of shift"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
               </div>
               <button onClick={handleOpenShift} disabled={opening} className="btn-primary w-full">
                 {opening ? 'Opening…' : 'Open Shift'}
@@ -222,9 +232,10 @@ export function ShiftClosePage() {
         <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
           <h3 className="text-base font-semibold text-gray-900">Cash Reconciliation</h3>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <InfoCard label="Opening Float" value={formatCurrency(currentSession.openingFloat)} />
             <InfoCard label="Cash Sales Today" value={formatCurrency(report?.cashTotal ?? 0)} />
+            <InfoCard label="Cash Outs" value={`−${formatCurrency(report?.cashOutTotal ?? 0)}`} />
             <InfoCard label="Expected Cash" value={formatCurrency(report?.expectedCash ?? 0)} highlight />
           </div>
 
@@ -239,7 +250,7 @@ export function ShiftClosePage() {
                 <Hash size={14} className="text-gray-400" />
                 Count by Denomination
               </span>
-              <span className="text-xs text-blue-600">
+              <span className="text-xs text-brand-600">
                 {showDenomCounter ? 'Hide' : 'Use calculator'}
               </span>
             </button>
@@ -257,7 +268,7 @@ export function ShiftClosePage() {
                         value={denoms[d] ?? ''}
                         onChange={(e) => setDenoms((prev) => ({ ...prev, [d]: e.target.value }))}
                         placeholder="0"
-                        className="flex-1 min-w-0 rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-blue-400 focus:outline-none"
+                        className="flex-1 min-w-0 rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-brand-500 focus:outline-none"
                       />
                       <span className="w-20 text-sm text-right text-gray-500 flex-shrink-0">
                         {d * (parseInt(denoms[d] ?? '0') || 0) > 0
@@ -288,7 +299,7 @@ export function ShiftClosePage() {
             <input type="number" value={closingCash} min={0} step={0.01}
               onChange={(e) => setClosingCash(e.target.value)}
               placeholder="Count and enter physical cash"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
 
           {closingCash !== '' && (
@@ -312,7 +323,7 @@ export function ShiftClosePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Shortage Note *</label>
               <textarea value={varianceNote} onChange={(e) => setVarianceNote(e.target.value)}
                 rows={2} placeholder="Explain the shortage…"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none resize-none" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none" />
             </div>
           )}
 
@@ -355,6 +366,22 @@ export function ShiftClosePage() {
               </div>
             )}
 
+            {report.cashEntries.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  Cash Outs ({formatCurrency(report.cashOutTotal)})
+                </p>
+                <div className="rounded-lg bg-gray-50 divide-y divide-gray-100">
+                  {report.cashEntries.map((e) => (
+                    <div key={e.id} className="flex justify-between px-3 py-2 text-sm">
+                      <span className="text-gray-600">{e.note || e.category}</span>
+                      <span className="font-medium text-red-600">−{formatCurrency(e.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {report.topProducts.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Top Products</p>
@@ -377,9 +404,9 @@ export function ShiftClosePage() {
 
 function InfoCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`rounded-lg p-3 ${highlight ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50'}`}>
-      <p className={`text-xs font-medium mb-1 ${highlight ? 'text-blue-600' : 'text-gray-500'}`}>{label}</p>
-      <p className={`text-lg font-bold ${highlight ? 'text-blue-700' : 'text-gray-900'}`}>{value}</p>
+    <div className={`rounded-lg p-3 ${highlight ? 'bg-brand-50 border border-brand-100' : 'bg-gray-50'}`}>
+      <p className={`text-xs font-medium mb-1 ${highlight ? 'text-brand-600' : 'text-gray-500'}`}>{label}</p>
+      <p className={`text-lg font-bold ${highlight ? 'text-brand-700' : 'text-gray-900'}`}>{value}</p>
     </div>
   )
 }
