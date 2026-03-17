@@ -75,7 +75,7 @@ export function LoginScreen() {
 
   const handleCardSelect = async (employee: Employee) => {
     // If biometric is registered for this employee, try it first
-    if (bioAvailable && employee.credentialId) {
+    if (employee.credentialId) {
       setLoading(true)
       try {
         const ok = await authenticateBiometric(employee.credentialId)
@@ -204,7 +204,7 @@ export function LoginScreen() {
                   className="relative flex flex-col items-center rounded-xl border-2 border-gray-200 bg-white p-4 text-center transition-all hover:border-brand-500 hover:bg-brand-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   {/* Biometric indicator — tapping card triggers fingerprint directly */}
-                  {bioAvailable && emp.credentialId && (
+                  {emp.credentialId && (
                     <span
                       title="Tap to use fingerprint"
                       className="absolute top-2 right-2 text-brand-400"
