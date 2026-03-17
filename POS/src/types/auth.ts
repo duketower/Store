@@ -6,6 +6,7 @@ export interface Employee {
   role: Role
   pinHash?: string       // cashier only
   passwordHash?: string  // admin/manager only
+  credentialId?: string  // WebAuthn credential ID (admin/manager biometric)
   isActive: boolean
   createdAt: Date
   monthlyLeaveAllotment?: number  // default 3 when absent; admin-editable per employee

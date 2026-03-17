@@ -49,6 +49,12 @@ export interface ClientConfig {
     themeColor: string   // hex — used in PWA manifest + UI accent
     appName: string      // full name shown on home screen
     shortName: string    // short name for PWA icon label
+    // Optional per-client color overrides — if absent, defaults to blue
+    primaryColor?: string       // e.g. '#1A4533' — buttons, active nav, focus rings
+    primaryHoverColor?: string  // e.g. '#132e22' — button hover state
+    primaryTintColor?: string   // e.g. '#edf2ef' — active nav background tint
+    bgColor?: string            // e.g. '#F9F8F4' — app background
+    textColor?: string          // e.g. '#2B2B2B' — body text
   }
   // Staff from the client's requirement form — seeded into IndexedDB on first app load.
   // If absent (dev mode), seed.ts uses hardcoded dev defaults instead.

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Plus, Search, Edit2, AlertTriangle, Sliders, Printer } from 'lucide-react'
+import { InventoryAlertsPanel } from '@/components/common/InventoryAlertsPanel'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { getAllProducts, upsertProduct, adjustStock } from '@/db/queries/products'
+import { getNearExpiryBatches } from '@/db/queries/batches'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency } from '@/utils/currency'
 import { GST_SLABS } from '@/constants/gst'
-import { CATEGORIES, UNITS } from '@/constants/app'
-import type { Product } from '@/types'
+import { CATEGORIES, UNITS, NEAR_EXPIRY_DAYS } from '@/constants/app'
+import type { Product, Batch } from '@/types'
 
 const EMPTY_FORM: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
   name: '',
@@ -38,6 +40,7 @@ export function ProductsPage() {
   const canEdit = role === 'admin' || role === 'manager'
 
   const [products, setProducts] = useState<Product[]>([])
+  const [nearExpiry, setNearExpiry] = useState<Array<Batch & { productName?: string }>>([])
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [modalOpen, setModalOpen] = useState(false)
@@ -51,8 +54,9 @@ export function ProductsPage() {
   const [adjustSaving, setAdjustSaving] = useState(false)
 
   const load = async () => {
-    const all = await getAllProducts()
+    const [all, expiry] = await Promise.all([getAllProducts(), getNearExpiryBatches(NEAR_EXPIRY_DAYS)])
     setProducts(all)
+    setNearExpiry(expiry)
   }
 
   useEffect(() => { load() }, [])
@@ -167,9 +171,15 @@ export function ProductsPage() {
   }
 
   const isLowStock = (p: Product) => p.stock <= p.reorderLevel
-
+  const lowStockProducts = products.filter(isLowStock)
   return (
     <PageContainer title="Products" subtitle={`${products.length} products`}>
+
+      {/* Alerts panel — visible to all roles including cashiers */}
+      <div className="mb-4">
+        <InventoryAlertsPanel lowStock={lowStockProducts} nearExpiry={nearExpiry} />
+      </div>
+
       {/* Toolbar */}
       <div className="mb-4 flex items-center gap-3">
         <div className="relative flex-1">
@@ -179,13 +189,13 @@ export function ProductsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name, barcode or SKU…"
-            className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         >
           {categories.map((c) => <option key={c}>{c}</option>)}
         </select>
@@ -254,7 +264,7 @@ export function ProductsPage() {
                   <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(p.mrp)}</td>
                   <td className="px-4 py-3 text-center">
                     {p.taxRate > 0 ? (
-                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{p.taxRate}%</span>
+                      <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">{p.taxRate}%</span>
                     ) : (
                       <span className="text-gray-400 text-xs">Nil</span>
                     )}
@@ -283,7 +293,7 @@ export function ProductsPage() {
                           </button>
                           <button
                             onClick={() => openAdjust(p)}
-                            className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+                            className="rounded p-1 text-gray-400 hover:bg-brand-50 hover:text-brand-600"
                             title="Adjust stock"
                           >
                             <Sliders size={14} />
@@ -335,7 +345,7 @@ export function ProductsPage() {
               value={adjustDelta}
               onChange={(e) => setAdjustDelta(e.target.value)}
               placeholder="e.g. −5 or +10"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               autoFocus
             />
             {adjustDelta && !isNaN(parseFloat(adjustDelta)) && adjustProduct && (
@@ -349,7 +359,7 @@ export function ProductsPage() {
             <select
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
             >
               {['Count Correction', 'Damage', 'Theft/Loss', 'Expiry Write-off', 'Opening Stock', 'Other'].map((r) => (
                 <option key={r}>{r}</option>
@@ -394,31 +404,31 @@ function ProductForm({
             type="text"
             value={form.name}
             onChange={(e) => onChange({ name: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
             autoFocus
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Barcode</label>
           <input type="text" value={form.barcode} onChange={(e) => onChange({ barcode: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">SKU</label>
           <input type="text" value={form.sku} onChange={(e) => onChange({ sku: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
           <select value={form.category} onChange={(e) => onChange({ category: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Unit</label>
           <select value={form.unit} onChange={(e) => onChange({ unit: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
             {UNITS.map((u) => <option key={u}>{u}</option>)}
           </select>
         </div>
@@ -426,7 +436,7 @@ function ProductForm({
           <label className="block text-xs font-medium text-gray-600 mb-1">Cost Price (₹)</label>
           <input type="number" value={form.costPrice || ''} min={0} step={0.01}
             onChange={(e) => onChange({ costPrice: parseFloat(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
             placeholder="Purchase / landed cost" />
         </div>
         <div>
@@ -434,7 +444,7 @@ function ProductForm({
           <div className="relative">
             <input type="number" value={form.sellingPrice || ''} min={0} step={0.01}
               onChange={(e) => onChange({ sellingPrice: parseFloat(e.target.value) || 0 })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             {form.costPrice && form.costPrice > 0 && form.sellingPrice > 0 && (
               <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold ${
                 calcMargin(form.sellingPrice, form.costPrice)! >= 20 ? 'text-green-600' :
@@ -449,37 +459,37 @@ function ProductForm({
           <label className="block text-xs font-medium text-gray-600 mb-1">MRP (₹)</label>
           <input type="number" value={form.mrp || ''} min={0} step={0.01}
             onChange={(e) => onChange({ mrp: parseFloat(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">GST Rate</label>
           <select value={form.taxRate} onChange={(e) => onChange({ taxRate: parseInt(e.target.value) })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
             {GST_SLABS.map((r) => <option key={r} value={r}>{r === 0 ? 'Nil (0%)' : `${r}%`}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">HSN Code</label>
           <input type="text" value={form.hsnCode} onChange={(e) => onChange({ hsnCode: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Opening Stock</label>
           <input type="number" value={form.stock} min={0}
             onChange={(e) => onChange({ stock: parseFloat(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Reorder Level</label>
           <input type="number" value={form.reorderLevel} min={0}
             onChange={(e) => onChange({ reorderLevel: parseInt(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div className="col-span-2 flex items-center gap-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.soldByWeight}
               onChange={(e) => onChange({ soldByWeight: e.target.checked })}
-              className="rounded text-blue-600" />
+              className="rounded text-brand-600" />
             <span className="text-sm text-gray-700">Sold by weight (scale auto-fills qty)</span>
           </label>
         </div>

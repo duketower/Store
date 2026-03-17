@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "store-pos-44750"
+  },
+  "targets": {
+    "store-pos-44750": {
+      "hosting": {
+        "default-pos": ["store-pos-44750"],
+        "zero-one-bv":  ["zero-one-bv"]
+      }
+    }
   }
 }

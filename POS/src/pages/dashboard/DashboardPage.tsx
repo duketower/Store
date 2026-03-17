@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, TrendingUp, AlertTriangle, Clock, PackageX, ArrowRight } from 'lucide-react'
+import { ShoppingCart, TrendingUp, ArrowRight, Clock } from 'lucide-react'
+import { InventoryAlertsPanel } from '@/components/common/InventoryAlertsPanel'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -97,7 +98,7 @@ export function DashboardPage() {
             </div>
             <button
               onClick={() => navigate(APP_ROUTES.SHIFT_CLOSE)}
-              className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1"
+              className="text-sm font-medium text-brand-600 hover:underline flex items-center gap-1"
             >
               {currentSession ? 'Close Shift' : 'Open Shift'} <ArrowRight size={14} />
             </button>
@@ -107,7 +108,7 @@ export function DashboardPage() {
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Today's Sales</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard label="Total Bills" value={String(data.totalBills)} icon={<ShoppingCart size={18} className="text-blue-500" />} />
+              <StatCard label="Total Bills" value={String(data.totalBills)} icon={<ShoppingCart size={18} className="text-brand-500" />} />
               <StatCard label="Total Revenue" value={formatCurrency(data.totalSales)} icon={<TrendingUp size={18} className="text-green-500" />} highlight />
               <StatCard label="Cash" value={formatCurrency(data.cashTotal)} />
               <StatCard label="UPI" value={formatCurrency(data.upiTotal)} />
@@ -117,79 +118,8 @@ export function DashboardPage() {
             )}
           </div>
 
-          {/* Alerts row */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-            {/* Low stock */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <PackageX size={16} className="text-red-500" />
-                  <p className="text-sm font-semibold text-gray-700">Low Stock</p>
-                  {data.lowStock.length > 0 && (
-                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-                      {data.lowStock.length}
-                    </span>
-                  )}
-                </div>
-                <button onClick={() => navigate(APP_ROUTES.PRODUCTS)} className="text-xs text-blue-600 hover:underline">
-                  View all
-                </button>
-              </div>
-              {data.lowStock.length === 0 ? (
-                <p className="text-xs text-gray-400">All products are sufficiently stocked.</p>
-              ) : (
-                <div className="space-y-2">
-                  {data.lowStock.slice(0, 5).map((p) => (
-                    <div key={p.id} className="flex justify-between text-sm">
-                      <span className="text-gray-700 truncate">{p.name}</span>
-                      <span className="text-red-600 font-medium ml-2 shrink-0">{p.stock} {p.unit}</span>
-                    </div>
-                  ))}
-                  {data.lowStock.length > 5 && (
-                    <p className="text-xs text-gray-400">+{data.lowStock.length - 5} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Near expiry */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={16} className="text-amber-500" />
-                  <p className="text-sm font-semibold text-gray-700">Near Expiry</p>
-                  {data.nearExpiry.length > 0 && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-                      {data.nearExpiry.length}
-                    </span>
-                  )}
-                </div>
-                <button onClick={() => navigate(APP_ROUTES.REPORTS)} className="text-xs text-blue-600 hover:underline">
-                  View all
-                </button>
-              </div>
-              {data.nearExpiry.length === 0 ? (
-                <p className="text-xs text-gray-400">No batches expiring within {NEAR_EXPIRY_DAYS} days.</p>
-              ) : (
-                <div className="space-y-2">
-                  {data.nearExpiry.slice(0, 5).map((b) => (
-                    <div key={b.id} className="flex justify-between text-sm">
-                      <span className="text-gray-700 truncate">{b.productName}</span>
-                      <span className="text-amber-600 font-medium ml-2 shrink-0 text-xs">
-                        {b.expiryDate instanceof Date
-                          ? b.expiryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : new Date(b.expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                  ))}
-                  {data.nearExpiry.length > 5 && (
-                    <p className="text-xs text-gray-400">+{data.nearExpiry.length - 5} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Inventory Alerts */}
+          <InventoryAlertsPanel lowStock={data.lowStock} nearExpiry={data.nearExpiry} />
 
           {/* Quick actions */}
           <div>
@@ -221,19 +151,19 @@ function formatTime(date: Date | string) {
 
 function StatCard({ label, value, icon, highlight }: { label: string; value: string; icon?: React.ReactNode; highlight?: boolean }) {
   return (
-    <div className={`rounded-lg border p-3 ${highlight ? 'bg-blue-50 border-blue-100' : 'bg-white border-gray-200'}`}>
+    <div className={`rounded-lg border p-3 ${highlight ? 'bg-brand-50 border-brand-100' : 'bg-white border-gray-200'}`}>
       <div className="flex items-center gap-2 mb-1">
         {icon}
-        <p className={`text-xs font-medium ${highlight ? 'text-blue-600' : 'text-gray-500'}`}>{label}</p>
+        <p className={`text-xs font-medium ${highlight ? 'text-brand-600' : 'text-gray-500'}`}>{label}</p>
       </div>
-      <p className={`text-lg font-bold ${highlight ? 'text-blue-700' : 'text-gray-900'}`}>{value}</p>
+      <p className={`text-lg font-bold ${highlight ? 'text-brand-700' : 'text-gray-900'}`}>{value}</p>
     </div>
   )
 }
 
 function QuickAction({ label, icon, onClick, color }: { label: string; icon: React.ReactNode; onClick: () => void; color: string }) {
   const colors: Record<string, string> = {
-    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100',
+    blue: 'bg-brand-50 hover:bg-brand-100 text-brand-700 border-brand-100',
     green: 'bg-green-50 hover:bg-green-100 text-green-700 border-green-100',
     purple: 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-100',
     amber: 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-100',

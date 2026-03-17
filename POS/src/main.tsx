@@ -15,6 +15,18 @@ import './styles/globals.css'
 // Catch uncaught errors and unhandled rejections → Firestore errors collection
 initErrorMonitoring()
 
+// Inject per-client brand CSS variables before first render.
+// Any field not set by the client config falls back to the blue defaults in globals.css.
+const { brand } = CLIENT_CONFIG
+if (brand.primaryColor) {
+  const r = document.documentElement.style
+  r.setProperty('--brand-primary',       brand.primaryColor)
+  r.setProperty('--brand-primary-hover', brand.primaryHoverColor ?? brand.primaryColor)
+  r.setProperty('--brand-primary-tint',  brand.primaryTintColor  ?? '#eff6ff')
+  r.setProperty('--brand-bg',            brand.bgColor           ?? '#f9fafb')
+  r.setProperty('--brand-text',          brand.textColor         ?? '#111827')
+}
+
 const root = createRoot(document.getElementById('root')!)
 
 // License gate: if subscription has expired, show locked screen instead of mounting the app.

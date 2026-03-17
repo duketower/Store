@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { BarChart3, Package, AlertTriangle, Download, Receipt, Truck, CreditCard, CheckCircle, Search, X, RotateCcw, Plus, Trash2, Printer } from 'lucide-react'
+import { BarChart3, Package, AlertTriangle, Download, Receipt, Truck, CreditCard, CheckCircle, Search, X, RotateCcw, Plus, Trash2, Printer, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { InventoryAlertsPanel } from '@/components/common/InventoryAlertsPanel'
+import { getInventoryIntelligence, type InventoryIntelligence } from '@/db/queries/inventoryIntelligence'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { Receipt as ReceiptView } from '@/pages/billing/components/Receipt'
-import { getAllProducts, searchProducts, getProductByBarcode } from '@/db/queries/products'
+import { getAllProducts, searchProducts, getProductByBarcode, getLowStockProducts } from '@/db/queries/products'
 import { getNearExpiryBatches, getBatchesForProduct } from '@/db/queries/batches'
 import { getSaleWithItems, processReturn, type ReturnItem } from '@/db/queries/sales'
 import { getAllCustomers, updateCreditBalance, addCreditLedgerEntry } from '@/db/queries/customers'
@@ -17,7 +19,7 @@ import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import type { Product, Sale, SaleItem, Payment, Batch, Customer, CreditLedgerEntry, Grn, RtvSession, RtvItem } from '@/types'
 
-type ReportTab = 'sales' | 'stock' | 'bills' | 'grn' | 'rtv' | 'credit'
+type ReportTab = 'sales' | 'stock' | 'bills' | 'grn' | 'rtv' | 'credit' | 'inventory'
 
 interface BillRow {
   sale: Sale
@@ -42,6 +44,7 @@ export function ReportsPage() {
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10))
   const [salesData, setSalesData] = useState<SalesReportData | null>(null)
   const [stockData, setStockData] = useState<StockReportData | null>(null)
+  const [inventoryData, setInventoryData] = useState<InventoryIntelligence | null>(null)
   const [billsData, setBillsData] = useState<BillRow[] | null>(null)
   const [grnListData, setGrnListData] = useState<Grn[] | null>(null)
   const [viewGrnId, setViewGrnId] = useState<number | null>(null)
@@ -104,6 +107,7 @@ export function ReportsPage() {
     else if (tab === 'grn') loadGrnListReport()
     else if (tab === 'rtv') loadRtvReport()
     else if (tab === 'credit') loadCreditReport()
+    else if (tab === 'inventory') loadInventoryReport()
   }, [tab, reportDate])
 
   const loadSalesReport = async () => {
@@ -163,11 +167,22 @@ export function ReportsPage() {
   const loadStockReport = async () => {
     setLoading(true)
     try {
-      const [allProducts, nearExpiry] = await Promise.all([
+      const [allProducts, nearExpiry, lowStock] = await Promise.all([
         getAllProducts(),
         getNearExpiryBatches(NEAR_EXPIRY_DAYS),
+        getLowStockProducts(),
       ])
-      setStockData({ products: allProducts, nearExpiry })
+      setStockData({ products: allProducts, nearExpiry, lowStock })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadInventoryReport = async () => {
+    setLoading(true)
+    try {
+      const data = await getInventoryIntelligence()
+      setInventoryData(data)
     } finally {
       setLoading(false)
     }
@@ -528,18 +543,19 @@ export function ReportsPage() {
   return (
     <PageContainer title="Reports">
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
+      <div className="flex gap-1 mb-4 border-b border-gray-200 overflow-x-auto">
         {([
           { id: 'sales', label: 'Daily Sales', icon: <BarChart3 size={15} /> },
           { id: 'stock', label: 'Stock Levels', icon: <Package size={15} /> },
+          { id: 'inventory', label: 'Inventory', icon: <Activity size={15} /> },
           { id: 'bills', label: 'All Bills', icon: <Receipt size={15} /> },
           { id: 'grn', label: 'GRN History', icon: <Truck size={15} /> },
           { id: 'rtv', label: 'RTV', icon: <RotateCcw size={15} /> },
           { id: 'credit', label: 'Credit', icon: <CreditCard size={15} /> },
         ] as { id: ReportTab; label: string; icon: React.ReactNode }[]).map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === t.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            className={`shrink-0 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              tab === t.id ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}>
             <span className="flex items-center gap-2">{t.icon}{t.label}</span>
           </button>
@@ -551,7 +567,7 @@ export function ReportsPage() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             <span className="text-sm text-gray-500">Showing sales for selected date</span>
           </div>
 
@@ -621,30 +637,10 @@ export function ReportsPage() {
             </button>
           </div>
 
-          {stockData?.nearExpiry && stockData.nearExpiry.length > 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={16} className="text-amber-600" />
-                <p className="text-sm font-semibold text-amber-700">Near-Expiry Batches (within {NEAR_EXPIRY_DAYS} days)</p>
-              </div>
-              <div className="divide-y divide-amber-100">
-                {stockData.nearExpiry.map((b) => (
-                  <div key={b.id} className="flex justify-between py-2 text-sm">
-                    <div>
-                      <span className="font-medium text-amber-800">{b.productName}</span>
-                      <span className="text-amber-600 ml-2 text-xs">Batch {b.batchNo}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-amber-700 font-medium">
-                        Exp: {b.expiryDate instanceof Date ? b.expiryDate.toLocaleDateString('en-IN') : new Date(b.expiryDate).toLocaleDateString('en-IN')}
-                      </p>
-                      <p className="text-xs text-amber-600">{b.qtyRemaining} remaining</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <InventoryAlertsPanel
+            lowStock={stockData?.lowStock ?? []}
+            nearExpiry={stockData?.nearExpiry ?? []}
+          />
 
           {loading ? (
             <p className="text-sm text-gray-400">Loading…</p>
@@ -693,6 +689,216 @@ export function ReportsPage() {
         </div>
       )}
 
+      {/* Inventory Intelligence */}
+      {tab === 'inventory' && (
+        <div className="space-y-5">
+          {loading ? (
+            <p className="text-sm text-gray-400">Loading…</p>
+          ) : inventoryData ? (
+            <>
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Stock Value (MRP)</p>
+                  <p className="text-lg font-bold text-gray-900">{formatCurrency(inventoryData.totalStockValue)}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Stock Value (Cost)</p>
+                  <p className="text-lg font-bold text-gray-900">{formatCurrency(inventoryData.totalCostValue)}</p>
+                </div>
+                <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+                  <p className="text-xs font-medium text-brand-600 mb-1">Fast Moving</p>
+                  <p className="text-lg font-bold text-brand-700">{inventoryData.fastMoving.length} products</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Slow / Dead Stock</p>
+                  <p className="text-lg font-bold text-gray-900">{inventoryData.slowDead.length} products</p>
+                </div>
+              </div>
+
+              {/* Needs reorder soon */}
+              {inventoryData.needsReorderSoon.length > 0 && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle size={16} className="text-red-600" />
+                    <p className="text-sm font-semibold text-red-700">
+                      Reorder Urgently — Stock running out within 7 days
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-red-600 uppercase">
+                          <th className="text-left pb-2 font-semibold">Product</th>
+                          <th className="text-right pb-2 font-semibold">Days Left</th>
+                          <th className="text-right pb-2 font-semibold">Current Stock</th>
+                          <th className="text-right pb-2 font-semibold">Avg / Day</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-red-100">
+                        {inventoryData.needsReorderSoon.map((i) => (
+                          <tr key={i.product.id}>
+                            <td className="py-2 font-medium text-gray-800">{i.product.name}</td>
+                            <td className="py-2 text-right font-bold text-red-600">
+                              {i.daysRemaining === 0 ? 'Today!' : `${i.daysRemaining}d`}
+                            </td>
+                            <td className="py-2 text-right text-gray-700">{i.product.stock} {i.product.unit}</td>
+                            <td className="py-2 text-right text-gray-500">{i.avgDailySales.toFixed(1)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Fast moving */}
+              {inventoryData.fastMoving.length > 0 && (
+                <div className="rounded-lg border border-gray-200 bg-white">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                    <TrendingUp size={16} className="text-green-600" />
+                    <p className="text-sm font-semibold text-gray-700">Fast Moving Items</p>
+                    <span className="text-xs text-gray-400">(last 30 days)</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
+                          <th className="text-left px-4 py-2 font-semibold">Product</th>
+                          <th className="text-right px-4 py-2 font-semibold">Sold (30d)</th>
+                          <th className="text-right px-4 py-2 font-semibold">Avg / Day</th>
+                          <th className="text-right px-4 py-2 font-semibold">Stock Left</th>
+                          <th className="text-right px-4 py-2 font-semibold">Days Left</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {inventoryData.fastMoving.map((i) => (
+                          <tr key={i.product.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 font-medium text-gray-800">{i.product.name}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-700">{i.soldLast30Days} {i.product.unit}</td>
+                            <td className="px-4 py-2.5 text-right font-semibold text-green-600">{i.avgDailySales.toFixed(1)}/day</td>
+                            <td className="px-4 py-2.5 text-right text-gray-700">{i.product.stock} {i.product.unit}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              {i.daysRemaining !== null ? (
+                                <span className={`font-semibold ${i.daysRemaining <= 7 ? 'text-red-600' : i.daysRemaining <= 14 ? 'text-amber-600' : 'text-gray-700'}`}>
+                                  {i.daysRemaining}d
+                                </span>
+                              ) : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Slow / Dead stock */}
+              {inventoryData.slowDead.length > 0 && (
+                <div className="rounded-lg border border-gray-200 bg-white">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                    <TrendingDown size={16} className="text-gray-400" />
+                    <p className="text-sm font-semibold text-gray-700">Slow / Dead Stock</p>
+                    <span className="text-xs text-gray-400">(≤ 0.5 units/day or no sales in 30d)</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
+                          <th className="text-left px-4 py-2 font-semibold">Product</th>
+                          <th className="text-right px-4 py-2 font-semibold">Sold (30d)</th>
+                          <th className="text-right px-4 py-2 font-semibold">Avg / Day</th>
+                          <th className="text-right px-4 py-2 font-semibold">Stock</th>
+                          <th className="text-right px-4 py-2 font-semibold">Stock Value</th>
+                          <th className="text-right px-4 py-2 font-semibold">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {inventoryData.slowDead.map((i) => (
+                          <tr key={i.product.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 font-medium text-gray-800">{i.product.name}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-600">{i.soldLast30Days}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-500">{i.avgDailySales.toFixed(2)}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-700">{i.product.stock} {i.product.unit}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-600">{formatCurrency(i.stockValue)}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                i.velocity === 'dead'
+                                  ? 'bg-gray-100 text-gray-500'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}>
+                                {i.velocity === 'dead' ? 'Dead' : 'Slow'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* All products — days remaining table */}
+              <div className="rounded-lg border border-gray-200 bg-white">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                  <Package size={16} className="text-gray-500" />
+                  <p className="text-sm font-semibold text-gray-700">All Products — Stock Runway</p>
+                  <span className="text-xs text-gray-400">(based on last 30 days avg sales)</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
+                        <th className="text-left px-4 py-2 font-semibold">Product</th>
+                        <th className="text-right px-4 py-2 font-semibold">Stock</th>
+                        <th className="text-right px-4 py-2 font-semibold">Avg / Day</th>
+                        <th className="text-right px-4 py-2 font-semibold">Days Left</th>
+                        <th className="text-right px-4 py-2 font-semibold">Velocity</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {inventoryData.items
+                        .sort((a, b) => (a.daysRemaining ?? 9999) - (b.daysRemaining ?? 9999))
+                        .map((i) => (
+                          <tr key={i.product.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 font-medium text-gray-800">{i.product.name}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-700">{i.product.stock} {i.product.unit}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-500">{i.avgDailySales.toFixed(1)}</td>
+                            <td className="px-4 py-2.5 text-right font-semibold">
+                              {i.daysRemaining === null ? (
+                                <span className="text-gray-400">—</span>
+                              ) : (
+                                <span className={
+                                  i.daysRemaining <= 3 ? 'text-red-600' :
+                                  i.daysRemaining <= 7 ? 'text-orange-500' :
+                                  i.daysRemaining <= 14 ? 'text-amber-500' :
+                                  'text-green-600'
+                                }>
+                                  {i.daysRemaining}d
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                i.velocity === 'fast'   ? 'bg-green-100 text-green-700' :
+                                i.velocity === 'normal' ? 'bg-brand-100 text-brand-700' :
+                                i.velocity === 'slow'   ? 'bg-amber-50 text-amber-700' :
+                                                          'bg-gray-100 text-gray-500'
+                              }`}>
+                                {i.velocity.charAt(0).toUpperCase() + i.velocity.slice(1)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
       {/* Bills History */}
       {tab === 'bills' && (
         <div className="space-y-3">
@@ -706,24 +912,24 @@ export function ReportsPage() {
                   value={billSearch}
                   onChange={(e) => setBillSearch(e.target.value)}
                   placeholder="Search bill no, customer name or phone…"
-                  className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
                 />
               </div>
               <input type="date" value={billDateFrom} onChange={(e) => setBillDateFrom(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
               <input type="date" value={billDateTo} onChange={(e) => setBillDateTo(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {(['', 'cash', 'upi', 'card', 'credit'] as const).map((m) => (
                 <button key={m} onClick={() => setBillPayMethod(m)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${billPayMethod === m ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}>
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${billPayMethod === m ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}>
                   {m === '' ? 'All' : m.toUpperCase()}
                 </button>
               ))}
               <div className="ml-auto flex items-center gap-2">
                 <select value={billSort} onChange={(e) => setBillSort(e.target.value as typeof billSort)}
-                  className="rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none">
+                  className="rounded-lg border border-gray-300 px-2 py-1 text-xs focus:border-brand-500 focus:outline-none">
                   <option value="date_desc">Newest first</option>
                   <option value="date_asc">Oldest first</option>
                   <option value="total_desc">Total ↓</option>
@@ -775,7 +981,7 @@ export function ReportsPage() {
                   {filteredBills.map((row) => (
                     <tr key={row.sale.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <button onClick={() => openReceipt(row)} className="font-mono text-sm font-medium text-blue-700 hover:underline">
+                        <button onClick={() => openReceipt(row)} className="font-mono text-sm font-medium text-brand-700 hover:underline">
                           {row.sale.billNo}
                         </button>
                       </td>
@@ -799,7 +1005,7 @@ export function ReportsPage() {
                       <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(row.sale.grandTotal)}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{row.paymentSummary}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => openReturn(row)} className="text-xs text-blue-600 hover:underline">Return</button>
+                        <button onClick={() => openReturn(row)} className="text-xs text-brand-600 hover:underline">Return</button>
                       </td>
                     </tr>
                   ))}
@@ -839,7 +1045,7 @@ export function ReportsPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => openGrnDetail(grn.id!)}
-                          className="font-mono text-sm font-bold text-blue-700 hover:underline"
+                          className="font-mono text-sm font-bold text-brand-700 hover:underline"
                         >
                           GRN-{String(grn.id).padStart(4, '0')}
                         </button>
@@ -1029,7 +1235,7 @@ export function ReportsPage() {
                           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                             entry.entryType === 'credit'
                               ? 'bg-green-100 text-green-700'
-                              : 'bg-blue-100 text-blue-700'
+                              : 'bg-brand-100 text-brand-700'
                           }`}>
                             {entry.entryType === 'credit' ? 'Payment' : 'Sale'}
                           </span>
@@ -1066,7 +1272,7 @@ export function ReportsPage() {
                 min={0.01}
                 max={collectCustomer.currentBalance}
                 step={0.01}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 autoFocus
               />
             </div>
@@ -1267,19 +1473,19 @@ export function ReportsPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Vendor / Supplier</label>
                 <input type="text" value={rtvVendor} onChange={(e) => setRtvVendor(e.target.value)}
-                  placeholder="Vendor name…" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                  placeholder="Vendor name…" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Ref <span className="text-gray-400 font-normal">(optional)</span></label>
                 <input type="text" value={rtvInvoiceNo} onChange={(e) => setRtvInvoiceNo(e.target.value)}
-                  placeholder="e.g. INV-2024-001" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                  placeholder="e.g. INV-2024-001" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Reason for Return *</label>
               <input type="text" value={rtvReason} onChange={(e) => setRtvReason(e.target.value)}
-                placeholder="e.g. Damaged goods, Wrong item, Near expiry…" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                placeholder="e.g. Damaged goods, Wrong item, Near expiry…" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
 
             {/* Product search */}
@@ -1289,7 +1495,7 @@ export function ReportsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                 <input type="text" value={rtvProductSearch} onChange={(e) => handleRtvProductSearch(e.target.value)}
                   placeholder="Search product by name, SKU or barcode…"
-                  className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+                  className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
               </div>
               {rtvProductResults.length > 0 && (
                 <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-sm max-h-40 overflow-y-auto">
@@ -1324,7 +1530,7 @@ export function ReportsPage() {
                         <td className="px-3 py-2">
                           <select value={line.batchId}
                             onChange={(e) => handleRtvBatchChange(idx, parseInt(e.target.value))}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none">
+                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-brand-500 focus:outline-none">
                             {(rtvBatchMap[line.productId] ?? []).map((b) => (
                               <option key={b.id} value={b.id}>{b.batchNo} (avail: {b.qtyRemaining})</option>
                             ))}
@@ -1333,12 +1539,12 @@ export function ReportsPage() {
                         <td className="px-3 py-2">
                           <input type="number" value={line.qty} min={0.001} max={line.availableQty} step={0.001}
                             onChange={(e) => updateRtvLine(idx, { qty: Math.min(parseFloat(e.target.value) || 0, line.availableQty) })}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-blue-400 focus:outline-none" />
+                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-brand-500 focus:outline-none" />
                         </td>
                         <td className="px-3 py-2">
                           <input type="number" value={line.purchasePrice || ''} min={0} step={0.01}
                             onChange={(e) => updateRtvLine(idx, { purchasePrice: parseFloat(e.target.value) || 0 })}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-blue-400 focus:outline-none" />
+                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-brand-500 focus:outline-none" />
                         </td>
                         <td className="px-3 py-2">
                           <button onClick={() => setRtvLines((prev) => prev.filter((_, i) => i !== idx))}
@@ -1407,11 +1613,11 @@ export function ReportsPage() {
                 value={returnReason}
                 onChange={(e) => setReturnReason(e.target.value)}
                 placeholder="e.g. Damaged product, Wrong item…"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               />
             </div>
             {returnBill.sale.customerId && (
-              <p className="text-xs text-blue-600">Refund will be credited to customer's account.</p>
+              <p className="text-xs text-brand-600">Refund will be credited to customer's account.</p>
             )}
             <div className="flex gap-3">
               <button onClick={() => setReturnModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
@@ -1444,13 +1650,14 @@ interface SalesReportData {
 interface StockReportData {
   products: Product[]
   nearExpiry: Array<{ id?: number; productName?: string; batchNo: string; expiryDate: Date; qtyRemaining: number }>
+  lowStock: Product[]
 }
 
 function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`rounded-lg border p-3 ${highlight ? 'bg-blue-50 border-blue-100' : 'bg-white border-gray-200'}`}>
-      <p className={`text-xs font-medium mb-1 ${highlight ? 'text-blue-600' : 'text-gray-500'}`}>{label}</p>
-      <p className={`text-lg font-bold ${highlight ? 'text-blue-700' : 'text-gray-900'}`}>{value}</p>
+    <div className={`rounded-lg border p-3 ${highlight ? 'bg-brand-50 border-brand-100' : 'bg-white border-gray-200'}`}>
+      <p className={`text-xs font-medium mb-1 ${highlight ? 'text-brand-600' : 'text-gray-500'}`}>{label}</p>
+      <p className={`text-lg font-bold ${highlight ? 'text-brand-700' : 'text-gray-900'}`}>{value}</p>
     </div>
   )
 }

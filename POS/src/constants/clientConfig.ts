@@ -18,8 +18,8 @@ function getClientConfig(): ClientConfig {
     store: { ...STORE_CONFIG },
     brand: {
       themeColor: '#1e40af',
-      appName: 'Grocery Store POS',
-      shortName: 'POS',
+      appName:    'Grocery Store POS',
+      shortName:  'POS',
     },
     plan: 'enterprise',       // dev gets full access
     clientId: 'dev',

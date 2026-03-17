@@ -39,7 +39,7 @@ export function Sidebar() {
     <aside className="flex h-full w-56 flex-col border-r border-gray-200 bg-white">
       {/* Logo — uses per-client brand app name */}
       <div className="flex h-14 items-center border-b border-gray-200 px-4">
-        <ShoppingCart className="mr-2 text-blue-600" size={20} />
+        <ShoppingCart className="mr-2" style={{ color: 'var(--brand-primary, #2563eb)' }} size={20} />
         <span className="text-sm font-bold text-gray-900">{CLIENT_CONFIG.brand.appName}</span>
       </div>
 
@@ -55,7 +55,7 @@ export function Sidebar() {
                 cn(
                   'mb-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'nav-active'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 )
               }
