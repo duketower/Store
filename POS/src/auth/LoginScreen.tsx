@@ -64,7 +64,7 @@ export function LoginScreen() {
     return () => window.removeEventListener('keydown', handler)
   }, [screen, pin, loading, isLockedOut])
 
-  const handleCardSelect = (employee: Employee) => {
+  const goToPin = (employee: Employee) => {
     setSelectedEmployee(employee)
     setPin('')
     setError('')
@@ -73,35 +73,29 @@ export function LoginScreen() {
     setScreen('pin')
   }
 
-  const handleBiometricLogin = async (employee: Employee, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!employee.credentialId) return
-    setLoading(true)
-    try {
-      const ok = await authenticateBiometric(employee.credentialId)
-      if (ok) {
-        const session = createSession(employee)
-        setSession(session)
-        navigate(ROUTES.BILLING, { replace: true })
-      } else {
-        // Fall through to PIN
-        setSelectedEmployee(employee)
-        setPin('')
-        setError('Biometric failed — enter PIN instead.')
-        setAttempts(0)
-        setLockoutUntil(null)
-        setScreen('pin')
+  const handleCardSelect = async (employee: Employee) => {
+    // If biometric is registered for this employee, try it first
+    if (bioAvailable && employee.credentialId) {
+      setLoading(true)
+      try {
+        const ok = await authenticateBiometric(employee.credentialId)
+        if (ok) {
+          const session = createSession(employee)
+          setSession(session)
+          navigate(ROUTES.BILLING, { replace: true })
+          return
+        }
+      } catch {
+        // fall through to PIN
+      } finally {
+        setLoading(false)
       }
-    } catch {
-      setSelectedEmployee(employee)
-      setPin('')
+      // Biometric failed/cancelled — go to PIN with message
+      goToPin(employee)
       setError('Biometric failed — enter PIN instead.')
-      setAttempts(0)
-      setLockoutUntil(null)
-      setScreen('pin')
-    } finally {
-      setLoading(false)
+      return
     }
+    goToPin(employee)
   }
 
   const handlePinDigit = (digit: string) => {
@@ -209,19 +203,15 @@ export function LoginScreen() {
                   onClick={() => handleCardSelect(emp)}
                   className="relative flex flex-col items-center rounded-xl border-2 border-gray-200 bg-white p-4 text-center transition-all hover:border-brand-500 hover:bg-brand-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
-                  {/* Biometric button for admin/manager with registered credential */}
-                  {bioAvailable &&
-                    (emp.role === 'admin' || emp.role === 'manager') &&
-                    emp.credentialId && (
-                      <button
-                        onClick={(e) => handleBiometricLogin(emp, e)}
-                        disabled={loading}
-                        title="Login with fingerprint"
-                        className="absolute top-2 right-2 rounded-full p-1 text-brand-500 hover:bg-brand-50 focus:outline-none disabled:opacity-50"
-                      >
-                        <Fingerprint size={16} />
-                      </button>
-                    )}
+                  {/* Biometric indicator — tapping card triggers fingerprint directly */}
+                  {bioAvailable && emp.credentialId && (
+                    <span
+                      title="Tap to use fingerprint"
+                      className="absolute top-2 right-2 text-brand-400"
+                    >
+                      <Fingerprint size={15} />
+                    </span>
+                  )}
                   <div className={cn(
                     'mb-2 flex h-12 w-12 items-center justify-center rounded-full text-xl font-bold',
                     emp.role === 'admin' ? 'bg-purple-100 text-purple-700' :
