@@ -143,7 +143,7 @@ export function BillingPage() {
       <div className="flex w-72 flex-col border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <ScanLine size={16} className="text-blue-600 flex-shrink-0" />
+            <ScanLine size={16} className="text-brand-600 flex-shrink-0" />
             <span className="text-xs text-gray-500">Scan barcode or search below</span>
           </div>
           <ProductSearch onSelect={addProductToCart} />

@@ -8,7 +8,7 @@ export function AppShell() {
   const { connected, connect } = usePrinter()
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--brand-bg, #f9fafb)' }}>
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">

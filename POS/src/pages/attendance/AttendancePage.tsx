@@ -45,7 +45,7 @@ const STATUS_COLORS: Record<AttendanceStatus, string> = {
   present:  'bg-green-100 text-green-700',
   absent:   'bg-red-100 text-red-700',
   half_day: 'bg-yellow-100 text-yellow-700',
-  leave:    'bg-blue-100 text-blue-700',
+  leave:    'bg-brand-100 text-brand-700',
 }
 
 const STATUS_LABELS: Record<AttendanceStatus, string> = {
@@ -126,7 +126,7 @@ export function AttendancePage() {
             onClick={() => setTab(t.id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               tab === t.id
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-brand-600 text-brand-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -209,14 +209,14 @@ function BoardTab({ today }: { today: Date }) {
           <span className="text-sm font-semibold text-gray-800 min-w-[130px] text-center">{formatMonthYear(year, month)}</span>
           <button onClick={nextMonth} className="rounded-lg border border-gray-200 p-1.5 hover:bg-gray-50"><ChevronRight size={16} /></button>
         </div>
-        <button onClick={goToday} className="text-xs text-blue-600 underline hover:no-underline">Today</button>
+        <button onClick={goToday} className="text-xs text-brand-600 underline hover:no-underline">Today</button>
         <div className="ml-auto flex items-center gap-3">
           {/* Legend */}
           <div className="flex items-center gap-2 text-xs">
             <span className="rounded px-1.5 py-0.5 bg-green-100 text-green-700">P</span>
             <span className="rounded px-1.5 py-0.5 bg-red-100 text-red-700">A</span>
             <span className="rounded px-1.5 py-0.5 bg-yellow-100 text-yellow-700">½</span>
-            <span className="rounded px-1.5 py-0.5 bg-blue-100 text-blue-700">L</span>
+            <span className="rounded px-1.5 py-0.5 bg-brand-100 text-brand-700">L</span>
           </div>
           <button onClick={handleExport} disabled={exporting} className="btn-secondary flex items-center gap-2 text-sm">
             <Download size={14} />
@@ -352,7 +352,7 @@ function LogAttendanceModal({
     { value: 'present',  label: 'Present',  color: 'bg-green-100 text-green-700 ring-green-400' },
     { value: 'absent',   label: 'Absent',   color: 'bg-red-100 text-red-700 ring-red-400' },
     { value: 'half_day', label: 'Half Day', color: 'bg-yellow-100 text-yellow-700 ring-yellow-400' },
-    { value: 'leave',    label: 'On Leave', color: 'bg-blue-100 text-blue-700 ring-blue-400' },
+    { value: 'leave',    label: 'On Leave', color: 'bg-brand-100 text-brand-700 ring-blue-400' },
   ]
 
   const label = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -381,7 +381,7 @@ function LogAttendanceModal({
             value={notes}
             onChange={e => setNotes(e.target.value)}
             placeholder="e.g. Late arrival"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div className="flex justify-end gap-3">
@@ -600,9 +600,9 @@ function ApproveLeaveModal({
 
         {/* Leave balance */}
         {balance && (
-          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-sm">
-            <p className="font-medium text-blue-800 mb-1">Leave Balance — {request.employeeName}</p>
-            <p className="text-blue-700">{balance.used} of {balance.allotment} used · <strong>{balance.remaining} remaining</strong> this month</p>
+          <div className="rounded-lg bg-brand-50 border border-brand-100 p-3 text-sm">
+            <p className="font-medium text-brand-800 mb-1">Leave Balance — {request.employeeName}</p>
+            <p className="text-brand-700">{balance.used} of {balance.allotment} used · <strong>{balance.remaining} remaining</strong> this month</p>
           </div>
         )}
 
@@ -669,7 +669,7 @@ function RejectLeaveModal({
             onChange={e => setReason(e.target.value)}
             rows={3}
             placeholder="e.g. Insufficient notice"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div className="flex justify-end gap-3">
@@ -855,7 +855,7 @@ function MyAttendanceTab({ today }: { today: Date }) {
             type="month"
             value={viewMonth}
             onChange={e => setViewMonth(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-blue-400"
+            className="text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-brand-500"
           />
         </div>
         {myLogs.length === 0 ? (
@@ -940,19 +940,19 @@ function ApplyLeaveModal({
             <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
             <input type="date" value={form.startDate} min={todayStr}
               onChange={e => setForm(f => ({ ...f, startDate: e.target.value, endDate: e.target.value > f.endDate ? e.target.value : f.endDate }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">End Date</label>
             <input type="date" value={form.endDate} min={form.startDate}
               onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Leave Type</label>
           <select value={form.leaveType} onChange={e => setForm(f => ({ ...f, leaveType: e.target.value as LeaveType }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
             <option value="full">Full Day</option>
             <option value="half_am">Half Day — Morning</option>
             <option value="half_pm">Half Day — Afternoon</option>
@@ -962,7 +962,7 @@ function ApplyLeaveModal({
           <label className="block text-xs font-medium text-gray-600 mb-1">Reason *</label>
           <textarea value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
             rows={2} placeholder="Briefly describe the reason"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
 
         {/* Balance info */}
@@ -1143,13 +1143,13 @@ function ExternalStaffModal({
           <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
           <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             autoFocus placeholder="e.g. Ramesh Kumar"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Designation *</label>
           <input type="text" value={form.designation} onChange={e => setForm(f => ({ ...f, designation: e.target.value }))}
             placeholder="e.g. Cleaning Staff, Security, Water Refill"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div className="flex justify-end gap-3 pt-1">
           <button onClick={onClose} className="btn-secondary">Cancel</button>

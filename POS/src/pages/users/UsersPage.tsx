@@ -16,7 +16,7 @@ const ROLE_LABELS: Record<Role, string> = {
 
 const ROLE_COLORS: Record<Role, string> = {
   admin: 'bg-purple-100 text-purple-700',
-  manager: 'bg-blue-100 text-blue-700',
+  manager: 'bg-brand-100 text-brand-700',
   cashier: 'bg-green-100 text-green-700',
 }
 
@@ -111,9 +111,9 @@ export function UsersPage() {
           </table>
         </div>
 
-        <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 flex items-start gap-3">
-          <ShieldCheck size={18} className="text-blue-500 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-blue-700">
+        <div className="rounded-lg bg-brand-50 border border-brand-100 px-4 py-3 flex items-start gap-3">
+          <ShieldCheck size={18} className="text-brand-500 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-brand-700">
             <strong>Admin:</strong> Full access including user management and settings.<br />
             <strong>Manager:</strong> Billing, inventory, reports — no user management.<br />
             <strong>Cashier:</strong> Billing, stock receipt, and customer lookup only.
@@ -191,13 +191,13 @@ function EmployeeFormModal({
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
           <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" autoFocus />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" autoFocus />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
           <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role, credential: '' }))}
             disabled={!!editEmployee}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none disabled:bg-gray-50">
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-50">
             <option value="cashier">Cashier</option>
             <option value="manager">Manager</option>
             <option value="admin">Admin</option>
@@ -212,13 +212,13 @@ function EmployeeFormModal({
             onChange={(e) => setForm((f) => ({ ...f, credential: e.target.value }))}
             maxLength={4}
             placeholder="e.g. 1234"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Monthly Leave Allotment</label>
           <input type="number" value={form.monthlyLeaveAllotment} min={0} max={31}
             onChange={(e) => setForm((f) => ({ ...f, monthlyLeaveAllotment: Math.max(0, Math.min(31, Number(e.target.value))) }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
           <p className="text-xs text-gray-400 mt-1">Number of paid leaves per month (default: 3)</p>
         </div>
         <div className="flex justify-end gap-3 pt-2">

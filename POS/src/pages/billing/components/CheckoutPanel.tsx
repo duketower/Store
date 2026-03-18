@@ -267,7 +267,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
       {/* Customer selector */}
       <div className="border-b border-gray-100 px-4 py-3">
         {selectedCustomer ? (
-          <div className="flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2">
+          <div className="flex items-center justify-between rounded-lg bg-brand-50 px-3 py-2">
             <div>
               <p className="text-sm font-medium text-gray-900">{selectedCustomer.name || 'Customer'}</p>
               <p className="text-xs text-gray-500">
@@ -283,7 +283,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
         ) : !showCustomerForm ? (
           <button
             onClick={() => setShowCustomerForm(true)}
-            className="flex w-full items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
+            className="flex w-full items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-400 hover:border-brand-500 hover:text-brand-500 transition-colors"
           >
             <User size={14} />
             Add Customer (optional)
@@ -296,7 +296,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                 value={phoneInput}
                 onChange={(e) => handlePhoneChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 placeholder="Phone number (optional)"
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
                 autoFocus
                 maxLength={10}
               />
@@ -314,7 +314,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Customer name (optional)"
-                className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
               />
             ) : null}
             {phoneInput.length > 0 && phoneInput.length < 10 && (
@@ -354,16 +354,16 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
             step={billDiscount.mode === 'percent' ? 1 : 0.5}
             onChange={(e) => setBillDiscount(billDiscount.mode, parseFloat(e.target.value) || 0)}
             placeholder="0"
-            className="w-16 rounded border border-gray-200 px-2 py-0.5 text-right text-sm focus:border-blue-400 focus:outline-none"
+            className="w-16 rounded border border-gray-200 px-2 py-0.5 text-right text-sm focus:border-brand-500 focus:outline-none"
           />
           <div className="flex rounded border border-gray-200 overflow-hidden text-xs font-medium">
             <button
               onClick={() => setBillDiscount('percent', billDiscount.value)}
-              className={cn('px-2 py-0.5', billDiscount.mode === 'percent' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}
+              className={cn('px-2 py-0.5', billDiscount.mode === 'percent' ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}
             >%</button>
             <button
               onClick={() => setBillDiscount('flat', billDiscount.value)}
-              className={cn('px-2 py-0.5 border-l border-gray-200', billDiscount.mode === 'flat' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}
+              className={cn('px-2 py-0.5 border-l border-gray-200', billDiscount.mode === 'flat' ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}
             >₹</button>
           </div>
           {billDiscountAmount > 0 && (
@@ -411,13 +411,13 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
               className={cn(
                 'flex flex-col items-center rounded-lg px-2 py-2 text-xs font-medium transition-colors disabled:opacity-40',
                 activeMethod === m.id
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-brand-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               )}
             >
               <span className="text-base">{m.emoji}</span>
               <span>{m.label}</span>
-              <span className={cn('text-[10px]', activeMethod === m.id ? 'text-blue-200' : 'text-gray-400')}>{m.key}</span>
+              <span className={cn('text-[10px]', activeMethod === m.id ? 'text-brand-100' : 'text-gray-400')}>{m.key}</span>
             </button>
           ))}
         </div>
@@ -433,13 +433,13 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
               className={cn(
                 'flex flex-col items-center rounded-lg px-2 py-2 text-xs font-medium transition-colors disabled:opacity-40',
                 activeMethod === m.id
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-brand-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               )}
             >
               <span className="text-base">{m.emoji}</span>
               <span>{m.label}</span>
-              {m.key && <span className={cn('text-[10px]', activeMethod === m.id ? 'text-blue-200' : 'text-gray-400')}>{m.key}</span>}
+              {m.key && <span className={cn('text-[10px]', activeMethod === m.id ? 'text-brand-100' : 'text-gray-400')}>{m.key}</span>}
             </button>
           ))}
         </div>
@@ -468,14 +468,14 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                 <button
                   key={d}
                   onClick={() => handleDenomination(d)}
-                  className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-blue-400"
+                  className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-brand-500"
                 >
                   ₹{d}
                 </button>
               ))}
               <button
                 onClick={() => setCashReceived(Math.ceil(grandTotal).toString())}
-                className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-blue-400"
+                className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-brand-500"
               >
                 Exact
               </button>
@@ -504,7 +504,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
           <div className="space-y-3 text-center">
             <p className="text-xs text-gray-500">Scan to pay {formatCurrency(grandTotal)}</p>
             <div className="flex justify-center">
-              <div className="rounded-xl border-4 border-blue-50 p-2 bg-white shadow-sm">
+              <div className="rounded-xl border-4 border-brand-50 p-2 bg-white shadow-sm">
                 <QRCodeSVG value={upiLink} size={180} />
               </div>
             </div>
@@ -576,7 +576,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                 )}
               </>
             ) : (
-              <div className="rounded-lg bg-blue-50 p-3 text-sm space-y-1">
+              <div className="rounded-lg bg-brand-50 p-3 text-sm space-y-1">
                 <p className="font-semibold text-gray-900">{selectedCustomer.name}</p>
                 <div className="flex gap-4 text-xs text-gray-600">
                   <span>Current: <strong className="text-red-600">{formatCurrency(selectedCustomer.currentBalance)}</strong></span>
@@ -644,8 +644,8 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                 </div>
               )}
               {selectedCustomer && parseAmount(splitAmounts.credit) > 0 && (
-                <div className="mt-1 flex items-center justify-between rounded bg-blue-50 px-2 py-1 text-xs">
-                  <span className="font-medium text-blue-800">{selectedCustomer.name}</span>
+                <div className="mt-1 flex items-center justify-between rounded bg-brand-50 px-2 py-1 text-xs">
+                  <span className="font-medium text-brand-800">{selectedCustomer.name}</span>
                   <button onClick={clearCustomer} className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
                 </div>
               )}
@@ -708,7 +708,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleRecall(bill.id)}
-                        className="rounded bg-blue-600 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-blue-700"
+                        className="rounded bg-brand-600 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-brand-700"
                       >
                         Recall
                       </button>
@@ -737,7 +737,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
               <button onClick={() => setRecallConfirmId(null)} className="btn-secondary flex-1 text-sm">Cancel</button>
               <button
                 onClick={() => { recallHeldBill(recallConfirmId); setRecallConfirmId(null); setShowHeldBills(false) }}
-                className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="flex-1 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700"
               >
                 Recall
               </button>

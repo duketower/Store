@@ -90,3 +90,12 @@ export interface CashEntry {
   authorizedBy: number     // employeeId
   createdAt: Date
 }
+
+export interface Expense {
+  id?: number
+  category: string       // e.g. "Electricity", "Rent", "Staff", "Maintenance", "Other"
+  amount: number
+  note?: string
+  date: Date
+  createdAt: Date
+}

@@ -124,7 +124,7 @@ export function ProductSearch({ onSelect }: ProductSearchProps) {
                 onClick={() => handleSelect(product)}
                 className={cn(
                   'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
-                  index === highlighted ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  index === highlighted ? 'bg-brand-50' : 'hover:bg-gray-50'
                 )}
               >
                 <div className="flex-1 min-w-0">

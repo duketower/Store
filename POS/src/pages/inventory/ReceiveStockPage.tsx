@@ -173,7 +173,7 @@ export function ReceiveStockPage() {
             <select
               value={vendorId}
               onChange={(e) => setVendorId(e.target.value === '' ? '' : e.target.value === 'other' ? 'other' : parseInt(e.target.value))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
               <option value="">— Select vendor —</option>
               {vendors.map((v) => (
@@ -188,7 +188,7 @@ export function ReceiveStockPage() {
               value={vendorFreeText}
               onChange={(e) => setVendorFreeText(e.target.value)}
               placeholder="e.g. Amul Distributor, Local Market…"
-              className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 ${vendors.length > 0 ? 'mt-2' : ''}`}
+              className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 ${vendors.length > 0 ? 'mt-2' : ''}`}
             />
           )}
         </div>
@@ -201,7 +201,7 @@ export function ReceiveStockPage() {
             value={invoiceNo}
             onChange={(e) => setInvoiceNo(e.target.value)}
             placeholder="e.g. INV-2024-001"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
@@ -238,7 +238,7 @@ export function ReceiveStockPage() {
                       type="text"
                       value={line.batchNo}
                       onChange={(e) => updateLine(idx, { batchNo: e.target.value })}
-                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-brand-500 focus:outline-none"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -246,7 +246,7 @@ export function ReceiveStockPage() {
                       type="date"
                       value={line.mfgDate}
                       onChange={(e) => updateLine(idx, { mfgDate: e.target.value })}
-                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-brand-500 focus:outline-none"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -254,7 +254,7 @@ export function ReceiveStockPage() {
                       type="date"
                       value={line.expiryDate}
                       onChange={(e) => updateLine(idx, { expiryDate: e.target.value })}
-                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-brand-500 focus:outline-none"
                       required
                     />
                   </td>
@@ -265,7 +265,7 @@ export function ReceiveStockPage() {
                       min={0}
                       step={0.01}
                       onChange={(e) => updateLine(idx, { purchasePrice: parseFloat(e.target.value) || 0 })}
-                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-blue-400 focus:outline-none"
+                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-brand-500 focus:outline-none"
                       placeholder="₹0"
                     />
                   </td>
@@ -276,7 +276,7 @@ export function ReceiveStockPage() {
                       min={0.001}
                       step={line.product.soldByWeight ? 0.001 : 1}
                       onChange={(e) => updateLine(idx, { qty: parseFloat(e.target.value) || 0 })}
-                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-blue-400 focus:outline-none"
+                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs text-right focus:border-brand-500 focus:outline-none"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -295,7 +295,7 @@ export function ReceiveStockPage() {
           <div className="border-t border-gray-100 px-3 py-2">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium"
             >
               <Plus size={16} />
               Add Product
@@ -363,7 +363,7 @@ function ProductSearchModal({
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="Search by name, barcode or SKU…"
-          className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           autoFocus
         />
       </div>

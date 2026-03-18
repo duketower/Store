@@ -83,7 +83,7 @@ function CartRow({ item, onUpdateQty, onRemove }: CartRowProps) {
             min={0.001}
             step={item.soldByWeight ? 0.001 : 1}
             onChange={(e) => onUpdateQty(parseFloat(e.target.value) || 0)}
-            className="w-14 rounded border border-gray-200 px-1.5 py-0.5 text-center text-sm focus:border-blue-400 focus:outline-none"
+            className="w-14 rounded border border-gray-200 px-1.5 py-0.5 text-center text-sm focus:border-brand-500 focus:outline-none"
           />
           <button
             onClick={() => onUpdateQty(item.qty + (item.soldByWeight ? 0.1 : 1))}

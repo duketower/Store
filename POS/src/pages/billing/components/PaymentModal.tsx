@@ -104,7 +104,7 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
             className={cn(
               'flex-1 rounded-md py-2 text-sm font-medium transition-colors',
               tab === t.id
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-brand-600 text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             )}
           >
@@ -129,7 +129,7 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
             />
           </div>
           {cashAmount > 0 && (
-            <div className={cn('rounded-lg p-3 text-center', change > 0 ? 'bg-green-50' : cashAmount >= grandTotal ? 'bg-blue-50' : 'bg-yellow-50')}>
+            <div className={cn('rounded-lg p-3 text-center', change > 0 ? 'bg-green-50' : cashAmount >= grandTotal ? 'bg-brand-50' : 'bg-yellow-50')}>
               <p className="text-sm text-gray-600">Change to return</p>
               <p className="text-2xl font-bold text-green-700">{formatCurrency(change)}</p>
             </div>
@@ -149,7 +149,7 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
         <div className="space-y-4 text-center">
           <p className="text-sm text-gray-600">Scan this QR code to pay {formatCurrency(grandTotal)}</p>
           <div className="flex justify-center">
-            <div className="rounded-xl border-4 border-blue-100 p-3 bg-white">
+            <div className="rounded-xl border-4 border-brand-100 p-3 bg-white">
               <QRCodeSVG value={upiLink} size={200} />
             </div>
           </div>
@@ -202,7 +202,7 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
 
           {/* Selected customer info */}
           {selectedCustomer && (
-            <div className="rounded-lg bg-blue-50 p-3">
+            <div className="rounded-lg bg-brand-50 p-3">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-medium text-gray-900">{selectedCustomer.name}</p>
@@ -285,8 +285,8 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
               </div>
             )}
             {selectedCustomer && parseAmount(splitPayments['credit']) > 0 && (
-              <div className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-xs flex justify-between items-center">
-                <span className="font-medium text-blue-800">{selectedCustomer.name}</span>
+              <div className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-xs flex justify-between items-center">
+                <span className="font-medium text-brand-800">{selectedCustomer.name}</span>
                 <button onClick={() => { setSelectedCustomer(null); setCustomerSearch('') }} className="text-gray-400 hover:text-gray-600">Change</button>
               </div>
             )}

@@ -100,7 +100,7 @@ export function VendorsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name, phone or GSTIN…"
-            className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
         <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
@@ -108,7 +108,7 @@ export function VendorsPage() {
             type="checkbox"
             checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)}
-            className="rounded text-blue-600"
+            className="rounded text-brand-600"
           />
           Show inactive
         </label>
@@ -137,8 +137,8 @@ export function VendorsPage() {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex-shrink-0 rounded-full bg-blue-50 p-2">
-                    <Truck size={16} className="text-blue-600" />
+                  <div className="flex-shrink-0 rounded-full bg-brand-50 p-2">
+                    <Truck size={16} className="text-brand-600" />
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{v.name}</p>
@@ -201,7 +201,7 @@ export function VendorsPage() {
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               autoFocus
               placeholder="e.g. Amul Distributor"
             />
@@ -213,7 +213,7 @@ export function VendorsPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 placeholder="10-digit mobile"
               />
             </div>
@@ -223,7 +223,7 @@ export function VendorsPage() {
                 type="text"
                 value={form.gstin}
                 onChange={(e) => setForm((f) => ({ ...f, gstin: e.target.value.toUpperCase() }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:outline-none"
                 placeholder="22AAAAA0000A1Z5"
                 maxLength={15}
               />
@@ -235,7 +235,7 @@ export function VendorsPage() {
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
               rows={2}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none resize-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none resize-none"
               placeholder="Optional"
             />
           </div>

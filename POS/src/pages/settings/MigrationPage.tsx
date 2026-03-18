@@ -81,7 +81,7 @@ function ProgressRow({ label, done, total }: { label: string; done: number; tota
       </div>
       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
         <div
-          className="h-full bg-blue-500 transition-all duration-300"
+          className="h-full bg-brand-500 transition-all duration-300"
           style={{ width: `${pct}%` }}
         />
       </div>

@@ -176,7 +176,7 @@ export function CustomersPage() {
                 value={query}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Search name or phone…"
-                className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 pl-8 pr-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               />
             </div>
             <button onClick={openAdd} className="btn-primary px-3">
@@ -193,7 +193,7 @@ export function CustomersPage() {
                 key={c.id}
                 onClick={() => selectCustomer(c)}
                 className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
-                  selected?.id === c.id ? 'bg-blue-50' : ''
+                  selected?.id === c.id ? 'bg-brand-50' : ''
                 }`}
               >
                 <div>
@@ -228,7 +228,7 @@ export function CustomersPage() {
                     <h2 className="text-lg font-semibold text-gray-900">{selected.name}</h2>
                     <p className="text-sm text-gray-500">{selected.phone ?? 'No phone'}</p>
                   </div>
-                  <button onClick={() => openEdit(selected)} className="text-sm text-blue-600 hover:underline">
+                  <button onClick={() => openEdit(selected)} className="text-sm text-brand-600 hover:underline">
                     Edit
                   </button>
                 </div>
@@ -303,7 +303,7 @@ export function CustomersPage() {
                       {!isManagerOrAdmin && (
                         <button
                           onClick={() => handleRequestCredit(selected)}
-                          className="text-xs text-blue-600 border border-blue-200 rounded-md px-3 py-1 hover:bg-blue-50"
+                          className="text-xs text-brand-600 border border-brand-200 rounded-md px-3 py-1 hover:bg-brand-50"
                         >
                           Request Credit Line
                         </button>
@@ -380,7 +380,7 @@ export function CustomersPage() {
               min={1}
               max={selected?.currentBalance}
               step={0.01}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               autoFocus
             />
           </div>
@@ -404,7 +404,7 @@ export function CustomersPage() {
                 onChange={(e) => setApproveLimit(e.target.value)}
                 min={0}
                 step={100}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 autoFocus
               />
             </div>
@@ -477,12 +477,12 @@ function CustomerFormModal({
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
           <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" autoFocus />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" autoFocus />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
           <input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -492,7 +492,7 @@ function CustomerFormModal({
           <input type="number" value={form.creditLimit} min={0}
             disabled={role !== 'admin'}
             onChange={(e) => setForm((f) => ({ ...f, creditLimit: parseInt(e.target.value) || 0 }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed" />
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed" />
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="btn-secondary">Cancel</button>

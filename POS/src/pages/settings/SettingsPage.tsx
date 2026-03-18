@@ -57,7 +57,7 @@ export function SettingsPage() {
                 value={form[key]}
                 onChange={set(key)}
                 placeholder={placeholder}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               />
             </div>
           ))}
