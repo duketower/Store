@@ -383,6 +383,15 @@ async function seedGrnsAndRtvs(): Promise<void> {
       qty: 5,
       purchasePrice: 230,
     })
+    await db.batches.where('id').equals(grn1Batch1Id).modify((b) => {
+      b.qtyRemaining = Math.max(0, b.qtyRemaining - 5)
+    })
+    if (butter?.id) {
+      await db.products.where('id').equals(butter.id).modify((p) => {
+        p.stock = Math.max(0, p.stock - 5)
+        p.updatedAt = new Date()
+      })
+    }
   }
 
   // ── RTV 2: 10 kg Basmati Rice + 12 pcs biscuit (wrong batch), 2 days ago ──
@@ -404,6 +413,15 @@ async function seedGrnsAndRtvs(): Promise<void> {
       qty: 10,
       purchasePrice: 72,
     })
+    await db.batches.where('id').equals(riceB.id).modify((b) => {
+      b.qtyRemaining = Math.max(0, b.qtyRemaining - 10)
+    })
+    if (rice?.id) {
+      await db.products.where('id').equals(rice.id).modify((p) => {
+        p.stock = Math.max(0, p.stock - 10)
+        p.updatedAt = new Date()
+      })
+    }
     if (biscuit?.id) {
       const biscuitB = await db.batches.where('productId').equals(biscuit.id).first()
       if (biscuitB?.id) {
@@ -414,6 +432,13 @@ async function seedGrnsAndRtvs(): Promise<void> {
           batchNo: biscuitB.batchNo,
           qty: 12,
           purchasePrice: 20,
+        })
+        await db.batches.where('id').equals(biscuitB.id).modify((b) => {
+          b.qtyRemaining = Math.max(0, b.qtyRemaining - 12)
+        })
+        await db.products.where('id').equals(biscuit.id).modify((p) => {
+          p.stock = Math.max(0, p.stock - 12)
+          p.updatedAt = new Date()
         })
       }
     }
@@ -808,6 +833,59 @@ async function seedMoreProducts(): Promise<void> {
       updatedAt: now,
     },
   ])
+
+  // ── Batches for all 22 new products ────────────────────────────────────────
+  const newSkuBatches: Array<{
+    sku: string
+    batchNo: string
+    expiryDays: number
+    purchasePricePct: number  // as fraction of sellingPrice
+  }> = [
+    // Dairy — 30 days
+    { sku: 'DAIRY-003', batchNo: 'DAIRY-003-2601', expiryDays: 30,  purchasePricePct: 0.80 },
+    { sku: 'DAIRY-004', batchNo: 'DAIRY-004-2601', expiryDays: 30,  purchasePricePct: 0.80 },
+    { sku: 'DAIRY-005', batchNo: 'DAIRY-005-2601', expiryDays: 30,  purchasePricePct: 0.78 },
+    // Staples — 180 days
+    { sku: 'STAPLE-001', batchNo: 'STAPLE-001-2601', expiryDays: 180, purchasePricePct: 0.82 },
+    { sku: 'STAPLE-002', batchNo: 'STAPLE-002-2601', expiryDays: 180, purchasePricePct: 0.80 },
+    { sku: 'STAPLE-003', batchNo: 'STAPLE-003-2601', expiryDays: 180, purchasePricePct: 0.80 },
+    { sku: 'STAPLE-004', batchNo: 'STAPLE-004-2601', expiryDays: 180, purchasePricePct: 0.82 },
+    { sku: 'STAPLE-005', batchNo: 'STAPLE-005-2601', expiryDays: 180, purchasePricePct: 0.78 },
+    // Spices — 365 days
+    { sku: 'SPICE-001', batchNo: 'SPICE-001-2601', expiryDays: 365, purchasePricePct: 0.78 },
+    { sku: 'SPICE-002', batchNo: 'SPICE-002-2601', expiryDays: 365, purchasePricePct: 0.78 },
+    { sku: 'SPICE-003', batchNo: 'SPICE-003-2601', expiryDays: 365, purchasePricePct: 0.78 },
+    // Beverages — 180 days
+    { sku: 'BEV-001', batchNo: 'BEV-001-2601', expiryDays: 180, purchasePricePct: 0.80 },
+    { sku: 'BEV-002', batchNo: 'BEV-002-2601', expiryDays: 180, purchasePricePct: 0.82 },
+    { sku: 'BEV-003', batchNo: 'BEV-003-2601', expiryDays: 180, purchasePricePct: 0.80 },
+    // Snacks — 90 days
+    { sku: 'SNACK-001', batchNo: 'SNACK-001-2601', expiryDays: 90, purchasePricePct: 0.80 },
+    { sku: 'SNACK-002', batchNo: 'SNACK-002-2601', expiryDays: 90, purchasePricePct: 0.75 },
+    { sku: 'SNACK-003', batchNo: 'SNACK-003-2601', expiryDays: 90, purchasePricePct: 0.75 },
+    { sku: 'SNACK-004', batchNo: 'SNACK-004-2601', expiryDays: 90, purchasePricePct: 0.78 },
+    // Personal Care — 365 days
+    { sku: 'CARE-001', batchNo: 'CARE-001-2601', expiryDays: 365, purchasePricePct: 0.82 },
+    { sku: 'CARE-002', batchNo: 'CARE-002-2601', expiryDays: 365, purchasePricePct: 0.80 },
+    { sku: 'CARE-003', batchNo: 'CARE-003-2601', expiryDays: 365, purchasePricePct: 0.80 },
+    // Household — 365 days
+    { sku: 'HH-001', batchNo: 'HH-001-2601', expiryDays: 365, purchasePricePct: 0.80 },
+    { sku: 'HH-002', batchNo: 'HH-002-2601', expiryDays: 365, purchasePricePct: 0.80 },
+  ]
+
+  for (const entry of newSkuBatches) {
+    const prod = await db.products.where('sku').equals(entry.sku).first()
+    if (!prod?.id) continue
+    const purchasePrice = Math.round(prod.sellingPrice * entry.purchasePricePct)
+    await db.batches.add({
+      productId: prod.id,
+      batchNo: entry.batchNo,
+      expiryDate: new Date(now.getTime() + entry.expiryDays * 24 * 60 * 60 * 1000),
+      purchasePrice,
+      qtyRemaining: prod.stock,
+      createdAt: now,
+    })
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -951,6 +1029,9 @@ async function seedSalesHistory(): Promise<void> {
   const TODAY = new Date()
   TODAY.setHours(0, 0, 0, 0)
 
+  // Track total qty sold per product across all days (Fix 2)
+  const totalSoldMap = new Map<number, number>()
+
   for (let dayOffset = 29; dayOffset >= 0; dayOffset--) {
     const day = new Date(TODAY.getTime() - dayOffset * 24 * 60 * 60 * 1000)
     const dayOfWeek = day.getDay() // 0=Sun, 6=Sat
@@ -1048,6 +1129,10 @@ async function seedSalesHistory(): Promise<void> {
             taxRate,
             lineTotal,
           })
+
+          // Accumulate total sold for stock reduction after all days (Fix 2)
+          const pid = prod.id!
+          totalSoldMap.set(pid, (totalSoldMap.get(pid) ?? 0) + qty)
         }
 
         subtotal  = Math.round(subtotal  * 100) / 100
@@ -1090,6 +1175,42 @@ async function seedSalesHistory(): Promise<void> {
         }
       }
     })
+  }
+
+  // Fix 2: Reduce product stock and batch qtyRemaining based on sales
+  for (const [productId, totalSold] of totalSoldMap) {
+    await db.products.where('id').equals(productId).modify((p) => {
+      p.stock = Math.max(0, p.stock - totalSold)
+      p.updatedAt = new Date()
+    })
+
+    // FEFO-style batch deduction: deplete earliest-expiry batch first
+    const batches = await db.batches.where('productId').equals(productId).sortBy('expiryDate')
+    let remaining = totalSold
+    for (const batch of batches) {
+      if (remaining <= 0) break
+      const deduct = Math.min(batch.qtyRemaining, remaining)
+      await db.batches.where('id').equals(batch.id!).modify((b) => {
+        b.qtyRemaining = Math.max(0, b.qtyRemaining - deduct)
+      })
+      remaining -= deduct
+    }
+  }
+
+  // Fix 3: Recompute each customer's credit balance from ledger entries
+  const allCustomersForBalance = await db.customers.toArray()
+  for (const customer of allCustomersForBalance) {
+    if (!customer.id) continue
+    const ledgerEntries = await db.credit_ledger.where('customerId').equals(customer.id).toArray()
+    const balance = ledgerEntries.reduce((sum, entry) => {
+      return entry.entryType === 'debit' ? sum + entry.amount : sum - entry.amount
+    }, 0)
+    if (balance > 0) {
+      await db.customers.where('id').equals(customer.id).modify((c) => {
+        c.currentBalance = Math.round(balance * 100) / 100
+        c.updatedAt = new Date()
+      })
+    }
   }
 }
 
