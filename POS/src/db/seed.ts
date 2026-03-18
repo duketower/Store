@@ -14,6 +14,10 @@ export async function seedDatabase(): Promise<void> {
   if (employeeCount > 0) {
     // Employees already seeded — only run the newer sections below
     await seedGrnsAndRtvs()
+    await seedMoreProducts()
+    await seedMoreCustomers()
+    await seedSalesHistory()
+    await seedExpenses()
     return
   }
 
@@ -268,6 +272,10 @@ export async function seedDatabase(): Promise<void> {
   ])
 
   await seedGrnsAndRtvs()
+  await seedMoreProducts()
+  await seedMoreCustomers()
+  await seedSalesHistory()
+  await seedExpenses()
 }
 
 async function seedGrnsAndRtvs(): Promise<void> {
@@ -413,4 +421,845 @@ async function seedGrnsAndRtvs(): Promise<void> {
 
   // suppress unused-var warnings for batch IDs we only needed for RTV linking
   void grn1Batch2Id; void grn2Batch1Id; void grn2Batch2Id
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// seedMoreProducts — expands the catalogue from 8 to 30 realistic SKUs
+// ─────────────────────────────────────────────────────────────────────────────
+async function seedMoreProducts(): Promise<void> {
+  if (await db.products.count() >= 15) return
+
+  const now = new Date()
+
+  await db.products.bulkAdd([
+    // ── Dairy ──────────────────────────────────────────────────────────────
+    {
+      name: 'Amul Paneer 200g',
+      barcode: '8901063035108',
+      sku: 'DAIRY-003',
+      category: 'Dairy',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 80,
+      mrp: 85,
+      taxRate: 12,
+      hsnCode: '0406',
+      stock: 40,
+      reorderLevel: 10,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Mother Dairy Curd 400g',
+      barcode: '8901519110017',
+      sku: 'DAIRY-004',
+      category: 'Dairy',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 50,
+      mrp: 52,
+      taxRate: 5,
+      hsnCode: '0403',
+      stock: 60,
+      reorderLevel: 15,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Amul Cheese Slices 200g',
+      barcode: '8901063015216',
+      sku: 'DAIRY-005',
+      category: 'Dairy',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 120,
+      mrp: 125,
+      taxRate: 12,
+      hsnCode: '0406',
+      stock: 30,
+      reorderLevel: 8,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // ── Staples ────────────────────────────────────────────────────────────
+    {
+      name: 'Aashirvaad Atta 5kg',
+      barcode: '8901058003621',
+      sku: 'STAPLE-001',
+      category: 'Staples',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 230,
+      mrp: 245,
+      taxRate: 0,
+      hsnCode: '1101',
+      stock: 55,
+      reorderLevel: 12,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Tata Sampann Chana Dal 500g',
+      barcode: '8901139009100',
+      sku: 'STAPLE-002',
+      category: 'Staples',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 65,
+      mrp: 70,
+      taxRate: 5,
+      hsnCode: '0713',
+      stock: 80,
+      reorderLevel: 20,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Rajdhani Moong Dal 500g',
+      barcode: '8906012413018',
+      sku: 'STAPLE-003',
+      category: 'Staples',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 75,
+      mrp: 80,
+      taxRate: 5,
+      hsnCode: '0713',
+      stock: 70,
+      reorderLevel: 18,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Sugar 1kg',
+      barcode: '8901725100009',
+      sku: 'STAPLE-004',
+      category: 'Staples',
+      unit: 'kg',
+      soldByWeight: false,
+      sellingPrice: 45,
+      mrp: 47,
+      taxRate: 0,
+      hsnCode: '1701',
+      stock: 150,
+      reorderLevel: 30,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Poha 500g',
+      barcode: '8908002710018',
+      sku: 'STAPLE-005',
+      category: 'Staples',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 32,
+      mrp: 35,
+      taxRate: 0,
+      hsnCode: '1104',
+      stock: 90,
+      reorderLevel: 20,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // ── Spices ─────────────────────────────────────────────────────────────
+    {
+      name: 'MDH Garam Masala 100g',
+      barcode: '8904016200018',
+      sku: 'SPICE-001',
+      category: 'Spices',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 75,
+      mrp: 80,
+      taxRate: 5,
+      hsnCode: '0910',
+      stock: 50,
+      reorderLevel: 12,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Everest Red Chilli Powder 200g',
+      barcode: '8904014900010',
+      sku: 'SPICE-002',
+      category: 'Spices',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 65,
+      mrp: 70,
+      taxRate: 5,
+      hsnCode: '0904',
+      stock: 45,
+      reorderLevel: 10,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Haldi 200g',
+      barcode: '8908002620010',
+      sku: 'SPICE-003',
+      category: 'Spices',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 55,
+      mrp: 60,
+      taxRate: 5,
+      hsnCode: '0910',
+      stock: 60,
+      reorderLevel: 15,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // ── Beverages ──────────────────────────────────────────────────────────
+    {
+      name: 'Tata Tea Premium 500g',
+      barcode: '8901139011103',
+      sku: 'BEV-001',
+      category: 'Beverages',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 245,
+      mrp: 260,
+      taxRate: 5,
+      hsnCode: '0902',
+      stock: 35,
+      reorderLevel: 10,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Bru Coffee 50g',
+      barcode: '8901030737100',
+      sku: 'BEV-002',
+      category: 'Beverages',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 85,
+      mrp: 90,
+      taxRate: 18,
+      hsnCode: '2101',
+      stock: 40,
+      reorderLevel: 10,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Kissan Mixed Fruit Jam 200g',
+      barcode: '8901030800049',
+      sku: 'BEV-003',
+      category: 'Beverages',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 90,
+      mrp: 95,
+      taxRate: 12,
+      hsnCode: '2007',
+      stock: 25,
+      reorderLevel: 8,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // ── Snacks ─────────────────────────────────────────────────────────────
+    {
+      name: 'Haldirams Aloo Bhujia 200g',
+      barcode: '8906049200017',
+      sku: 'SNACK-001',
+      category: 'Snacks',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 70,
+      mrp: 75,
+      taxRate: 12,
+      hsnCode: '1905',
+      stock: 55,
+      reorderLevel: 15,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: "Lay's Classic 26g",
+      barcode: '8901491503115',
+      sku: 'SNACK-002',
+      category: 'Snacks',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 20,
+      mrp: 20,
+      taxRate: 12,
+      hsnCode: '2005',
+      stock: 120,
+      reorderLevel: 30,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Parle-G 200g',
+      barcode: '8901719100018',
+      sku: 'SNACK-003',
+      category: 'Snacks',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 15,
+      mrp: 15,
+      taxRate: 18,
+      hsnCode: '1905',
+      stock: 200,
+      reorderLevel: 50,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Maggi Noodles 70g',
+      barcode: '8901058002044',
+      sku: 'SNACK-004',
+      category: 'Snacks',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 14,
+      mrp: 15,
+      taxRate: 18,
+      hsnCode: '1902',
+      stock: 180,
+      reorderLevel: 40,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // ── Personal Care ──────────────────────────────────────────────────────
+    {
+      name: 'Colgate Strong Teeth 200g',
+      barcode: '8901314003084',
+      sku: 'CARE-001',
+      category: 'Personal Care',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 99,
+      mrp: 105,
+      taxRate: 18,
+      hsnCode: '3306',
+      stock: 45,
+      reorderLevel: 12,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Lifebuoy Soap 100g',
+      barcode: '8901030051019',
+      sku: 'CARE-002',
+      category: 'Personal Care',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 38,
+      mrp: 40,
+      taxRate: 18,
+      hsnCode: '3401',
+      stock: 80,
+      reorderLevel: 20,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Clinic Plus Shampoo 80ml',
+      barcode: '8901030862019',
+      sku: 'CARE-003',
+      category: 'Personal Care',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 55,
+      mrp: 58,
+      taxRate: 18,
+      hsnCode: '3305',
+      stock: 35,
+      reorderLevel: 10,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // ── Household ──────────────────────────────────────────────────────────
+    {
+      name: 'Vim Bar 200g',
+      barcode: '8901030051217',
+      sku: 'HH-001',
+      category: 'Household',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 25,
+      mrp: 27,
+      taxRate: 18,
+      hsnCode: '3402',
+      stock: 100,
+      reorderLevel: 25,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Harpic 500ml',
+      barcode: '8901030049054',
+      sku: 'HH-002',
+      category: 'Household',
+      unit: 'pcs',
+      soldByWeight: false,
+      sellingPrice: 75,
+      mrp: 80,
+      taxRate: 18,
+      hsnCode: '3808',
+      stock: 30,
+      reorderLevel: 8,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// seedMoreCustomers — adds 8 realistic UP-region customers (total: 10)
+// ─────────────────────────────────────────────────────────────────────────────
+async function seedMoreCustomers(): Promise<void> {
+  if (await db.customers.count() >= 8) return
+
+  const now = new Date()
+
+  await db.customers.bulkAdd([
+    {
+      name: 'Mohammad Arif',
+      phone: '9988776655',
+      creditLimit: 3000,
+      currentBalance: 1200,
+      loyaltyPoints: 80,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Priya Sharma',
+      phone: '8877665544',
+      creditLimit: 1500,
+      currentBalance: 0,
+      loyaltyPoints: 35,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Raju Yadav',
+      phone: '7766554433',
+      creditLimit: 2500,
+      currentBalance: 650,
+      loyaltyPoints: 55,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Meena Gupta',
+      phone: '6655443322',
+      creditLimit: 1000,
+      currentBalance: 0,
+      loyaltyPoints: 20,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Vijay Singh',
+      phone: '9911223344',
+      creditLimit: 5000,
+      currentBalance: 2800,
+      loyaltyPoints: 210,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Fatima Begum',
+      phone: '8822334455',
+      creditLimit: 1500,
+      currentBalance: 300,
+      loyaltyPoints: 40,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Santosh Tiwari',
+      phone: '7733445566',
+      creditLimit: 2000,
+      currentBalance: 0,
+      loyaltyPoints: 90,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      name: 'Kavita Verma',
+      phone: '9944556677',
+      creditLimit: 1000,
+      currentBalance: 450,
+      loyaltyPoints: 15,
+      creditApproved: true,
+      creditRequested: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// seedSalesHistory — 30 days of realistic sales, 15-35 bills/day
+// ─────────────────────────────────────────────────────────────────────────────
+async function seedSalesHistory(): Promise<void> {
+  if (await db.sales.count() > 0) return
+
+  // Collect IDs to pick from
+  const allProducts = await db.products.toArray()
+  if (allProducts.length === 0) return
+
+  const allEmployees = await db.employees.toArray()
+  const adminEmp = allEmployees.find(e => e.role === 'admin')
+  const managerEmp = allEmployees.find(e => e.role === 'manager')
+  const cashierEmp = allEmployees.find(e => e.role === 'cashier')
+
+  const cashierIds: number[] = []
+  if (cashierEmp?.id) cashierIds.push(...Array(7).fill(cashierEmp.id))
+  if (managerEmp?.id) cashierIds.push(...Array(2).fill(managerEmp.id))
+  if (adminEmp?.id)   cashierIds.push(adminEmp.id)
+  // fallback: at least one employee
+  if (cashierIds.length === 0 && allEmployees[0]?.id) {
+    cashierIds.push(allEmployees[0].id)
+  }
+
+  const allCustomers = await db.customers.toArray()
+  const customerIds = allCustomers.filter(c => c.id !== undefined).map(c => c.id as number)
+
+  // Peak-hour buckets: 9-11 AM → hours 9,10; 5-8 PM → hours 17,18,19,20
+  const peakHours = [9, 10, 17, 18, 19, 20]
+  const offHours  = [8, 11, 12, 13, 14, 15, 16, 21]
+
+  const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+
+  // Simple seeded-style deterministic "random" to keep numbers consistent
+  // (we still use Math.random — the guard ensures this runs only once)
+  const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
+  const randFloat = (min: number, max: number) => Math.round((Math.random() * (max - min) + min) * 10) / 10
+
+  const TODAY = new Date()
+  TODAY.setHours(0, 0, 0, 0)
+
+  for (let dayOffset = 29; dayOffset >= 0; dayOffset--) {
+    const day = new Date(TODAY.getTime() - dayOffset * 24 * 60 * 60 * 1000)
+    const dayOfWeek = day.getDay() // 0=Sun, 6=Sat
+
+    // More bills on weekends / market days (Tue/Sat)
+    const isHighDay = dayOfWeek === 0 || dayOfWeek === 2 || dayOfWeek === 6
+    const billCount = isHighDay ? randInt(25, 35) : randInt(15, 24)
+
+    // Build hour pool for the day: 60% peak, 40% off
+    const hourPool: number[] = []
+    for (let i = 0; i < Math.ceil(billCount * 0.6); i++) hourPool.push(pick(peakHours))
+    for (let i = 0; i < Math.ceil(billCount * 0.4); i++) hourPool.push(pick(offHours))
+    // shuffle
+    hourPool.sort(() => Math.random() - 0.5)
+
+    // day_session: opened at 8:30 AM, closed at 10 PM
+    const openedAt  = new Date(day); openedAt.setHours(8, 30, 0, 0)
+    const closedAt  = new Date(day); closedAt.setHours(22, 0, 0, 0)
+    const openedBy  = cashierEmp?.id ?? managerEmp?.id ?? allEmployees[0]?.id ?? 1
+
+    await db.transaction('rw', [
+      db.day_sessions, db.sales, db.sale_items, db.payments, db.credit_ledger,
+    ], async () => {
+      await db.day_sessions.add({
+        openedBy,
+        openingFloat: 1000,
+        closedBy: openedBy,
+        closingCash: 1000 + randInt(800, 3500),
+        status: 'closed',
+        openedAt,
+        closedAt,
+      })
+
+      for (let billIdx = 0; billIdx < billCount; billIdx++) {
+        const billHour = hourPool[billIdx] ?? randInt(9, 20)
+        const billTime = new Date(day)
+        billTime.setHours(billHour, randInt(0, 59), randInt(0, 59), 0)
+
+        // Bill number: ZO-YYYYMMDD-NNN
+        const yyyy = day.getFullYear()
+        const mm   = String(day.getMonth() + 1).padStart(2, '0')
+        const dd   = String(day.getDate()).padStart(2, '0')
+        const billNo = `ZO-${yyyy}${mm}${dd}-${String(billIdx + 1).padStart(3, '0')}`
+
+        // Payment method: 55% cash, 35% UPI, 10% credit
+        const methodRoll = Math.random()
+        const method: 'cash' | 'upi' | 'credit' =
+          methodRoll < 0.55 ? 'cash' : methodRoll < 0.90 ? 'upi' : 'credit'
+
+        // Customer: 30% attach, but credit always needs a customer
+        let customerId: number | undefined
+        if (method === 'credit' && customerIds.length > 0) {
+          customerId = pick(customerIds)
+        } else if (Math.random() < 0.30 && customerIds.length > 0) {
+          customerId = pick(customerIds)
+        }
+
+        const cashierId = pick(cashierIds)
+
+        // 1-4 items per bill
+        const itemCount = randInt(1, 4)
+        const chosenProducts = [...allProducts].sort(() => Math.random() - 0.5).slice(0, itemCount)
+
+        let subtotal = 0
+        let taxTotal = 0
+        const saleItemsData: Array<{
+          productId: number
+          qty: number
+          unitPrice: number
+          discount: number
+          taxRate: number
+          lineTotal: number
+        }> = []
+
+        for (const prod of chosenProducts) {
+          const qty = prod.soldByWeight
+            ? randFloat(0.5, 2)
+            : randInt(1, 3)
+          const unitPrice = prod.sellingPrice
+          const lineTotal = Math.round(unitPrice * qty * 100) / 100
+          const taxRate   = prod.taxRate
+          // tax-inclusive: taxAmount = lineTotal - lineTotal/(1 + taxRate/100)
+          const taxAmount = taxRate > 0
+            ? Math.round((lineTotal - lineTotal / (1 + taxRate / 100)) * 100) / 100
+            : 0
+
+          subtotal += lineTotal
+          taxTotal  += taxAmount
+
+          saleItemsData.push({
+            productId: prod.id!,
+            qty,
+            unitPrice,
+            discount: 0,
+            taxRate,
+            lineTotal,
+          })
+        }
+
+        subtotal  = Math.round(subtotal  * 100) / 100
+        taxTotal  = Math.round(taxTotal  * 100) / 100
+        const grandTotal = subtotal  // tax-inclusive: grandTotal = subtotal
+
+        const saleId = await db.sales.add({
+          billNo,
+          customerId,
+          cashierId,
+          subtotal,
+          discount: 0,
+          taxTotal,
+          grandTotal,
+          status: 'completed',
+          createdAt: billTime,
+        })
+
+        await db.sale_items.bulkAdd(
+          saleItemsData.map(si => ({ ...si, saleId }))
+        )
+
+        await db.payments.add({
+          saleId,
+          method,
+          amount: grandTotal,
+          createdAt: billTime,
+        })
+
+        // Credit ledger entry when paid on credit
+        if (method === 'credit' && customerId !== undefined) {
+          await db.credit_ledger.add({
+            customerId,
+            saleId,
+            entryType: 'debit',
+            amount: grandTotal,
+            notes: `Credit sale — bill ${billNo}`,
+            createdAt: billTime,
+          })
+        }
+      }
+    })
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// seedExpenses — ~25 realistic store expense entries over past 30 days
+// ─────────────────────────────────────────────────────────────────────────────
+async function seedExpenses(): Promise<void> {
+  if (await db.expenses.count() > 0) return
+
+  const now = new Date()
+  const daysAgo = (n: number) => {
+    const d = new Date(now)
+    d.setDate(d.getDate() - n)
+    d.setHours(11, 0, 0, 0)
+    return d
+  }
+
+  await db.expenses.bulkAdd([
+    // ── Electricity ──────────────────────────────────────────────────────
+    {
+      category: 'Electricity',
+      amount: 4200,
+      note: 'UPPCL electricity bill — March',
+      date: daysAgo(15),
+      createdAt: daysAgo(15),
+    },
+    // ── Rent ────────────────────────────────────────────────────────────
+    {
+      category: 'Rent',
+      amount: 8000,
+      note: 'Monthly shop rent — March',
+      date: daysAgo(28),
+      createdAt: daysAgo(28),
+    },
+    // ── Maintenance ─────────────────────────────────────────────────────
+    {
+      category: 'Maintenance',
+      amount: 1500,
+      note: 'AC gas refill and service',
+      date: daysAgo(20),
+      createdAt: daysAgo(20),
+    },
+    // ── Staff refreshments (8 entries) ──────────────────────────────────
+    {
+      category: 'Other',
+      amount: 180,
+      note: 'Staff tea and snacks',
+      date: daysAgo(2),
+      createdAt: daysAgo(2),
+    },
+    {
+      category: 'Other',
+      amount: 220,
+      note: 'Staff refreshments',
+      date: daysAgo(5),
+      createdAt: daysAgo(5),
+    },
+    {
+      category: 'Other',
+      amount: 150,
+      note: 'Staff tea',
+      date: daysAgo(8),
+      createdAt: daysAgo(8),
+    },
+    {
+      category: 'Other',
+      amount: 300,
+      note: 'Staff lunch — full day shift',
+      date: daysAgo(11),
+      createdAt: daysAgo(11),
+    },
+    {
+      category: 'Other',
+      amount: 175,
+      note: 'Staff refreshments',
+      date: daysAgo(14),
+      createdAt: daysAgo(14),
+    },
+    {
+      category: 'Other',
+      amount: 200,
+      note: 'Staff tea and snacks',
+      date: daysAgo(18),
+      createdAt: daysAgo(18),
+    },
+    {
+      category: 'Other',
+      amount: 160,
+      note: 'Staff tea',
+      date: daysAgo(22),
+      createdAt: daysAgo(22),
+    },
+    {
+      category: 'Other',
+      amount: 250,
+      note: 'Staff refreshments and biscuits',
+      date: daysAgo(26),
+      createdAt: daysAgo(26),
+    },
+    // ── Purchase — small cash purchases (5 entries) ──────────────────────
+    {
+      category: 'Purchase',
+      amount: 1800,
+      note: 'Cash purchase — Agro Fresh vegetables',
+      date: daysAgo(3),
+      createdAt: daysAgo(3),
+    },
+    {
+      category: 'Purchase',
+      amount: 950,
+      note: 'Cash purchase — loose grains from local supplier',
+      date: daysAgo(9),
+      createdAt: daysAgo(9),
+    },
+    {
+      category: 'Purchase',
+      amount: 500,
+      note: 'Cash purchase — seasonal vegetables',
+      date: daysAgo(16),
+      createdAt: daysAgo(16),
+    },
+    {
+      category: 'Purchase',
+      amount: 1200,
+      note: 'Cash purchase — eggs (2 trays)',
+      date: daysAgo(21),
+      createdAt: daysAgo(21),
+    },
+    {
+      category: 'Purchase',
+      amount: 700,
+      note: 'Cash purchase — loose onions',
+      date: daysAgo(27),
+      createdAt: daysAgo(27),
+    },
+    // ── Other — bags, stationery, misc (5 entries) ───────────────────────
+    {
+      category: 'Other',
+      amount: 350,
+      note: 'Carry bags — 2 bundles',
+      date: daysAgo(4),
+      createdAt: daysAgo(4),
+    },
+    {
+      category: 'Other',
+      amount: 120,
+      note: 'Bill book and pen refills',
+      date: daysAgo(7),
+      createdAt: daysAgo(7),
+    },
+    {
+      category: 'Other',
+      amount: 480,
+      note: 'Printer paper rolls (5 rolls)',
+      date: daysAgo(12),
+      createdAt: daysAgo(12),
+    },
+    {
+      category: 'Other',
+      amount: 200,
+      note: 'Cleaning supplies — phenyl and mop',
+      date: daysAgo(19),
+      createdAt: daysAgo(19),
+    },
+    {
+      category: 'Other',
+      amount: 150,
+      note: 'Rubber bands and stationery',
+      date: daysAgo(25),
+      createdAt: daysAgo(25),
+    },
+  ])
 }
