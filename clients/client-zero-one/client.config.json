@@ -20,5 +20,9 @@
   ],
   "plan": "pro",
   "clientId": "zero-one",
-  "licenseExpiresAt": "2030-01-01"
+  "licenseExpiresAt": "2030-01-01",
+  "firebase": {
+    "serviceEmail": "pos@binaryventures.in",
+    "servicePassword": "ZeroOne@2026!"
+  }
 }
