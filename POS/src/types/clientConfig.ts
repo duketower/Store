@@ -62,6 +62,13 @@ export interface ClientConfig {
   plan: PlanTier
   clientId: string             // unique kebab-case slug (matches folder name)
   licenseExpiresAt: string     // ISO date string — checked at app boot
+  // Firebase service account for this client build.
+  // When present, app signs in with email/password instead of anonymously.
+  // Absent in dev mode — dev uses anonymous auth so no credentials are needed locally.
+  firebase?: {
+    serviceEmail: string
+    servicePassword: string
+  }
 }
 
 // Build metadata injected by vite.config.ts at compile time.

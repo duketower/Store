@@ -5,7 +5,7 @@ import { AppRoutes } from './routes'
 import { seedDatabase } from './db/seed'
 import { flushOutbox } from './services/sync/outbox'
 import { initErrorMonitoring } from './services/firebase/errorLogger'
-import { ensureAnonymousAuth } from './services/firebase/auth'
+import { ensureFirebaseAuth } from './services/firebase/auth'
 import { startFirestoreListeners } from './services/sync/firestoreListener'
 import { ExpiredLicenseScreen } from './components/common/ExpiredLicenseScreen'
 import { CLIENT_CONFIG } from './constants/clientConfig'
@@ -47,8 +47,8 @@ if (isLicenseExpired(CLIENT_CONFIG.licenseExpiresAt)) {
       if (hasFeature(CLIENT_CONFIG.plan, 'firebase_sync')) {
         // Establish anonymous Firebase Auth session so Firestore rules (request.auth != null) pass.
         // Best-effort: never blocks mount if offline or Auth is unavailable.
-        await ensureAnonymousAuth().catch((err) =>
-          console.warn('[Auth] Anonymous sign-in failed (offline?):', err)
+        await ensureFirebaseAuth().catch((err) =>
+          console.warn('[Auth] Firebase sign-in failed (offline?):', err)
         )
 
         // Real-time Firestore → Dexie sync: keep local stock/customer data current across devices.
