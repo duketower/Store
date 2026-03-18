@@ -1202,12 +1202,14 @@ async function seedSalesHistory(): Promise<void> {
   for (const customer of allCustomersForBalance) {
     if (!customer.id) continue
     const ledgerEntries = await db.credit_ledger.where('customerId').equals(customer.id).toArray()
-    const balance = ledgerEntries.reduce((sum, entry) => {
+    const ledgerBalance = ledgerEntries.reduce((sum, entry) => {
       return entry.entryType === 'debit' ? sum + entry.amount : sum - entry.amount
     }, 0)
-    if (balance > 0) {
+    // Add ledger balance to the pre-existing hardcoded balance (not replace it)
+    const finalBalance = Math.round((customer.currentBalance + ledgerBalance) * 100) / 100
+    if (finalBalance !== customer.currentBalance) {
       await db.customers.where('id').equals(customer.id).modify((c) => {
-        c.currentBalance = Math.round(balance * 100) / 100
+        c.currentBalance = Math.max(0, finalBalance)
         c.updatedAt = new Date()
       })
     }
