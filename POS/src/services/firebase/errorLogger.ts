@@ -4,6 +4,7 @@
  */
 import { collection, addDoc, Timestamp } from 'firebase/firestore'
 import { firestore, auth } from '.'
+import { APP_BUILD } from '@/constants/clientConfig'
 
 async function logToFirestore(type: string, message: string, stack?: string): Promise<void> {
   try {
@@ -19,6 +20,8 @@ async function logToFirestore(type: string, message: string, stack?: string): Pr
       stack: stack ?? null,
       url: window.location.href,
       userAgent: navigator.userAgent,
+      appVersion: APP_BUILD.version,
+      gitCommit: APP_BUILD.gitCommit,
       createdAt: Timestamp.now(),
     })
   } catch {
