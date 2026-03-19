@@ -16,6 +16,7 @@ import { Cart } from './components/Cart'
 import { CheckoutPanel, type PaymentEntry } from './components/CheckoutPanel'
 import { Modal } from '@/components/common/Modal'
 import { Receipt } from './components/Receipt'
+import { cn } from '@/utils/cn'
 
 export function BillingPage() {
   const { addItem, clearCart, totals, items } = useCartStore()
@@ -25,6 +26,7 @@ export function BillingPage() {
   const [receiptSaleId, setReceiptSaleId] = useState<number | null>(null)
   const [receiptData, setReceiptData] = useState<Awaited<ReturnType<typeof getSaleWithItems>> | null>(null)
   const [voidConfirmOpen, setVoidConfirmOpen] = useState(false)
+  const [mobileTab, setMobileTab] = useState<'search' | 'cart' | 'pay'>('search')
 
 
   useEffect(() => {
@@ -128,11 +130,56 @@ export function BillingPage() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-col h-full md:flex-row">
       <BarcodeInput onScan={handleBarcodeScan} enabled={true} />
 
+      {/* Mobile tab bar — hidden on md+ */}
+      <div className="flex md:hidden bg-white border-b border-gray-200 px-2 pt-1">
+        <button
+          onClick={() => setMobileTab('search')}
+          className={cn(
+            'flex-1 pb-2 text-sm font-medium border-b-2 transition-colors',
+            mobileTab === 'search'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-gray-500'
+          )}
+        >
+          Search
+        </button>
+        <button
+          onClick={() => setMobileTab('cart')}
+          className={cn(
+            'flex-1 pb-2 text-sm font-medium border-b-2 transition-colors',
+            mobileTab === 'cart'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-gray-500'
+          )}
+        >
+          Cart
+          {items.length > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-brand-600 px-1.5 py-0.5 text-xs font-semibold text-white leading-none">
+              {items.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setMobileTab('pay')}
+          className={cn(
+            'flex-1 pb-2 text-sm font-medium border-b-2 transition-colors',
+            mobileTab === 'pay'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-gray-500'
+          )}
+        >
+          Pay
+        </button>
+      </div>
+
       {/* LEFT: Product search */}
-      <div className="flex w-72 flex-col border-r border-gray-200 bg-white">
+      <div className={cn(
+        'flex-col border-r border-gray-200 bg-white w-full md:w-72 md:flex',
+        mobileTab === 'search' ? 'flex' : 'hidden'
+      )}>
         <div className="border-b border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-3">
             <ScanLine size={16} className="text-brand-600 flex-shrink-0" />
@@ -149,7 +196,10 @@ export function BillingPage() {
       </div>
 
       {/* MIDDLE: Cart items */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-white border-r border-gray-200">
+      <div className={cn(
+        'flex-col overflow-hidden bg-white border-r border-gray-200 w-full md:flex md:flex-1',
+        mobileTab === 'cart' ? 'flex' : 'hidden'
+      )}>
         <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">
             Current Bill
@@ -170,11 +220,16 @@ export function BillingPage() {
         </div>
       </div>
 
-      {/* RIGHT: Checkout panel (always visible) */}
-      <CheckoutPanel
-        onComplete={handlePaymentComplete}
-        disabled={items.length === 0}
-      />
+      {/* RIGHT: Checkout panel */}
+      <div className={cn(
+        'w-full md:w-80 md:block',
+        mobileTab === 'pay' ? 'flex flex-col flex-1' : 'hidden'
+      )}>
+        <CheckoutPanel
+          onComplete={handlePaymentComplete}
+          disabled={items.length === 0}
+        />
+      </div>
 
       {receiptData && (
         <Modal

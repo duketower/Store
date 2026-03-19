@@ -11,7 +11,7 @@ export function PageContainer({ title, subtitle, actions, children }: PageContai
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Page header */}
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
           {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
@@ -20,7 +20,7 @@ export function PageContainer({ title, subtitle, actions, children }: PageContai
       </div>
 
       {/* Page content */}
-      <div className="flex-1 overflow-y-auto p-6">{children}</div>
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</div>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { BarChart3, Package, Receipt, Truck, CreditCard, RotateCcw, Activity, TrendingUp, CalendarDays, ShoppingBag, Users, Wallet, Building2, Bug } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SalesTab } from './tabs/SalesTab'
@@ -64,15 +64,16 @@ export function ReportsPage() {
 
   return (
     <PageContainer title="Reports">
-      {/* Report selector — grouped pill buttons with dividers */}
-      <div className="flex divide-x divide-gray-200 mb-5 -mx-4">
-        {TAB_GROUPS.map((group) => {
+      {/* Report selector — inline groups separated by thin dividers */}
+      <div className="flex flex-wrap items-center gap-y-2 mb-5">
+        {TAB_GROUPS.map((group, gi) => {
           const visibleTabs = group.tabs.filter((t) => !t.adminOnly || role === 'admin')
           if (visibleTabs.length === 0) return null
           return (
-            <div key={group.label} className="flex flex-col gap-2 px-4 min-w-0">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{group.label}</span>
-              <div className="flex flex-wrap gap-1.5">
+            <Fragment key={group.label}>
+              {gi > 0 && <span className="self-stretch w-px bg-gray-200 mx-3 my-0.5 flex-shrink-0" />}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-0.5 flex-shrink-0">{group.label}</span>
                 {visibleTabs.map((t) => (
                   <button key={t.id} onClick={() => setTab(t.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -84,7 +85,7 @@ export function ReportsPage() {
                   </button>
                 ))}
               </div>
-            </div>
+            </Fragment>
           )
         })}
       </div>

@@ -16,7 +16,12 @@ const ICONS: Record<string, LucideIcon> = {
   ShoppingCart, PackagePlus, Users, Boxes, BarChart3, UserCog, Settings, LayoutDashboard, CalendarDays, Banknote,
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { role } = useAuth()
   const creditRequestCount = useUiStore((s) => s.creditRequestCount)
   const setCreditRequestCount = useUiStore((s) => s.setCreditRequestCount)
@@ -25,9 +30,6 @@ export function Sidebar() {
     getPendingCreditRequestCount().then(setCreditRequestCount)
   }, [])
 
-  // Filter by role AND plan feature (two independent gates).
-  // A cashier on a pro plan sees fewer items than an admin on a pro plan.
-  // An admin on a free plan sees fewer items than an admin on a pro plan.
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (!role || !item.roles.includes(role)) return false
     if (item.feature && !hasFeature(CLIENT_CONFIG.plan, item.feature)) return false
@@ -35,8 +37,16 @@ export function Sidebar() {
   })
 
   return (
-    <aside className="flex h-full w-56 flex-col border-r border-gray-200 bg-white">
-      {/* Logo — uses per-client brand app name */}
+    <aside
+      className={cn(
+        // Mobile: fixed overlay drawer
+        'fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-200',
+        isOpen ? 'translate-x-0' : '-translate-x-full',
+        // Desktop: static sidebar, always visible
+        'md:relative md:z-auto md:w-56 md:translate-x-0 md:transition-none'
+      )}
+    >
+      {/* Logo */}
       <div className="flex h-14 items-center border-b border-gray-200 px-4">
         <ShoppingCart className="mr-2" style={{ color: 'var(--brand-primary, #2563eb)' }} size={20} />
         <span className="text-sm font-bold text-gray-900">{CLIENT_CONFIG.brand.appName}</span>
@@ -50,6 +60,7 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onClose}
               className={({ isActive }) =>
                 cn(
                   'mb-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',

@@ -66,7 +66,7 @@ function ProductForm({
 }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="col-span-2">
           <label className="block text-xs font-medium text-gray-600 mb-1">Product Name *</label>
           <input
@@ -329,7 +329,7 @@ function StockLevelsTab({
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
       ) : stockData ? (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -521,7 +521,7 @@ function ProductsTab({
       </div>
 
       {/* Products Table */}
-      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">

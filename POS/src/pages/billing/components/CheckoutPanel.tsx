@@ -262,7 +262,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
   const earnedPoints = Math.floor(grandTotal / 100)
 
   return (
-    <div className="flex w-80 flex-col border-l border-gray-200 bg-white overflow-y-auto">
+    <div className="flex w-full md:w-80 flex-col border-l border-gray-200 bg-white overflow-y-auto">
 
       {/* Customer selector */}
       <div className="border-b border-gray-100 px-4 py-3">
@@ -505,7 +505,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
             <p className="text-xs text-gray-500">Scan to pay {formatCurrency(grandTotal)}</p>
             <div className="flex justify-center">
               <div className="rounded-xl border-4 border-brand-50 p-2 bg-white shadow-sm">
-                <QRCodeSVG value={upiLink} size={180} />
+                <QRCodeSVG value={upiLink} size={160} />
               </div>
             </div>
             <p className="text-[10px] text-gray-400 font-mono break-all">{upiLink}</p>

@@ -54,6 +54,3 @@ export async function getActiveEmployees(): Promise<Employee[]> {
   return db.employees.filter((e) => e.isActive === true).sortBy('name')
 }
 
-export async function saveBiometricCredential(employeeId: number, credentialId: string): Promise<void> {
-  await db.employees.update(employeeId, { credentialId })
-}

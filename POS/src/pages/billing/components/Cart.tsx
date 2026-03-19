@@ -19,7 +19,7 @@ export function Cart() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-gray-50 border-b border-gray-200">
             <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -98,7 +98,7 @@ function CartRow({ item, onUpdateQty, onRemove }: CartRowProps) {
       <td className="px-3 py-2">
         <button
           onClick={onRemove}
-          className="rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-500"
         >
           <Trash2 size={14} />
         </button>

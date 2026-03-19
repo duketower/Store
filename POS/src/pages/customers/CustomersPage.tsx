@@ -166,9 +166,9 @@ export function CustomersPage() {
         </div>
       )}
 
-      <div className="flex gap-4 h-[calc(100vh-12rem)]">
+      <div className="flex flex-col gap-4 md:flex-row md:h-[calc(100vh-12rem)]">
         {/* Left: Customer list */}
-        <div className="w-72 flex-shrink-0 flex flex-col gap-3">
+        <div className="w-full md:w-72 md:flex-shrink-0 flex flex-col gap-3">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
@@ -185,7 +185,7 @@ export function CustomersPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
+          <div className="max-h-64 md:max-h-none flex-1 overflow-y-auto rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
             {customers.length === 0 && (
               <p className="py-8 text-center text-sm text-gray-400">No customers found</p>
             )}
@@ -213,6 +213,14 @@ export function CustomersPage() {
 
         {/* Right: Customer detail */}
         <div className="flex-1 overflow-y-auto">
+          {selected && (
+            <button
+              onClick={() => setSelected(null)}
+              className="md:hidden flex items-center gap-1 text-sm text-brand-600 mb-3"
+            >
+              ← Back
+            </button>
+          )}
           {!selected ? (
             <div className="flex h-full items-center justify-center text-gray-400">
               <div className="text-center">
@@ -234,7 +242,7 @@ export function CustomersPage() {
                   </button>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-4">
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                   <div className="rounded-lg bg-red-50 p-3">
                     <p className="text-xs font-medium text-red-600 mb-1">Outstanding Credit</p>
                     <p className="text-xl font-bold text-red-700">{formatCurrency(selected.currentBalance)}</p>

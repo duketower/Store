@@ -1,4 +1,4 @@
-import { LogOut, Printer, Wifi } from 'lucide-react'
+import { LogOut, Printer, Wifi, Menu } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
 import { cn } from '@/utils/cn'
@@ -6,15 +6,23 @@ import { cn } from '@/utils/cn'
 interface HeaderProps {
   printerConnected?: boolean
   onConnectPrinter?: () => void
+  onMenuToggle?: () => void
 }
 
-export function Header({ printerConnected, onConnectPrinter }: HeaderProps) {
+export function Header({ printerConnected, onConnectPrinter, onMenuToggle }: HeaderProps) {
   const { name, role, logout } = useAuth()
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4">
-      {/* Left: offline indicator */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
+      {/* Left: hamburger (mobile) + offline indicator */}
+      <div className="flex items-center gap-3 text-sm text-gray-500">
+        <button
+          onClick={onMenuToggle}
+          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 md:hidden"
+          aria-label="Open menu"
+        >
+          <Menu size={20} />
+        </button>
         <span className="flex items-center gap-1">
           <Wifi size={14} className="text-green-500" />
           <span className="hidden sm:inline">Local Mode</span>
@@ -35,7 +43,7 @@ export function Header({ printerConnected, onConnectPrinter }: HeaderProps) {
             title={printerConnected ? 'Printer connected' : 'Connect printer'}
           >
             <Printer size={14} />
-            {printerConnected ? 'Printer OK' : 'Connect Printer'}
+            <span className="hidden sm:inline">{printerConnected ? 'Printer OK' : 'Connect Printer'}</span>
           </button>
         )}
 
