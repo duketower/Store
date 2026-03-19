@@ -64,24 +64,26 @@ export function ReportsPage() {
 
   return (
     <PageContainer title="Reports">
-      {/* Report selector — grouped pill buttons */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-5">
+      {/* Report selector — grouped pill buttons with dividers */}
+      <div className="flex divide-x divide-gray-200 mb-5 -mx-4">
         {TAB_GROUPS.map((group) => {
           const visibleTabs = group.tabs.filter((t) => !t.adminOnly || role === 'admin')
           if (visibleTabs.length === 0) return null
           return (
-            <div key={group.label} className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">{group.label}</span>
-              {visibleTabs.map((t) => (
-                <button key={t.id} onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    tab === t.id
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}>
-                  {t.icon}{t.label}
-                </button>
-              ))}
+            <div key={group.label} className="flex flex-col gap-2 px-4 min-w-0">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{group.label}</span>
+              <div className="flex flex-wrap gap-1.5">
+                {visibleTabs.map((t) => (
+                  <button key={t.id} onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      tab === t.id
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}>
+                    {t.icon}{t.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )
         })}
