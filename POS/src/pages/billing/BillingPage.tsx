@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { ScanLine, AlertTriangle } from 'lucide-react'
 import { isPrinterConnected, printReceipt } from '@/services/printer/printer'
 import { groupByGstSlab } from '@/utils/gst'
 import { useCartStore } from '@/stores/cartStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
-import { getProductByBarcode, getLowStockProducts } from '@/db/queries/products'
+import { getProductByBarcode } from '@/db/queries/products'
 import { createSaleTransaction, getSaleWithItems } from '@/db/queries/sales'
 import { getBatchesFEFO } from '@/db/queries/batches'
 import { generateBillNumber } from '@/utils/billNumber'
@@ -19,21 +19,13 @@ import { Receipt } from './components/Receipt'
 
 export function BillingPage() {
   const { addItem, clearCart, totals, items } = useCartStore()
-  const { addToast, setLowStockCount } = useUiStore()
+  const { addToast } = useUiStore()
   const { employeeId, name: cashierName } = useAuth()
 
   const [receiptSaleId, setReceiptSaleId] = useState<number | null>(null)
   const [receiptData, setReceiptData] = useState<Awaited<ReturnType<typeof getSaleWithItems>> | null>(null)
   const [voidConfirmOpen, setVoidConfirmOpen] = useState(false)
 
-  const refreshLowStock = useCallback(async () => {
-    const low = await getLowStockProducts()
-    setLowStockCount(low.length)
-  }, [setLowStockCount])
-
-  useEffect(() => {
-    refreshLowStock()
-  }, [refreshLowStock])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

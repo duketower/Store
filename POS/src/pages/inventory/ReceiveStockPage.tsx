@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Plus, Trash2, Save, Search } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
-import { searchProducts, getLowStockProducts, getProductByBarcode } from '@/db/queries/products'
+import { searchProducts, getProductByBarcode } from '@/db/queries/products'
 import { addBatch } from '@/db/queries/batches'
 import { getActiveVendors } from '@/db/queries/vendors'
 import { createGrn } from '@/db/queries/grns'
@@ -31,7 +31,7 @@ export function ReceiveStockPage() {
   const [lines, setLines] = useState<GrnLine[]>([])
   const [saving, setSaving] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const { addToast, setLowStockCount } = useUiStore()
+  const { addToast } = useUiStore()
   const { employeeId } = useAuth()
 
   useEffect(() => {
@@ -141,11 +141,7 @@ export function ReceiveStockPage() {
         })
       }
 
-      // Refresh low-stock badge
-      const lowStock = await getLowStockProducts()
-      setLowStockCount(lowStock.length)
-
-      addToast('success', `GRN #${savedGrnId} saved — ${lines.length} item(s) received`)
+addToast('success', `GRN #${savedGrnId} saved — ${lines.length} item(s) received`)
       setLines([])
       setVendorId('')
       setVendorFreeText('')
