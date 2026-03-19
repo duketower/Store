@@ -3,6 +3,7 @@
 
 import { ShieldAlert } from 'lucide-react'
 import { CLIENT_CONFIG } from '@/constants/clientConfig'
+import { formatDate } from '@/utils/date'
 
 export function ExpiredLicenseScreen() {
   return (
@@ -30,9 +31,7 @@ export function ExpiredLicenseScreen() {
           <div className="flex justify-between">
             <span className="text-gray-500">Expired on</span>
             <span className="text-red-600 font-medium">
-              {new Date(CLIENT_CONFIG.licenseExpiresAt).toLocaleDateString('en-IN', {
-                day: 'numeric', month: 'long', year: 'numeric',
-              })}
+              {formatDate(new Date(CLIENT_CONFIG.licenseExpiresAt))}
             </span>
           </div>
         </div>

@@ -18,6 +18,7 @@ import {
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency } from '@/utils/currency'
+import { formatDate } from '@/utils/date'
 import type { Customer, CreditLedgerEntry } from '@/types'
 
 export function CustomersPage() {
@@ -336,9 +337,7 @@ export function CustomersPage() {
                         <div>
                           <p className="text-sm text-gray-700">{entry.notes ?? (entry.entryType === 'debit' ? 'Purchase' : 'Payment')}</p>
                           <p className="text-xs text-gray-400">
-                            {entry.createdAt instanceof Date
-                              ? entry.createdAt.toLocaleDateString('en-IN')
-                              : new Date(entry.createdAt).toLocaleDateString('en-IN')}
+                            {formatDate(entry.createdAt instanceof Date ? entry.createdAt : new Date(entry.createdAt))}
                           </p>
                         </div>
                         <span className={`text-sm font-semibold ${entry.entryType === 'debit' ? 'text-red-600' : 'text-green-600'}`}>

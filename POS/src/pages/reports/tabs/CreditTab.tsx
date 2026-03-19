@@ -4,6 +4,7 @@ import { Modal } from '@/components/common/Modal'
 import { getAllCustomers, updateCreditBalance, addCreditLedgerEntry } from '@/db/queries/customers'
 import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
+import { formatDateTime } from '@/utils/date'
 import { StatCard } from './SalesTab'
 import type { Customer, CreditLedgerEntry } from '@/types'
 
@@ -183,10 +184,7 @@ export function CreditTab() {
                 {creditLedger.map((entry) => (
                   <tr key={entry.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {new Date(entry.createdAt).toLocaleString('en-IN', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
-                      })}
+                      {formatDateTime(new Date(entry.createdAt))}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-800">{entry.customerName}</td>
                     <td className="px-4 py-3">

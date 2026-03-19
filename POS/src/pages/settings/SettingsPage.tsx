@@ -7,6 +7,7 @@ import { isLicenseExpired } from '@/constants/features'
 import { useUiStore } from '@/stores/uiStore'
 import { type StoreConfig, loadStoreConfig, saveStoreConfig } from '@/utils/storeConfig'
 import { ROUTES } from '@/constants/routes'
+import { formatDate } from '@/utils/date'
 
 export function SettingsPage() {
   const { addToast } = useUiStore()
@@ -111,9 +112,9 @@ export function SettingsPage() {
             { label: 'Plan',      value: CLIENT_CONFIG.plan.charAt(0).toUpperCase() + CLIENT_CONFIG.plan.slice(1) },
             { label: 'License',   value: isLicenseExpired(CLIENT_CONFIG.licenseExpiresAt)
                 ? '⚠ Expired'
-                : `Active until ${new Date(CLIENT_CONFIG.licenseExpiresAt).toLocaleDateString('en-IN')}` },
+                : `Active until ${formatDate(new Date(CLIENT_CONFIG.licenseExpiresAt))}` },
             { label: 'Version',   value: APP_BUILD.version },
-            { label: 'Build',     value: `${APP_BUILD.gitCommit} · ${new Date(APP_BUILD.builtAt).toLocaleDateString('en-IN')}` },
+            { label: 'Build',     value: `${APP_BUILD.gitCommit} · ${formatDate(new Date(APP_BUILD.builtAt))}` },
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between text-sm">
               <span className="text-gray-500">{label}</span>

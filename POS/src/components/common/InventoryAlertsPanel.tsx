@@ -59,8 +59,9 @@ export function InventoryAlertsPanel({ lowStock, nearExpiry, defaultExpanded = t
                 {lowStock.map((p) => (
                   <div key={p.id} className="flex items-center justify-between text-sm">
                     <span className="text-gray-800 truncate">{p.name}</span>
-                    <span className="ml-2 shrink-0 font-semibold text-red-600">
-                      {p.stock} / {p.reorderLevel} {p.unit}
+                    <span className="ml-2 shrink-0 text-right">
+                      <span className="font-semibold text-red-600">{p.stock} {p.unit}</span>
+                      <span className="block text-xs text-gray-400">reorder at {p.reorderLevel}</span>
                     </span>
                   </div>
                 ))}

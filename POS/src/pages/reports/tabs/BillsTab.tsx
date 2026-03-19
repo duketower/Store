@@ -5,6 +5,7 @@ import { Receipt as ReceiptView } from '@/pages/billing/components/Receipt'
 import { getSaleWithItems, processReturn, type ReturnItem } from '@/db/queries/sales'
 import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
+import { formatDateTime } from '@/utils/date'
 import { useAuth } from '@/hooks/useAuth'
 import type { Sale, SaleItem, Payment, Customer } from '@/types'
 
@@ -85,7 +86,7 @@ export function BillsTab() {
     const headers = ['Bill No', 'Date', 'Cashier', 'Total', 'Payments']
     const rows = billsData.map((r) => [
       r.sale.billNo,
-      new Date(r.sale.createdAt).toLocaleString('en-IN'),
+      formatDateTime(new Date(r.sale.createdAt)),
       r.cashierName,
       r.sale.grandTotal.toFixed(2),
       r.paymentSummary,
@@ -264,10 +265,7 @@ export function BillsTab() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">
-                    {new Date(row.sale.createdAt).toLocaleString('en-IN', {
-                      day: '2-digit', month: 'short', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
+                    {formatDateTime(new Date(row.sale.createdAt))}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{row.cashierName}</td>
                   <td className="px-4 py-3">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3, Package, Receipt, Truck, CreditCard, RotateCcw, Activity, TrendingUp, CalendarDays, ShoppingBag, Users, Wallet, Building2 } from 'lucide-react'
+import { BarChart3, Package, Receipt, Truck, CreditCard, RotateCcw, Activity, TrendingUp, CalendarDays, ShoppingBag, Users, Wallet, Building2, Bug } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SalesTab } from './tabs/SalesTab'
 import { StockTab } from './tabs/StockTab'
@@ -14,37 +14,47 @@ import { TopProductsTab } from './tabs/TopProductsTab'
 import { CashierReportTab } from './tabs/CashierReportTab'
 import { ExpenseTab } from './tabs/ExpenseTab'
 import { VendorSummaryTab } from './tabs/VendorSummaryTab'
+import { ErrorLogTab } from './tabs/ErrorLogTab'
+import { useAuth } from '@/hooks/useAuth'
 
-type ReportTab = 'sales' | 'stock' | 'bills' | 'grn' | 'rtv' | 'credit' | 'inventory' | 'margin' | 'monthly' | 'top-products' | 'cashier' | 'expenses' | 'vendors'
+type ReportTab = 'sales' | 'stock' | 'bills' | 'grn' | 'rtv' | 'credit' | 'inventory' | 'margin' | 'monthly' | 'top-products' | 'cashier' | 'expenses' | 'vendors' | 'errors'
 
 export function ReportsPage() {
   const [tab, setTab] = useState<ReportTab>('sales')
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10))
+  const { role } = useAuth()
+
+  const allTabs: { id: ReportTab; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
+    { id: 'sales', label: 'Daily Sales', icon: <BarChart3 size={13} /> },
+    { id: 'stock', label: 'Stock Levels', icon: <Package size={13} /> },
+    { id: 'inventory', label: 'Inventory', icon: <Activity size={13} /> },
+    { id: 'bills', label: 'All Bills', icon: <Receipt size={13} /> },
+    { id: 'grn', label: 'GRN History', icon: <Truck size={13} /> },
+    { id: 'rtv', label: 'RTV', icon: <RotateCcw size={13} /> },
+    { id: 'credit', label: 'Credit', icon: <CreditCard size={13} /> },
+    { id: 'margin', label: 'Profit Margin', icon: <TrendingUp size={13} /> },
+    { id: 'monthly', label: 'Monthly Summary', icon: <CalendarDays size={13} /> },
+    { id: 'top-products', label: 'Top Products', icon: <ShoppingBag size={13} /> },
+    { id: 'cashier', label: 'Cashier Report', icon: <Users size={13} /> },
+    { id: 'expenses', label: 'Expenses', icon: <Wallet size={13} /> },
+    { id: 'vendors', label: 'Vendors', icon: <Building2 size={13} /> },
+    { id: 'errors', label: 'Error Log', icon: <Bug size={13} />, adminOnly: true },
+  ]
+
+  const visibleTabs = allTabs.filter((t) => !t.adminOnly || role === 'admin')
 
   return (
     <PageContainer title="Reports">
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 border-b border-gray-200 overflow-x-auto">
-        {([
-          { id: 'sales', label: 'Daily Sales', icon: <BarChart3 size={15} /> },
-          { id: 'stock', label: 'Stock Levels', icon: <Package size={15} /> },
-          { id: 'inventory', label: 'Inventory', icon: <Activity size={15} /> },
-          { id: 'bills', label: 'All Bills', icon: <Receipt size={15} /> },
-          { id: 'grn', label: 'GRN History', icon: <Truck size={15} /> },
-          { id: 'rtv', label: 'RTV', icon: <RotateCcw size={15} /> },
-          { id: 'credit', label: 'Credit', icon: <CreditCard size={15} /> },
-          { id: 'margin', label: 'Profit Margin', icon: <TrendingUp size={15} /> },
-          { id: 'monthly', label: 'Monthly Summary', icon: <CalendarDays size={15} /> },
-          { id: 'top-products', label: 'Top Products', icon: <ShoppingBag size={15} /> },
-          { id: 'cashier', label: 'Cashier Report', icon: <Users size={15} /> },
-          { id: 'expenses', label: 'Expenses', icon: <Wallet size={15} /> },
-          { id: 'vendors', label: 'Vendors', icon: <Building2 size={15} /> },
-        ] as { id: ReportTab; label: string; icon: React.ReactNode }[]).map((t) => (
+      {/* Report selector — pill buttons */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {visibleTabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`shrink-0 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === t.id ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              tab === t.id
+                ? 'bg-brand-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
-            <span className="flex items-center gap-2">{t.icon}{t.label}</span>
+            {t.icon}{t.label}
           </button>
         ))}
       </div>
@@ -62,6 +72,7 @@ export function ReportsPage() {
       {tab === 'cashier' && <CashierReportTab />}
       {tab === 'expenses' && <ExpenseTab />}
       {tab === 'vendors' && <VendorSummaryTab />}
+      {tab === 'errors' && <ErrorLogTab />}
     </PageContainer>
   )
 }

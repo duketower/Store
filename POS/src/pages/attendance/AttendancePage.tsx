@@ -28,6 +28,7 @@ import {
   toggleExternalStaffActive,
   getLeaveExport,
 } from '@/db/queries/attendance'
+import { formatDate } from '@/utils/date'
 import type {
   AttendanceLog,
   AttendanceStatus,
@@ -355,7 +356,7 @@ function LogAttendanceModal({
     { value: 'leave',    label: 'On Leave', color: 'bg-brand-100 text-brand-700 ring-blue-400' },
   ]
 
-  const label = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const label = formatDate(new Date(date + 'T00:00:00'))
 
   return (
     <Modal open onClose={onClose} title={`Log Attendance — ${staffName}`} size="sm">

@@ -1,0 +1,207 @@
+/* ─── Fonts ─────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+@import "tailwindcss";
+
+/* Neue Machina — self-hosted from /public/fonts/ */
+@font-face {
+  font-family: 'Neue Machina';
+  src: url('/fonts/NeueMachina-Light.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue Machina';
+  src: url('/fonts/NeueMachina-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue Machina';
+  src: url('/fonts/NeueMachina-Ultrabold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Design Tokens ──────────────────────────────────────── */
+:root {
+  --color-bg:             #141414;
+  --color-card:           #0F0F0F;
+  --color-accent:         #E5097F;   /* neon pink — glows, hovers, CTAs */
+  --color-blue:           #309EFF;   /* secondary accent */
+  --color-text:           #FFFFFF;
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-border:         rgba(255, 255, 255, 0.1);
+
+  --font-heading: 'Neue Machina', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  --radius-card: 18px;
+  --radius-pill: 999px;
+
+  --transition-fast: 0.25s ease;
+  --transition-card: 0.35s ease;
+  --transition-text: 0.3s ease-out;
+}
+
+/* ─── Base Reset ─────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--color-bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Typography Scale ───────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+}
+
+h1 { font-size: clamp(2rem, 5vw, 4rem);     font-weight: 100; }
+h2 { font-size: clamp(1.8rem, 4vw, 3.2rem); font-weight: 600; }
+h3 { font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 400; }
+
+p {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ─── Glassmorphism ──────────────────────────────────────── */
+.glass {
+  background: rgba(15, 15, 15, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.35);
+}
+
+.glass-dark {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--color-border);
+}
+
+/* ─── Buttons ────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 36px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  border: none;
+  outline: none;
+}
+
+.btn:hover { transform: translateY(-3px); }
+
+.btn-accent {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(229, 9, 127, 0.4);
+}
+.btn-accent:hover { box-shadow: 0 0 35px rgba(229, 9, 127, 0.6); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+.btn-outline:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ─── Glow Underline ─────────────────────────────────────── */
+.glow-underline {
+  position: relative;
+  display: inline-block;
+}
+.glow-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  animation: glowLine 2s ease-in-out infinite alternate;
+}
+
+@keyframes glowLine {
+  from { opacity: 0.4; transform: scaleX(0.7); }
+  to   { opacity: 1;   transform: scaleX(1); }
+}
+
+/* ─── Blob ───────────────────────────────────────────────── */
+@keyframes blobPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.7; }
+  50%       { transform: scale(1.12); opacity: 1;   }
+}
+
+.blob {
+  animation: blobPulse 10s ease-in-out infinite;
+  filter: blur(80px);
+  border-radius: 50%;
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ─── Section Label ──────────────────────────────────────── */
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  display: block;
+  margin-bottom: 1rem;
+}
+
+/* ─── Accent Text ────────────────────────────────────────── */
+.accent { color: var(--color-accent); }
+.accent-glow {
+  color: var(--color-accent);
+  text-shadow: 0 0 20px rgba(229, 9, 127, 0.5);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: rgba(229, 9, 127, 0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+
+/* ─── Selection ──────────────────────────────────────────── */
+::selection { background: rgba(229, 9, 127, 0.3); color: #fff; }

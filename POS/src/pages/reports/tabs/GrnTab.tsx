@@ -4,6 +4,7 @@ import { Modal } from '@/components/common/Modal'
 import { getAllGrns, getGrnBatches } from '@/db/queries/grns'
 import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
+import { formatDate, formatDateTime } from '@/utils/date'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import type { Batch, Grn } from '@/types'
 
@@ -78,10 +79,7 @@ export function GrnTab() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {new Date(grn.createdAt).toLocaleString('en-IN', {
-                      day: '2-digit', month: 'short', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
+                    {formatDateTime(new Date(grn.createdAt))}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{grn.vendorName ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-600">{grn.invoiceNo ?? <span className="text-gray-300">—</span>}</td>
@@ -120,7 +118,7 @@ export function GrnTab() {
                 {/* Meta grid */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                   <div><span className="text-gray-500">From Vendor: </span><span className="font-bold">{viewGrnSession.vendorName ?? '—'}</span></div>
-                  <div><span className="text-gray-500">Date: </span><span className="font-bold">{new Date(viewGrnSession.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
+                  <div><span className="text-gray-500">Date: </span><span className="font-bold">{formatDate(new Date(viewGrnSession.createdAt))}</span></div>
                   {viewGrnSession.invoiceNo && (
                     <div><span className="text-gray-500">Vendor Invoice No: </span><span className="font-bold">{viewGrnSession.invoiceNo}</span></div>
                   )}
@@ -147,8 +145,8 @@ export function GrnTab() {
                         <td className="py-1.5">{idx + 1}</td>
                         <td className="py-1.5">{b.productName}</td>
                         <td className="py-1.5">{b.batchNo}</td>
-                        <td className="py-1.5">{b.mfgDate ? new Date(b.mfgDate).toLocaleDateString('en-IN') : '—'}</td>
-                        <td className="py-1.5">{new Date(b.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        <td className="py-1.5">{b.mfgDate ? formatDate(new Date(b.mfgDate)) : '—'}</td>
+                        <td className="py-1.5">{formatDate(new Date(b.expiryDate))}</td>
                         <td className="py-1.5 text-right">{b.qtyRemaining}</td>
                         <td className="py-1.5 text-right">{b.purchasePrice.toFixed(2)}</td>
                         <td className="py-1.5 text-right font-semibold">{(b.purchasePrice * b.qtyRemaining).toFixed(2)}</td>

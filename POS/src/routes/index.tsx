@@ -5,11 +5,9 @@ import { LoginScreen } from '@/auth/LoginScreen'
 import { AppShell } from '@/components/layout/AppShell'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { BillingPage } from '@/pages/billing/BillingPage'
-import { ProductsPage } from '@/pages/inventory/ProductsPage'
 import { ReceiveStockPage } from '@/pages/inventory/ReceiveStockPage'
 import { ShiftClosePage } from '@/pages/inventory/ShiftClosePage'
 import { CashOutPage } from '@/pages/inventory/CashOutPage'
-import { VendorsPage } from '@/pages/inventory/VendorsPage'
 import { CustomersPage } from '@/pages/customers/CustomersPage'
 import { ReportsPage } from '@/pages/reports/ReportsPage'
 import { UsersPage } from '@/pages/users/UsersPage'
@@ -48,7 +46,6 @@ export function AppRoutes() {
 
         {/* Always available (free tier) */}
         <Route path={ROUTES.BILLING} element={<BillingPage />} />
-        <Route path={ROUTES.PRODUCTS} element={<ProductsPage />} />
         <Route path={ROUTES.RECEIVE_STOCK} element={<ReceiveStockPage />} />
         <Route path={ROUTES.SHIFT_CLOSE} element={
           <ProtectedRoute requiredRoles={['admin', 'manager', 'cashier']}>
@@ -60,18 +57,6 @@ export function AppRoutes() {
             <CashOutPage />
           </ProtectedRoute>
         } />
-
-        {/* Plan-gated: vendors requires 'rtv' feature (pro+) */}
-        <Route
-          path={ROUTES.VENDORS}
-          element={
-            <ProtectedRoute requiredRoles={['admin', 'manager']}>
-              <ProtectedFeatureRoute feature="rtv">
-                <VendorsPage />
-              </ProtectedFeatureRoute>
-            </ProtectedRoute>
-          }
-        />
 
         {/* Plan-gated: customers requires 'credit_ledger' feature (pro+) */}
         <Route

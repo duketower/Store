@@ -6,8 +6,6 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   BILLING: '/billing',
   RECEIVE_STOCK: '/inventory/receive-stock',
-  PRODUCTS: '/inventory/products',
-  VENDORS: '/inventory/vendors',
   SHIFT_CLOSE: '/inventory/shift-close',
   CASH_OUT: '/inventory/cash-out',
   CUSTOMERS: '/customers',
@@ -24,8 +22,8 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 // Must stay in sync with the ICONS map in Sidebar.tsx.
 // Adding a new icon here without adding it to Sidebar's ICONS map causes a missing icon at runtime.
 export type NavIconName =
-  | 'ShoppingCart' | 'PackagePlus' | 'Users' | 'Package'
-  | 'Boxes' | 'BarChart3' | 'UserCog' | 'Settings' | 'LayoutDashboard' | 'Truck' | 'CalendarDays' | 'Banknote'
+  | 'ShoppingCart' | 'PackagePlus' | 'Users'
+  | 'Boxes' | 'BarChart3' | 'UserCog' | 'Settings' | 'LayoutDashboard' | 'CalendarDays' | 'Banknote'
 
 export interface NavItem {
   label: string
@@ -42,8 +40,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Billing',      path: ROUTES.BILLING,       icon: 'ShoppingCart',    roles: ['admin', 'manager', 'cashier'] },
   { label: 'Receive Stock',path: ROUTES.RECEIVE_STOCK, icon: 'PackagePlus',     roles: ['admin', 'manager', 'cashier'] },
   { label: 'Customers',    path: ROUTES.CUSTOMERS,     icon: 'Users',           roles: ['admin', 'manager', 'cashier'], feature: 'credit_ledger' },
-  { label: 'Products',     path: ROUTES.PRODUCTS,      icon: 'Package',         roles: ['admin', 'manager', 'cashier'] },
-  { label: 'Vendors',      path: ROUTES.VENDORS,       icon: 'Truck',           roles: ['admin', 'manager'],            feature: 'rtv' },
   { label: 'Shift',        path: ROUTES.SHIFT_CLOSE,   icon: 'Boxes',           roles: ['admin', 'manager', 'cashier'] },
   { label: 'Cash Out',     path: ROUTES.CASH_OUT,      icon: 'Banknote',        roles: ['admin', 'manager'] },
   { label: 'Reports',      path: ROUTES.REPORTS,       icon: 'BarChart3',       roles: ['admin', 'manager'],            feature: 'reports' },

@@ -26,7 +26,9 @@ export async function deductBatch(batchId: number, qty: number): Promise<void> {
     })
 }
 
-// Plan and execute FEFO deduction across batches for a product
+// Plan and execute FEFO deduction across batches for a product.
+// If batch stock is insufficient (out-of-stock or no batches), deducts what's available
+// and proceeds — product.stock will go negative, to be corrected via GRN later.
 export async function deductStockFEFO(
   productId: number,
   totalQty: number
@@ -34,15 +36,7 @@ export async function deductStockFEFO(
   const batches = await getBatchesFEFO(productId)
   const plan = planFEFODeduction(batches, totalQty)
 
-  // Validate sufficient batch stock before executing any deduction
-  const totalPlanned = plan.reduce((sum, p) => sum + p.deductQty, 0)
-  if (totalPlanned < totalQty - 0.001) {
-    throw new Error(
-      `Insufficient batch stock for product ${productId}: need ${totalQty}, only ${totalPlanned} available in batches`
-    )
-  }
-
-  // Execute deductions
+  // Execute whatever the plan covers — no throw on shortfall
   for (const { batchId, deductQty } of plan) {
     await deductBatch(batchId, deductQty)
   }

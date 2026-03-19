@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Receipt, Plus, Trash2, X } from 'lucide-react'
 import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
+import { formatDate } from '@/utils/date'
 import { StatCard } from './SalesTab'
 import type { Expense } from '@/types'
 
@@ -128,7 +129,7 @@ export function ExpenseTab() {
     const header = 'Date,Category,Note,Amount'
     const rows = expenses.map((e) => {
       const d = e.date instanceof Date ? e.date : new Date(e.date)
-      const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      const dateStr = formatDate(d)
       const note = (e.note ?? '').replace(/"/g, '""')
       return `${dateStr},${e.category},"${note}",${e.amount.toFixed(2)}`
     })
@@ -323,7 +324,7 @@ export function ExpenseTab() {
                   return (
                     <tr key={e.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-xs text-gray-500">
-                        {d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {formatDate(d)}
                       </td>
                       <td className="px-4 py-3 text-gray-700">{e.category}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{e.note ?? <span className="text-gray-300">—</span>}</td>

@@ -1,22 +1,21 @@
-// Format date as DD/MM/YYYY
+// Format date as DD-MM-YY
 export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date)
+  const d = String(date.getDate()).padStart(2, '0')
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const y = String(date.getFullYear()).slice(-2)
+  return `${d}-${m}-${y}`
 }
 
-// Format as DD/MM/YYYY HH:MM AM/PM
+// Format as DD-MM-YY HH:MM AM/PM
 export function formatDateTime(date: Date): string {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  }).format(date)
+  const d = String(date.getDate()).padStart(2, '0')
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const y = String(date.getFullYear()).slice(-2)
+  const hours = date.getHours()
+  const mins = String(date.getMinutes()).padStart(2, '0')
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  const h = String(hours % 12 || 12).padStart(2, '0')
+  return `${d}-${m}-${y} ${h}:${mins} ${ampm}`
 }
 
 // Get today's start (midnight)

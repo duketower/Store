@@ -20,10 +20,14 @@ const TYPE_STYLES: Record<string, string> = {
 }
 
 function formatTime(d: Date): string {
-  return d.toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  })
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yy = String(d.getFullYear()).slice(-2)
+  const hh = String(d.getHours() % 12 || 12).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  const sec = String(d.getSeconds()).padStart(2, '0')
+  const ampm = d.getHours() >= 12 ? 'PM' : 'AM'
+  return `${dd}-${mm}-${yy} ${hh}:${min}:${sec} ${ampm}`
 }
 
 export function ErrorLogPage() {

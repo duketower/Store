@@ -8,6 +8,7 @@ import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
 import { useAuth } from '@/hooks/useAuth'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
+import { formatDate, formatDateTime } from '@/utils/date'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import type { Product, Batch, RtvSession, RtvItem } from '@/types'
 
@@ -202,10 +203,7 @@ export function RtvTab() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {new Date(rtv.createdAt).toLocaleString('en-IN', {
-                      day: '2-digit', month: 'short', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
+                    {formatDateTime(new Date(rtv.createdAt))}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{rtv.vendorName ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate">{rtv.reason}</td>
@@ -244,7 +242,7 @@ export function RtvTab() {
                 {/* Meta grid */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                   <div><span className="text-gray-500">To Vendor: </span><span className="font-bold">{viewRtvSession.vendorName ?? '—'}</span></div>
-                  <div><span className="text-gray-500">Date: </span><span className="font-bold">{new Date(viewRtvSession.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
+                  <div><span className="text-gray-500">Date: </span><span className="font-bold">{formatDate(new Date(viewRtvSession.createdAt))}</span></div>
                   {viewRtvSession.invoiceNo && (
                     <div><span className="text-gray-500">Ref Invoice: </span><span className="font-bold">{viewRtvSession.invoiceNo}</span></div>
                   )}
