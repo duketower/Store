@@ -24,39 +24,67 @@ export function ReportsPage() {
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10))
   const { role } = useAuth()
 
-  const allTabs: { id: ReportTab; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
-    { id: 'sales', label: 'Daily Sales', icon: <BarChart3 size={13} /> },
-    { id: 'stock', label: 'Stock Levels', icon: <Package size={13} /> },
-    { id: 'inventory', label: 'Inventory', icon: <Activity size={13} /> },
-    { id: 'bills', label: 'All Bills', icon: <Receipt size={13} /> },
-    { id: 'grn', label: 'GRN History', icon: <Truck size={13} /> },
-    { id: 'rtv', label: 'RTV', icon: <RotateCcw size={13} /> },
-    { id: 'credit', label: 'Credit', icon: <CreditCard size={13} /> },
-    { id: 'margin', label: 'Profit Margin', icon: <TrendingUp size={13} /> },
-    { id: 'monthly', label: 'Monthly Summary', icon: <CalendarDays size={13} /> },
-    { id: 'top-products', label: 'Top Products', icon: <ShoppingBag size={13} /> },
-    { id: 'cashier', label: 'Cashier Report', icon: <Users size={13} /> },
-    { id: 'expenses', label: 'Expenses', icon: <Wallet size={13} /> },
-    { id: 'vendors', label: 'Vendors', icon: <Building2 size={13} /> },
-    { id: 'errors', label: 'Error Log', icon: <Bug size={13} />, adminOnly: true },
+  type TabDef = { id: ReportTab; label: string; icon: React.ReactNode; adminOnly?: boolean }
+  const TAB_GROUPS: { label: string; tabs: TabDef[] }[] = [
+    {
+      label: 'Sales',
+      tabs: [
+        { id: 'sales',        label: 'Daily Sales',      icon: <BarChart3 size={13} /> },
+        { id: 'bills',        label: 'All Bills',        icon: <Receipt size={13} /> },
+        { id: 'monthly',      label: 'Monthly Summary',  icon: <CalendarDays size={13} /> },
+        { id: 'top-products', label: 'Top Products',     icon: <ShoppingBag size={13} /> },
+        { id: 'cashier',      label: 'Cashier Report',   icon: <Users size={13} /> },
+      ],
+    },
+    {
+      label: 'Finance',
+      tabs: [
+        { id: 'margin',   label: 'Profit Margin', icon: <TrendingUp size={13} /> },
+        { id: 'credit',   label: 'Credit',        icon: <CreditCard size={13} /> },
+        { id: 'expenses', label: 'Expenses',       icon: <Wallet size={13} /> },
+      ],
+    },
+    {
+      label: 'Inventory',
+      tabs: [
+        { id: 'stock',     label: 'Stock Levels', icon: <Package size={13} /> },
+        { id: 'inventory', label: 'Inventory',    icon: <Activity size={13} /> },
+        { id: 'grn',       label: 'GRN History',  icon: <Truck size={13} /> },
+        { id: 'rtv',       label: 'RTV',          icon: <RotateCcw size={13} /> },
+        { id: 'vendors',   label: 'Vendors',      icon: <Building2 size={13} /> },
+      ],
+    },
+    {
+      label: 'System',
+      tabs: [
+        { id: 'errors', label: 'Error Log', icon: <Bug size={13} />, adminOnly: true },
+      ],
+    },
   ]
-
-  const visibleTabs = allTabs.filter((t) => !t.adminOnly || role === 'admin')
 
   return (
     <PageContainer title="Reports">
-      {/* Report selector — pill buttons */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {visibleTabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              tab === t.id
-                ? 'bg-brand-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}>
-            {t.icon}{t.label}
-          </button>
-        ))}
+      {/* Report selector — grouped pill buttons */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-5">
+        {TAB_GROUPS.map((group) => {
+          const visibleTabs = group.tabs.filter((t) => !t.adminOnly || role === 'admin')
+          if (visibleTabs.length === 0) return null
+          return (
+            <div key={group.label} className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">{group.label}</span>
+              {visibleTabs.map((t) => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    tab === t.id
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}>
+                  {t.icon}{t.label}
+                </button>
+              ))}
+            </div>
+          )
+        })}
       </div>
 
       {tab === 'sales' && <SalesTab reportDate={reportDate} onDateChange={setReportDate} />}

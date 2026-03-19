@@ -67,7 +67,7 @@ export function ErrorLogTab() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [showResolved, setShowResolved] = useState(false)
+  const [showResolved, setShowResolved] = useState(true)
   const [resolving, setResolving] = useState<Set<string>>(new Set())
 
   const load = async () => {
