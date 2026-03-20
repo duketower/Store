@@ -48,7 +48,7 @@ export function ShiftClosePage() {
   const DENOM_VALUES = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1]
 
   const denomTotal = DENOM_VALUES.reduce((sum, d) => {
-    const count = parseInt(denoms[d] ?? '0') || 0
+    const count = parseInt(denoms[d] ?? '0', 10) || 0
     return sum + d * count
   }, 0)
 
@@ -101,7 +101,7 @@ export function ShiftClosePage() {
       .slice(0, 5)
 
     const gstByRate = Object.entries(gstMap).map(([rate, taxAmount]) => ({
-      rate: parseInt(rate),
+      rate: parseInt(rate, 10),
       taxAmount,
     }))
 
@@ -271,8 +271,8 @@ export function ShiftClosePage() {
                         className="flex-1 min-w-0 rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-brand-500 focus:outline-none"
                       />
                       <span className="w-20 text-sm text-right text-gray-500 flex-shrink-0">
-                        {d * (parseInt(denoms[d] ?? '0') || 0) > 0
-                          ? `= ₹${(d * (parseInt(denoms[d] ?? '0') || 0)).toLocaleString()}`
+                        {d * (parseInt(denoms[d] ?? '0', 10) || 0) > 0
+                          ? `= ₹${(d * (parseInt(denoms[d] ?? '0', 10) || 0)).toLocaleString()}`
                           : ''}
                       </span>
                     </div>

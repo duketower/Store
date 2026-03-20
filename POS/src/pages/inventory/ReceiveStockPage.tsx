@@ -168,7 +168,7 @@ addToast('success', `GRN #${savedGrnId} saved — ${lines.length} item(s) receiv
           {vendors.length > 0 ? (
             <select
               value={vendorId}
-              onChange={(e) => setVendorId(e.target.value === '' ? '' : e.target.value === 'other' ? 'other' : parseInt(e.target.value))}
+              onChange={(e) => setVendorId(e.target.value === '' ? '' : e.target.value === 'other' ? 'other' : parseInt(e.target.value, 10))}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
               <option value="">— Select vendor —</option>

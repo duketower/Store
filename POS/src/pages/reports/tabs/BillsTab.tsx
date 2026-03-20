@@ -172,6 +172,7 @@ export function BillsTab() {
         case 'date_desc':  return new Date(b.sale.createdAt).getTime() - new Date(a.sale.createdAt).getTime()
         case 'total_asc':  return a.sale.grandTotal - b.sale.grandTotal
         case 'total_desc': return b.sale.grandTotal - a.sale.grandTotal
+        default:           return 0
       }
     })
     return rows

@@ -873,9 +873,9 @@ async function seedMoreProducts(): Promise<void> {
     { sku: 'HH-002', batchNo: 'HH-002-2601', expiryDays: 365, purchasePricePct: 0.80 },
   ]
 
-  for (const entry of newSkuBatches) {
+  await Promise.all(newSkuBatches.map(async (entry) => {
     const prod = await db.products.where('sku').equals(entry.sku).first()
-    if (!prod?.id) continue
+    if (!prod?.id) return
     const purchasePrice = Math.round(prod.sellingPrice * entry.purchasePricePct)
     await db.batches.add({
       productId: prod.id,
@@ -885,7 +885,7 @@ async function seedMoreProducts(): Promise<void> {
       qtyRemaining: prod.stock,
       createdAt: now,
     })
-  }
+  }))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1032,7 +1032,8 @@ async function seedSalesHistory(): Promise<void> {
   // Track total qty sold per product across all days (Fix 2)
   const totalSoldMap = new Map<number, number>()
 
-  for (let dayOffset = 29; dayOffset >= 0; dayOffset--) {
+  const dayOffsets = Array.from({ length: 30 }, (_, i) => 29 - i)
+  await Promise.all(dayOffsets.map(async (dayOffset) => {
     const day = new Date(TODAY.getTime() - dayOffset * 24 * 60 * 60 * 1000)
     const dayOfWeek = day.getDay() // 0=Sun, 6=Sat
 
@@ -1175,10 +1176,10 @@ async function seedSalesHistory(): Promise<void> {
         }
       }
     })
-  }
+  }))
 
   // Fix 2: Reduce product stock and batch qtyRemaining based on sales
-  for (const [productId, totalSold] of totalSoldMap) {
+  await Promise.all(Array.from(totalSoldMap).map(async ([productId, totalSold]) => {
     await db.products.where('id').equals(productId).modify((p) => {
       p.stock = Math.max(0, p.stock - totalSold)
       p.updatedAt = new Date()
@@ -1195,12 +1196,12 @@ async function seedSalesHistory(): Promise<void> {
       })
       remaining -= deduct
     }
-  }
+  }))
 
   // Fix 3: Recompute each customer's credit balance from ledger entries
   const allCustomersForBalance = await db.customers.toArray()
-  for (const customer of allCustomersForBalance) {
-    if (!customer.id) continue
+  await Promise.all(allCustomersForBalance.map(async (customer) => {
+    if (!customer.id) return
     const ledgerEntries = await db.credit_ledger.where('customerId').equals(customer.id).toArray()
     const ledgerBalance = ledgerEntries.reduce((sum, entry) => {
       return entry.entryType === 'debit' ? sum + entry.amount : sum - entry.amount
@@ -1213,7 +1214,7 @@ async function seedSalesHistory(): Promise<void> {
         c.updatedAt = new Date()
       })
     }
-  }
+  }))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

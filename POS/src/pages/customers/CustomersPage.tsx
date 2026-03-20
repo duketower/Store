@@ -102,7 +102,7 @@ export function CustomersPage() {
 
   const handleApprove = async () => {
     if (!approveTarget?.id) return
-    const limit = parseInt(approveLimit) || 0
+    const limit = parseInt(approveLimit, 10) || 0
     await approveCreditLine(approveTarget.id, limit)
     addToast('success', `Credit approved for ${approveTarget.name}`)
     refreshCreditBadge()
@@ -498,7 +498,7 @@ function CustomerFormModal({
           </label>
           <input type="number" value={form.creditLimit} min={0}
             disabled={role !== 'admin'}
-            onChange={(e) => setForm((f) => ({ ...f, creditLimit: parseInt(e.target.value) || 0 }))}
+            onChange={(e) => setForm((f) => ({ ...f, creditLimit: parseInt(e.target.value, 10) || 0 }))}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed" />
         </div>
         <div className="flex justify-end gap-3 pt-2">

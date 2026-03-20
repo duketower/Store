@@ -168,7 +168,7 @@ function ProductForm({
           <label className="block text-xs font-medium text-gray-600 mb-1">GST Rate</label>
           <select
             value={form.taxRate}
-            onChange={(e) => onChange({ taxRate: parseInt(e.target.value) })}
+            onChange={(e) => onChange({ taxRate: parseInt(e.target.value, 10) })}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             {GST_SLABS.map((r) => (
@@ -201,7 +201,7 @@ function ProductForm({
             type="number"
             value={form.reorderLevel}
             min={0}
-            onChange={(e) => onChange({ reorderLevel: parseInt(e.target.value) || 0 })}
+            onChange={(e) => onChange({ reorderLevel: parseInt(e.target.value, 10) || 0 })}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
           <p className="mt-1 text-xs text-gray-400">Alert when stock falls below this amount</p>

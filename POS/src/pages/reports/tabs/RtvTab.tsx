@@ -362,7 +362,7 @@ export function RtvTab() {
                         <td className="px-3 py-2 text-sm font-medium text-gray-900">{line.productName}</td>
                         <td className="px-3 py-2">
                           <select value={line.batchId}
-                            onChange={(e) => handleRtvBatchChange(idx, parseInt(e.target.value))}
+                            onChange={(e) => handleRtvBatchChange(idx, parseInt(e.target.value, 10))}
                             className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-brand-500 focus:outline-none">
                             {(rtvBatchMap[line.productId] ?? []).map((b) => (
                               <option key={b.id} value={b.id}>{b.batchNo} (avail: {b.qtyRemaining})</option>

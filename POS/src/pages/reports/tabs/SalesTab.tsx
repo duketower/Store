@@ -84,8 +84,8 @@ export function SalesTab({ reportDate, onDateChange }: SalesTabProps) {
         cashTotal,
         upiTotal,
         creditTotal,
-        byHour: Object.entries(hourMap).map(([h, v]) => ({ hour: parseInt(h), total: v })).sort((a, b) => a.hour - b.hour),
-        gstByRate: Object.entries(gstMap).map(([r, t]) => ({ rate: parseInt(r), taxAmount: t })),
+        byHour: Object.entries(hourMap).map(([h, v]) => ({ hour: parseInt(h, 10), total: v })).sort((a, b) => a.hour - b.hour),
+        gstByRate: Object.entries(gstMap).map(([r, t]) => ({ rate: parseInt(r, 10), taxAmount: t })),
       })
     } finally {
       setLoading(false)

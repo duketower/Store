@@ -234,6 +234,12 @@ The architecture: one codebase → per-client build → client gets a minified b
 - Never bake admin secrets, service account keys, or private automation credentials into client bundles.
 - `__CLIENT_CONFIG__` and `__APP_BUILD__` are compile-time constants — they must be serialisable (JSON-safe).
 
+**Git / secret hygiene — CRITICAL:**
+- `clients/*/.env` and `clients/*/client.config.json` are gitignored — NEVER stage or commit them.
+- `client.config.json` contains plaintext `servicePassword` and other store secrets — treat as sensitive as `.env`.
+- Before any `git add` in the repo root, verify no `clients/` files are being staged.
+- If a secret is accidentally committed: remove with `git rm --cached`, update `.gitignore`, rotate the credential immediately.
+
 **Dev mode fallback must always work:**
 - Do not break the existing localStorage settings override behaviour in `storeConfig.ts`.
 - The app must work identically in dev (no CLIENT) and in client builds.
