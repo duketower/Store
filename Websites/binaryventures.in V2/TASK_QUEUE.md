@@ -5,13 +5,13 @@
 - finalize service packaging and pricing philosophy
 - identify which real projects should become case studies first
 - decide final CTA destination for booking a call
-- review and approve the refined page copy
-- review and approve the page-by-page design brief
-- replace the prototype header content with Binary Ventures V2 navigation and CTA labels
+- replace prototype links like `/work`, `/services`, and `/contact` with live routes as those pages are built
+- decide the real booking link for the primary CTA
+- review and refine the integrated homepage hero content against the final visual direction
 
 ## Next
 
-- select the next approved component role for Home after the shared header
+- select the next approved Home component after the hero section
 - define the final visual system for bold premium tech using approved component directions
 - build the real shared layout and page shells inside this folder
 
@@ -25,3 +25,4 @@
 - created the V2 Next.js + Tailwind CSS + TypeScript scaffold
 - added shadcn-compatible component aliases and utilities
 - integrated and verified the first shared header prototype
+- integrated and verified the first homepage hero prototype

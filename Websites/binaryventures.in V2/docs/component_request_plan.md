@@ -25,6 +25,11 @@ Current status:
 - process / working-method block
 - CTA section
 
+Current status:
+- the first hero prototype is integrated in code as `hero-section-1.tsx`
+- the component has already been adapted away from generic SaaS copy toward Binary Ventures positioning
+- the next step is to choose the section that follows the hero on the real homepage
+
 ### Work
 
 - case-study listing system
