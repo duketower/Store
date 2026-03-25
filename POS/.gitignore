@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 .env.local
+Store_main_analysis_report.pdf
+*-analysis-report.json
