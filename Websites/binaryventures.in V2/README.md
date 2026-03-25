@@ -25,6 +25,7 @@ Move from strategy-only planning into V2 implementation without inheriting the o
 - the first integrated shared component is `src/components/ui/header-3.tsx`
 - the homepage hero prototype is integrated in `src/components/ui/hero-section-1.tsx`
 - motion helper components are available in `src/components/ui/animated-group.tsx` and `src/components/ui/text-effect.tsx`
+- the homepage proof/testimonial columns section is integrated in `src/components/ui/testimonials-columns-1.tsx`
 
 ## Local Development
 
