@@ -30,7 +30,8 @@ Current status:
 - the component has already been adapted away from generic SaaS copy toward Binary Ventures positioning
 - the first proof preview block is integrated in code as `testimonials-columns-1.tsx`
 - the proof block has been adapted into anonymized outcome cards to stay aligned with the no-client-name rule
-- the next step is to choose the section that follows the proof block on the real homepage
+- the positioning section is integrated in code as `section-with-mockup.tsx`
+- the next step is to choose the section that follows the positioning block on the real homepage
 
 ### Work
 

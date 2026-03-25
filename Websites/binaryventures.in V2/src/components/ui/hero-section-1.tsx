@@ -8,6 +8,7 @@ import type { Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AnimatedGroup } from "@/components/ui/animated-group";
 import { ProofColumnsSection } from "@/components/ui/testimonials-columns-1";
+import SectionWithMockup from "@/components/ui/section-with-mockup";
 import { cn } from "@/lib/utils";
 
 const transitionVariants: { item: Variants } = {
@@ -227,6 +228,31 @@ export function HeroSection() {
           </div>
         </section>
         <ProofColumnsSection />
+        <SectionWithMockup
+          title={
+            <>
+              More than a website.
+              <br />
+              More than an automation.
+              <br />
+              The right setup, end to end.
+            </>
+          }
+          description={
+            <>
+              Most businesses do not need another disconnected tool. They need
+              the right pieces working together.
+              <br />
+              <br />
+              We help put those pieces in place: the website that builds trust,
+              the system that supports delivery, the bot that removes repeated
+              work, and the automation that keeps the business moving.
+            </>
+          }
+          primaryImageSrc="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80"
+          secondaryImageSrc="https://images.unsplash.com/photo-1497366412874-3415097a27e7?auto=format&fit=crop&w=1400&q=80"
+          reverseLayout
+        />
       </main>
     </>
   );

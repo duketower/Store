@@ -86,6 +86,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/ui/hero-section-1.tsx` is the current homepage hero prototype
 - `src/components/ui/animated-group.tsx` and `src/components/ui/text-effect.tsx` provide reusable motion helpers for hero and marketing sections
 - `src/components/ui/testimonials-columns-1.tsx` currently serves as the homepage proof strip using anonymized outcome cards rather than named client testimonials
+- `src/components/ui/section-with-mockup.tsx` currently serves as the homepage positioning block for explaining the end-to-end setup model
 
 ## Implementation Constraints
 
