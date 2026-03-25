@@ -83,6 +83,8 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/ui/header-3.tsx` is the first shared header prototype
 - supporting dependencies currently include `button`, `navigation-menu`, and `menu-toggle-icon`
 - the component is mounted through `src/components/demo.tsx` and the root page for build verification
+- `src/components/ui/hero-section-1.tsx` is the current homepage hero prototype
+- `src/components/ui/animated-group.tsx` and `src/components/ui/text-effect.tsx` provide reusable motion helpers for hero and marketing sections
 
 ## Implementation Constraints
 
