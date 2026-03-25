@@ -203,12 +203,12 @@ git commit -m "feat: replace anonymous Firebase auth with email/password for cli
 
 ## Task 4: Add credentials to the Zero One client config
 
-**Context:** Client configs live in `clients/` (read only by `vite.config.ts`, never imported in `src/`). Find the Zero One client config file.
+**Context:** Client configs live in `platform/clients/` (read only by `vite.config.ts`, never imported in `src/`). Find the Zero One client config file.
 
 **Step 1: Find the client config file**
 
 ```bash
-ls POS/clients/
+ls POS/platform/clients/
 ```
 
 Open the Zero One client config file and add the `firebase` field:
@@ -233,7 +233,7 @@ Open the app → check browser console → should see no Firebase auth errors. D
 **Step 3: Commit**
 
 ```bash
-git add POS/clients/
+git add POS/platform/clients/
 git commit -m "feat: add Firebase service account credentials to Zero One client config"
 ```
 

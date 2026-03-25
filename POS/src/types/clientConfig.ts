@@ -1,6 +1,6 @@
 // Types for the multi-client distribution system.
 // Each paying client gets their own build with these values baked in at compile time.
-// Never import from `clients/` inside src/ — only vite.config.ts reads those files.
+// Never import from `platform/clients/` inside src/ — only vite.config.ts reads those files.
 
 export type PlanTier = 'free' | 'pro' | 'enterprise'
 

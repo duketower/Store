@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MESSAGE_FILE="${1:?commit message file is required}"
+SUBJECT_LINE="$(sed -n '1p' "$MESSAGE_FILE" | tr -d '\r')"
+SECOND_LINE="$(sed -n '2p' "$MESSAGE_FILE" | tr -d '\r')"
+
+if [[ -z "$SUBJECT_LINE" ]]; then
+  printf '%s\n' "commit-msg: subject line cannot be empty."
+  exit 1
+fi
+
+if [[ "$SUBJECT_LINE" =~ ^(WIP|wip|update|updates|misc|changes)$ ]]; then
+  printf '%s\n' "commit-msg: subject is too vague."
+  exit 1
+fi
+
+pattern='^(feat|fix|docs|refactor|chore|test|build|ci|perf|revert|style)(\([a-z0-9._/-]+\))?: .{5,72}$'
+if ! [[ "$SUBJECT_LINE" =~ $pattern ]]; then
+  printf '\n%s\n' "commit-msg: use a clear conventional-style subject."
+  printf '%s\n' "Expected format: type(scope): short summary"
+  printf '%s\n' "Examples:"
+  printf '%s\n' "  feat(pos): add low stock refresh after sale"
+  printf '%s\n' "  fix(bot): handle empty amount input"
+  printf '%s\n' "  docs(workspace): document git hook workflow"
+  exit 1
+fi
+
+if [[ "$SUBJECT_LINE" == *. ]]; then
+  printf '%s\n' "commit-msg: do not end the subject line with a period."
+  exit 1
+fi
+
+line_count="$(wc -l < "$MESSAGE_FILE" | tr -d ' ')"
+if (( line_count > 1 )) && [[ -n "$SECOND_LINE" ]]; then
+  printf '%s\n' "commit-msg: leave a blank second line before the body."
+  exit 1
+fi
+
+exit 0

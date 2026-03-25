@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+if [[ "${SKIP_PRECOMMIT:-0}" == "1" ]]; then
+  exit 0
+fi
+
+map_project_root() {
+  local path="$1"
+
+  case "$path" in
+    POS/*)
+      printf '%s\n' "POS"
+      ;;
+    Websites/*/*)
+      printf '%s\n' "$(printf '%s' "$path" | cut -d'/' -f1-2)"
+      ;;
+    Bots/*/*)
+      printf '%s\n' "$(printf '%s' "$path" | cut -d'/' -f1-2)"
+      ;;
+    *)
+      printf '%s\n' "."
+      ;;
+  esac
+}
+
+is_markdown() {
+  local path="$1"
+  [[ "$path" == *.md ]]
+}
+
+staged_files=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && staged_files+=("$line")
+done < <(git diff --cached --name-only --diff-filter=ACMRD)
+
+if [[ ${#staged_files[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+# Bash 3-compatible: use space-separated strings instead of associative arrays
+code_projects=""
+doc_projects=""
+
+non_doc_files=0
+for path in "${staged_files[@]}"; do
+  project_root="$(map_project_root "$path")"
+  if is_markdown "$path"; then
+    doc_projects="$doc_projects $project_root "
+  else
+    code_projects="$code_projects $project_root "
+    ((non_doc_files += 1))
+  fi
+done
+
+if [[ "${SKIP_DOC_SYNC:-0}" != "1" ]]; then
+  missing_doc_projects=()
+  for project_root in $code_projects; do
+    # Check if this project_root also appears in doc_projects
+    if [[ "$doc_projects" != *" $project_root "* ]]; then
+      # Only add if not already in the missing list
+      already_listed=0
+      for listed in "${missing_doc_projects[@]+"${missing_doc_projects[@]}"}"; do
+        [[ "$listed" == "$project_root" ]] && already_listed=1 && break
+      done
+      if [[ $already_listed -eq 0 ]]; then
+        missing_doc_projects+=("$project_root")
+      fi
+    fi
+  done
+
+  if [[ ${#missing_doc_projects[@]} -gt 0 ]]; then
+    printf '\n%s\n' "pre-commit: documentation sync check failed."
+    printf '%s\n' "Code/config changes were staged without any markdown update in:"
+    for project_root in "${missing_doc_projects[@]}"; do
+      printf '  - %s\n' "$project_root"
+    done
+    printf '\n%s\n' "Stage at least one relevant doc update before committing."
+    printf '%s\n' "Examples: README.md, ARCHITECTURE.md, PROJECT_PLAN.md, TASK_QUEUE.md, DECISIONS.md, or docs/*.md"
+    printf '%s\n' "If this is truly exceptional, bypass once with: SKIP_DOC_SYNC=1 git commit ..."
+    exit 1
+  fi
+fi
+
+if [[ "${ALLOW_LARGE_COMMIT:-0}" != "1" ]]; then
+  max_non_doc_files=12
+  max_changed_lines=500
+  total_changed_lines=0
+
+  while IFS=$'\t' read -r added deleted path; do
+    [[ -z "${path:-}" ]] && continue
+    if is_markdown "$path"; then
+      continue
+    fi
+
+    if [[ "$added" =~ ^[0-9]+$ ]]; then
+      ((total_changed_lines += added))
+    fi
+    if [[ "$deleted" =~ ^[0-9]+$ ]]; then
+      ((total_changed_lines += deleted))
+    fi
+  done < <(git diff --cached --numstat --diff-filter=ACMRD)
+
+  if (( non_doc_files > max_non_doc_files || total_changed_lines > max_changed_lines )); then
+    printf '\n%s\n' "pre-commit: commit is too large for the small-batch rule."
+    printf '  non-doc files staged: %s (limit: %s)\n' "$non_doc_files" "$max_non_doc_files"
+    printf '  changed non-doc lines: %s (limit: %s)\n' "$total_changed_lines" "$max_changed_lines"
+    printf '\n%s\n' "Split this work into smaller commits when possible."
+    printf '%s\n' "If this batch must stay together, bypass once with: ALLOW_LARGE_COMMIT=1 git commit ..."
+    exit 1
+  fi
+fi
+
+exit 0

@@ -15,13 +15,13 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 //   CLIENT=sharma-grocery npm run build
 //
 // Without CLIENT, this builds in dev/default mode using STORE_CONFIG fallbacks.
-// Client configs live at: ../clients/client-<CLIENT>/
+// Client configs live at: ./platform/clients/client-<CLIENT>/
 // ---------------------------------------------------------------------------
 
 function loadClientEnv(clientId: string): void {
   // Manually parse and inject the client's .env file into process.env
   // so Vite's import.meta.env picks up their Firebase credentials.
-  const envPath = resolve(__dirname, `../clients/client-${clientId}/.env`)
+  const envPath = resolve(__dirname, `./platform/clients/client-${clientId}/.env`)
   if (!existsSync(envPath)) {
     throw new Error(`[client-build] Missing .env for client "${clientId}" at ${envPath}`)
   }
@@ -37,7 +37,7 @@ function loadClientEnv(clientId: string): void {
 }
 
 function loadClientConfig(clientId: string): object | null {
-  const configPath = resolve(__dirname, `../clients/client-${clientId}/client.config.json`)
+  const configPath = resolve(__dirname, `./platform/clients/client-${clientId}/client.config.json`)
   if (!existsSync(configPath)) {
     throw new Error(`[client-build] Missing client.config.json for "${clientId}" at ${configPath}`)
   }

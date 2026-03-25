@@ -4,6 +4,31 @@ This is an offline-first Grocery Store POS web app.
 Stack: React + TypeScript + Vite + Tailwind + Dexie.js + Zustand + React Router.
 Phase 1: Pure frontend MVP — no backend. All data lives in IndexedDB.
 
+Reference docs:
+- `README.md`
+- `ARCHITECTURE.md`
+- `PROJECT_PLAN.md`
+- `TASK_QUEUE.md`
+- `DECISIONS.md`
+- `docs/POS_BLUEPRINT.md`
+- `docs/product_spec.md`
+- `docs/api_design.md`
+- `docs/workflows.md`
+
+Repo Git rules:
+- The repo pre-commit hook enforces doc sync and small commit batches
+- The repo commit-msg hook enforces clear commit messages
+
+Documentation sync rule:
+- Before finishing any non-trivial task, update the affected docs in this folder if behavior, setup, structure, workflow, roadmap, or decisions changed
+- `README.md` = setup, run, build, layout
+- `ARCHITECTURE.md` = structure, boundaries, data flow
+- `PROJECT_PLAN.md` = roadmap and priorities
+- `TASK_QUEUE.md` = current, next, done
+- `DECISIONS.md` = durable technical choices
+- `docs/*` = product behavior, integrations, workflows
+- If no docs changed, say so explicitly in the final summary
+
 ---
 
 ## Application Layout
@@ -230,14 +255,14 @@ The architecture: one codebase → per-client build → client gets a minified b
 - Any route restricted to a plan tier must use `ProtectedFeatureRoute` in `routes/index.tsx` — nav hiding alone is not enough.
 
 **Build rules:**
-- Never import from `clients/` inside `src/`. Only `vite.config.ts` may read client build files.
+- Never import from `platform/clients/` inside `src/`. Only `vite.config.ts` may read client build files.
 - Never bake admin secrets, service account keys, or private automation credentials into client bundles.
 - `__CLIENT_CONFIG__` and `__APP_BUILD__` are compile-time constants — they must be serialisable (JSON-safe).
 
 **Git / secret hygiene — CRITICAL:**
-- `clients/*/.env` and `clients/*/client.config.json` are gitignored — NEVER stage or commit them.
+- `platform/clients/*/.env` and `platform/clients/*/client.config.json` are gitignored — NEVER stage or commit them.
 - `client.config.json` contains plaintext `servicePassword` and other store secrets — treat as sensitive as `.env`.
-- Before any `git add` in the repo root, verify no `clients/` files are being staged.
+- Before any `git add` in the repo root, verify no `platform/clients/` files are being staged.
 - If a secret is accidentally committed: remove with `git rm --cached`, update `.gitignore`, rotate the credential immediately.
 
 **Dev mode fallback must always work:**
