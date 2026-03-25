@@ -28,7 +28,9 @@ Current status:
 Current status:
 - the first hero prototype is integrated in code as `hero-section-1.tsx`
 - the component has already been adapted away from generic SaaS copy toward Binary Ventures positioning
-- the next step is to choose the section that follows the hero on the real homepage
+- the first proof preview block is integrated in code as `testimonials-columns-1.tsx`
+- the proof block has been adapted into anonymized outcome cards to stay aligned with the no-client-name rule
+- the next step is to choose the section that follows the proof block on the real homepage
 
 ### Work
 

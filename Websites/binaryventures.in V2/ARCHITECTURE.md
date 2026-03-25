@@ -85,6 +85,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - the component is mounted through `src/components/demo.tsx` and the root page for build verification
 - `src/components/ui/hero-section-1.tsx` is the current homepage hero prototype
 - `src/components/ui/animated-group.tsx` and `src/components/ui/text-effect.tsx` provide reusable motion helpers for hero and marketing sections
+- `src/components/ui/testimonials-columns-1.tsx` currently serves as the homepage proof strip using anonymized outcome cards rather than named client testimonials
 
 ## Implementation Constraints
 

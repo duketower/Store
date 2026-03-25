@@ -7,6 +7,7 @@ import type { Variants } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { AnimatedGroup } from "@/components/ui/animated-group";
+import { ProofColumnsSection } from "@/components/ui/testimonials-columns-1";
 import { cn } from "@/lib/utils";
 
 const transitionVariants: { item: Variants } = {
@@ -225,6 +226,7 @@ export function HeroSection() {
             </div>
           </div>
         </section>
+        <ProofColumnsSection />
       </main>
     </>
   );

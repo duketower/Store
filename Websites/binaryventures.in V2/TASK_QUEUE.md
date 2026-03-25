@@ -8,10 +8,11 @@
 - replace prototype links like `/work`, `/services`, and `/contact` with live routes as those pages are built
 - decide the real booking link for the primary CTA
 - review and refine the integrated homepage hero content against the final visual direction
+- decide whether the next homepage section after proof should be process, services, or a featured case-study block
 
 ## Next
 
-- select the next approved Home component after the hero section
+- select the next approved Home component after the proof columns section
 - define the final visual system for bold premium tech using approved component directions
 - build the real shared layout and page shells inside this folder
 
@@ -26,3 +27,4 @@
 - added shadcn-compatible component aliases and utilities
 - integrated and verified the first shared header prototype
 - integrated and verified the first homepage hero prototype
+- integrated and verified the first homepage proof/testimonial columns section
