@@ -56,3 +56,7 @@ Documentation must be updated as part of the same task whenever the underlying p
 - Commit messages must follow: `type(scope): short summary`
 - The repo uses Git hooks to enforce documentation sync, small batches, and clean commit messages
 - If a change is intentionally large or exceptional, use the documented one-time bypass variables instead of weakening the rule permanently
+- Before sending a final task summary for work that changed files, run `git status` for the relevant scope
+- If the current task changed files, commit those task changes before the final response instead of leaving them local
+- Do not mix unrelated pre-existing changes into the task commit; keep the commit scoped to the work you just completed
+- Include the resulting commit hash or hashes in the final summary whenever you created commits

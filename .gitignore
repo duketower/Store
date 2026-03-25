@@ -8,6 +8,15 @@ venv/
 *.egg-info/
 .venv/
 
+# Common generated folders across nested projects
+**/node_modules/
+**/.next/
+**/dist/
+**/out/
+**/.vercel/
+**/.turbo/
+**/coverage/
+
 # POS platform client configs — contain Firebase credentials and store secrets
 POS/platform/clients/*/.env
 POS/platform/clients/*/client.config.json
