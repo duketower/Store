@@ -23,6 +23,8 @@ Move from strategy-only planning into V2 implementation without inheriting the o
 - default styles live in `src/app/globals.css`
 - reusable UI components live in `src/components/ui`
 - the first integrated shared component is `src/components/ui/header-3.tsx`
+- the homepage hero prototype is integrated in `src/components/ui/hero-section-1.tsx`
+- motion helper components are available in `src/components/ui/animated-group.tsx` and `src/components/ui/text-effect.tsx`
 
 ## Local Development
 
