@@ -147,18 +147,16 @@ export function HeroSection() {
                   }}
                   className="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row"
                 >
-                  <div className="rounded-[14px] border bg-foreground/10 p-0.5">
-                    <Button asChild size="lg" className="rounded-xl px-5 text-base">
-                      <Link href="/contact">
-                        <span className="text-nowrap">Book a Call</span>
-                      </Link>
-                    </Button>
-                  </div>
+                  <Button asChild size="lg" className="h-14 px-7 text-base">
+                    <Link href="/contact">
+                      <span className="text-nowrap">Book a Call</span>
+                    </Link>
+                  </Button>
                   <Button
                     asChild
                     size="lg"
-                    variant="ghost"
-                    className="h-11 rounded-xl px-5"
+                    variant="outline"
+                    className="h-14 px-7 text-base"
                   >
                     <Link href="/work">
                       <span className="text-nowrap">View Work</span>

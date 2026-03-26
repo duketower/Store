@@ -6,6 +6,7 @@
 - review and refine the integrated homepage hero content against the final visual direction
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - add visual assets to the Work page case studies later
+- continue tuning CTA treatment after live visual review
 
 ## Next
 

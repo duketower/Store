@@ -86,13 +86,17 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   asChild
                   variant="outline"
                   size="sm"
-                  className={cn(isScrolled && "lg:hidden")}
+                  className={cn("h-12 px-5", isScrolled && "lg:hidden")}
                 >
                   <a href={`mailto:${publicContact.email}`}>
                     <span>Email Us</span>
                   </a>
                 </Button>
-                <Button asChild size="sm" className={cn(isScrolled && "lg:hidden")}>
+                <Button
+                  asChild
+                  size="sm"
+                  className={cn("h-12 px-5", isScrolled && "lg:hidden")}
+                >
                   <Link href={publicContact.bookingHref}>
                     <span>Book a Call</span>
                   </Link>
@@ -100,10 +104,10 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                 <Button
                   asChild
                   size="sm"
-                  className={cn(isScrolled ? "lg:inline-flex" : "hidden")}
+                  className={cn("h-12 px-5", isScrolled ? "lg:inline-flex" : "hidden")}
                 >
                   <Link href={publicContact.bookingHref}>
-                    <span>Get Started</span>
+                    <span>Book a Call</span>
                   </Link>
                 </Button>
               </div>
