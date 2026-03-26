@@ -48,3 +48,4 @@
 - fixed the homepage hydration mismatch caused by random decorative grid patterns
 - refined the shared CTA button styling after homepage visual review
 - improved the mobile header offset and hero responsiveness without changing the desktop structure
+- ignored generated Firebase cache artifacts to keep the V2 workspace clean after deploys
