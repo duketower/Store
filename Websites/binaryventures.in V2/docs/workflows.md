@@ -28,3 +28,17 @@
 1. Update the relevant doc first if messaging strategy changes
 2. Then update page copy
 3. Then update design or implementation
+
+## Deploy Workflow
+
+Hosting: Firebase Hosting, site `binaryventures-in`, project `store-pos-44750` → `www.binaryventures.in`
+
+```bash
+cd "Websites/binaryventures.in V2"
+npm run build
+firebase deploy --only hosting:binaryventures-in
+```
+
+- `next.config.ts` has `output: "export"` — builds to `out/`
+- `firebase.json` uses `cleanUrls: true` (serves `/work` not `/work/index.html`)
+- No server runtime — fully static export

@@ -41,32 +41,35 @@ if [[ ${#staged_files[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# Bash 3-compatible: use space-separated strings instead of associative arrays
-code_projects=""
-doc_projects=""
+# Bash 3-compatible: use regular arrays (space-safe, no associative arrays needed)
+code_projects_list=()
+doc_projects_list=()
 
 non_doc_files=0
 for path in "${staged_files[@]}"; do
   project_root="$(map_project_root "$path")"
   if is_markdown "$path"; then
-    doc_projects="$doc_projects $project_root "
+    doc_projects_list+=("$project_root")
   else
-    code_projects="$code_projects $project_root "
+    code_projects_list+=("$project_root")
     ((non_doc_files += 1))
   fi
 done
 
+array_contains() {
+  local needle="$1"; shift
+  local item
+  for item in "$@"; do
+    [[ "$item" == "$needle" ]] && return 0
+  done
+  return 1
+}
+
 if [[ "${SKIP_DOC_SYNC:-0}" != "1" ]]; then
   missing_doc_projects=()
-  for project_root in $code_projects; do
-    # Check if this project_root also appears in doc_projects
-    if [[ "$doc_projects" != *" $project_root "* ]]; then
-      # Only add if not already in the missing list
-      already_listed=0
-      for listed in "${missing_doc_projects[@]+"${missing_doc_projects[@]}"}"; do
-        [[ "$listed" == "$project_root" ]] && already_listed=1 && break
-      done
-      if [[ $already_listed -eq 0 ]]; then
+  for project_root in "${code_projects_list[@]+"${code_projects_list[@]}"}"; do
+    if ! array_contains "$project_root" "${doc_projects_list[@]+"${doc_projects_list[@]}"}"; then
+      if ! array_contains "$project_root" "${missing_doc_projects[@]+"${missing_doc_projects[@]}"}"; then
         missing_doc_projects+=("$project_root")
       fi
     fi
