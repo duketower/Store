@@ -365,12 +365,12 @@ Show public phone numbers and address details for both India and Adelaide on the
 **India**
 - Phone: `+91 7399006699`
 - Address line: Lucknow, Uttar Pradesh
-- Pin code: pending confirmation
+- Pin code: `226001`
 
 **Australia**
 - Phone: `+61 8 7200 0070`
 - Address line: Adelaide, Australia
-- Pin code: pending confirmation
+- Postcode: `5000`
 
 ### Contact Qualifier Copy
 
