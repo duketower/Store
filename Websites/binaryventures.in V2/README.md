@@ -28,6 +28,7 @@ Move from strategy-only planning into V2 implementation without inheriting the o
 - the homepage proof/testimonial columns section is integrated in `src/components/ui/testimonials-columns-1.tsx`
 - the homepage positioning/mockup section is integrated in `src/components/ui/section-with-mockup.tsx`
 - the homepage services preview section is integrated in `src/components/ui/ai-models-preview.tsx`
+- the homepage process section is integrated in `src/components/ui/grid-feature-cards.tsx`
 - the existing `src/app/globals.css` token system remains the source of truth; external theme resets are adapted selectively instead of overwritten wholesale
 
 ## Local Development

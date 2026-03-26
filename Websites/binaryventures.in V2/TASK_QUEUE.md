@@ -11,10 +11,11 @@
 - decide whether the next homepage section after proof should be process, services, or a featured case-study block
 - decide what section should follow the positioning/mockup block on the homepage
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
+- define the final homepage CTA section after the process block
 
 ## Next
 
-- select the next approved Home component after the services preview section
+- select the final homepage CTA component after the process section
 - define the final visual system for bold premium tech using approved component directions
 - build the real shared layout and page shells inside this folder
 
@@ -32,3 +33,4 @@
 - integrated and verified the first homepage proof/testimonial columns section
 - integrated and verified the homepage positioning/mockup section
 - integrated and verified the homepage services preview section
+- integrated and verified the homepage process section

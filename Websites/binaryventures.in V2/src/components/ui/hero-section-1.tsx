@@ -8,6 +8,7 @@ import type { Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ServicesPreviewSection } from "@/components/ui/ai-models-preview";
 import { AnimatedGroup } from "@/components/ui/animated-group";
+import { ProcessPreviewSection } from "@/components/ui/grid-feature-cards";
 import { ProofColumnsSection } from "@/components/ui/testimonials-columns-1";
 import SectionWithMockup from "@/components/ui/section-with-mockup";
 import { cn } from "@/lib/utils";
@@ -255,6 +256,7 @@ export function HeroSection() {
           reverseLayout
         />
         <ServicesPreviewSection />
+        <ProcessPreviewSection />
       </main>
     </>
   );

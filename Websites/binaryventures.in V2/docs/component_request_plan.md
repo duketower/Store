@@ -33,7 +33,9 @@ Current status:
 - the positioning section is integrated in code as `section-with-mockup.tsx`
 - the services preview section is integrated in code as `ai-models-preview.tsx`
 - the services block has been adapted from a generic preview-card component into Binary Ventures service pillars with modal details
-- the next step is to choose the section that follows the services block on the real homepage
+- the process section is integrated in code as `grid-feature-cards.tsx`
+- the process block has been adapted into a working-method section aligned to the V2 strategy
+- the next step is to choose the final CTA section that closes the homepage
 
 ### Work
 
