@@ -1,26 +1,22 @@
 'use client';
 
-import React, { useMemo, useState } from "react";
+import Link from "next/link";
+import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { serviceOffers, type ServiceOffer } from "@/content/services";
+import {
+  groupedServiceOffers,
+  type GroupedServiceOffers,
+  type ServiceOffer,
+} from "@/content/services";
 
 type Props = {
-  models: ServiceOffer[];
+  models: GroupedServiceOffers[];
   className?: string;
 };
 
 export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
-  const [selected, setSelected] = useState<ServiceOffer | null>(null);
-
-  const sorted = useMemo(() => {
-    return [...models].sort((a, b) => {
-      return (a.category || "").localeCompare(b.category || "");
-    });
-  }, [models]);
-
-  const formatPrice = (n?: number) =>
-    typeof n === "number" ? `From $${n.toLocaleString()}` : "Custom scope";
+  const [selected, setSelected] = useState<GroupedServiceOffers | null>(null);
 
   React.useEffect(() => {
     if (!selected) {
@@ -45,41 +41,36 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
     <div className={`mx-auto w-full max-w-6xl ${className}`}>
       <div className="mx-auto mb-10 max-w-2xl text-center">
         <div className="mx-auto mb-4 flex w-fit justify-center rounded-lg border border-border/70 bg-muted/50 px-4 py-1 text-sm text-foreground/80">
-          Service Pillars
+          Services
         </div>
         <h2 className="text-2xl font-semibold text-foreground md:text-4xl">
-          Built for the work that actually matters.
+          Structured so the core build and the supporting setup both stay visible.
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Clear service pillars for businesses that need practical systems, not
-          disconnected one-off fixes.
+          A clearer service architecture for businesses that need the main build,
+          the automation layer, and the setup around it to work together.
         </p>
       </div>
 
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {sorted.map((m) => (
+        {models.map((group) => (
           <motion.li
-            key={m.id}
+            key={group.id}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="cursor-pointer rounded-2xl border border-border/70 bg-card/80 p-5 text-card-foreground shadow-sm shadow-primary/5 transition hover:shadow-lg hover:shadow-primary/10"
-            onClick={() => setSelected(m)}
+            onClick={() => setSelected(group)}
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="font-medium">{m.name}</span>
-              {m.category && <Badge>{m.category}</Badge>}
+              <span className="font-medium">{group.name}</span>
+              <Badge>{group.eyebrow}</Badge>
             </div>
-            <p className="mt-3 min-h-20 text-sm leading-6 text-muted-foreground">
-              {m.description || "No description available"}
+            <p className="mt-3 min-h-24 text-sm leading-6 text-muted-foreground">
+              {group.homepageSummary}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              {m.capabilities?.strategy && <Badge>Strategy</Badge>}
-              {m.capabilities?.build && <Badge>Build</Badge>}
-              {m.capabilities?.support && <Badge>Support</Badge>}
-              {m.capabilities?.automation && <Badge>Automation</Badge>}
-              {m.capabilities?.integrations && <Badge>Integrations</Badge>}
-              {(m.tags || []).map((t) => (
-                <Badge key={t}>#{t}</Badge>
+              {group.offers.map((offer) => (
+                <Badge key={offer.id}>{offer.name}</Badge>
               ))}
             </div>
           </motion.li>
@@ -100,7 +91,7 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 50 }}
               transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className="relative my-auto max-h-[calc(100svh-8rem)] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] border border-border/80 bg-card p-5 text-card-foreground shadow-lg shadow-primary/10 overscroll-contain sm:max-h-[min(90vh,48rem)] sm:p-6"
+              className="relative my-auto max-h-[calc(100svh-8rem)] w-full max-w-3xl overflow-y-auto rounded-[1.75rem] border border-border/80 bg-card p-5 text-card-foreground shadow-lg shadow-primary/10 overscroll-contain sm:max-h-[min(90vh,48rem)] sm:p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -110,80 +101,33 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
                 Close
               </button>
 
-              <h3 className="mb-2 pr-20 text-xl font-semibold">{selected.name}</h3>
-              <p className="mb-4 pr-8 text-sm leading-6 text-muted-foreground">
+              <p className="pr-20 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                {selected.eyebrow}
+              </p>
+              <h3 className="mt-2 pr-20 text-2xl font-semibold">{selected.name}</h3>
+              <p className="mt-3 pr-8 text-sm leading-6 text-muted-foreground">
                 {selected.description}
               </p>
 
-              <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">Category</div>
-                  <div>{selected.category}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">Delivery</div>
-                  <div>{selected.delivery}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">Starting Point</div>
-                  <div>{formatPrice(selected.startingFromUSD)}</div>
-                </div>
-                <div className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">Support Plan</div>
-                  <div>{formatPrice(selected.supportPlanUSD)}</div>
-                </div>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {selected.offers.map((offer) => (
+                  <ServiceSummaryCard key={offer.id} service={offer} />
+                ))}
               </div>
 
-              <div className="mt-4 rounded-md border p-3 text-sm">
-                <div className="mb-1 text-xs text-muted-foreground">
-                  Typical Scope
-                </div>
-                <div>{selected.scope}</div>
-              </div>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <DetailList
-                  label="Technical Scope"
-                  items={selected.technicalScope}
-                />
-                <DetailList
-                  label="System Elements"
-                  items={selected.systemElements}
-                />
-              </div>
-
-              <div className="mt-4 rounded-md border p-3 text-sm">
-                <div className="mb-2 text-xs text-muted-foreground">
-                  Integration Examples
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {selected.integrationExamples.map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-full border border-border/80 bg-muted/40 px-2.5 py-1 text-xs font-medium text-foreground/80"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 text-sm">
-                <h4 className="mb-2 font-medium">What This Usually Includes</h4>
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                    <span className="shrink-0 text-muted-foreground sm:w-32">
-                      includes:
-                    </span>
-                    <span>{selected.meta.includes}</span>
-                  </div>
-                  <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                    <span className="shrink-0 text-muted-foreground sm:w-32">
-                      best for:
-                    </span>
-                    <span>{selected.meta.bestFor}</span>
-                  </div>
-                </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={`/services#${selected.id}`}
+                  className="inline-flex items-center justify-center rounded-full border border-border/80 bg-card/80 px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  View full section
+                </Link>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center justify-center rounded-full border border-border/80 bg-foreground px-5 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  Book a Call
+                </Link>
               </div>
             </motion.div>
           </motion.div>
@@ -193,20 +137,45 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
   );
 };
 
-function DetailList({ label, items }: { label: string; items: string[] }) {
+function ServiceSummaryCard({ service }: { service: ServiceOffer }) {
   return (
-    <div className="rounded-md border p-3 text-sm">
-      <div className="mb-2 text-xs text-muted-foreground">{label}</div>
-      <ul className="space-y-2">
-        {items.map((item) => (
-          <li key={item} className="flex gap-2 leading-6 text-foreground/80">
-            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground/35" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="rounded-[1.25rem] border border-border/80 bg-background/80 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-[70%]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {service.category}
+          </p>
+          <h4 className="mt-2 text-lg font-semibold text-foreground">{service.name}</h4>
+        </div>
+        <span className="rounded-full border border-border/80 bg-card/80 px-3 py-1 text-xs font-medium text-foreground">
+          {formatStartingPoint(service)}
+        </span>
+      </div>
+
+      <p className="mt-4 text-sm leading-6 text-muted-foreground">
+        {service.description}
+      </p>
+
+      <div className="mt-4 rounded-xl border border-border/80 bg-card/70 p-3 text-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Best for
+        </p>
+        <p className="mt-2 leading-6 text-foreground/80">{service.meta.bestFor}</p>
+      </div>
     </div>
   );
+}
+
+function formatStartingPoint(service: ServiceOffer) {
+  if (service.startingLabel) {
+    return service.startingLabel;
+  }
+
+  if (typeof service.startingFromUSD === "number") {
+    return `From $${service.startingFromUSD.toLocaleString()}`;
+  }
+
+  return "Custom scope";
 }
 
 export function ServicesPreviewSection() {
@@ -217,7 +186,7 @@ export function ServicesPreviewSection() {
         className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(55%_55%_at_50%_0%,rgba(155,153,254,0.10),transparent_70%)]"
       />
       <div className="relative z-10 px-6">
-        <AiModelsList models={serviceOffers} />
+        <AiModelsList models={groupedServiceOffers} />
       </div>
     </section>
   );

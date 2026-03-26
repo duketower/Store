@@ -1,7 +1,7 @@
 export const contactIntro = {
   title: "Tell us what your business needs.",
   body:
-    "If you need a new website, a custom system, a bot, automation, or a broader digital setup, reach out. We will help you identify the right next step.",
+    "If you need a new website, a custom system, an AI chatbot, workflow automation, or a broader digital setup, reach out. We will help you identify the right next step.",
 };
 
 export const contactOptions = [
@@ -42,8 +42,8 @@ export const responseExpectations = [
       "Internal tools, portals, dashboards, POS-style workflows, and operational software.",
   },
   {
-    title: "Bots and Automation",
+    title: "AI ChatBots and Automation",
     body:
-      "Telegram bots, reporting flows, notifications, lead follow-up, and repeated process automation.",
+      "AI chatbots, Telegram bots, reporting flows, notifications, lead follow-up, and repeated process automation.",
   },
 ];

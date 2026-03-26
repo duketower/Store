@@ -9,6 +9,7 @@ import {
   responseExpectations,
 } from "@/content/contact";
 import { publicContact } from "@/content/site";
+import { serviceRequestGroups } from "@/content/services";
 import { Button } from "@/components/ui/button";
 
 export function ContactPage() {
@@ -140,6 +141,48 @@ export function ContactPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Service Requests
+              </p>
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                The enquiry can start with the main build, the supporting setup, or both.
+              </h2>
+              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
+                If the project needs a broader setup, just say so. The service
+                structure is grouped so it is easier to explain what you need
+                without reducing everything to one generic request.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {serviceRequestGroups.map((group) => (
+                <div
+                  key={group.title}
+                  className="rounded-[1.5rem] border border-border/80 bg-background/80 p-5"
+                >
+                  <h3 className="text-lg font-semibold text-foreground">{group.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                    {group.body}
+                  </p>
+                  <ul className="mt-5 flex flex-wrap gap-2">
+                    {group.items.map((item) => (
+                      <li
+                        key={item}
+                        className="rounded-full border border-border/80 bg-card/80 px-3 py-1.5 text-xs font-medium text-foreground"
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
         </section>

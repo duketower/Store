@@ -63,3 +63,4 @@
 - created and saved a detailed service expansion strategy for adding adjacent services without breaking the current visual system
 - restructured the services architecture into grouped categories with visible pricing for the expanded offer set
 - rebuilt the Services page around grouped sections so the expanded offer set does not feel buried
+- updated the homepage service preview and Contact page so the grouped services stay visible outside the Services route
