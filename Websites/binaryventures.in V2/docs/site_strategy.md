@@ -80,6 +80,9 @@ Complete business tech setup.
 - book a call
 - send an email to `connect@binaryventures.in`
 
+Current implementation:
+- `Book a Call` routes to the Contact page until a real scheduling link is added
+
 ### Secondary CTA
 
 - view work

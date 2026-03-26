@@ -4,7 +4,7 @@
 
 - identify which real projects should become case studies first
 - replace prototype links like `/work`, `/services`, and `/contact` with live routes as those pages are built
-- decide the real booking link for the primary CTA
+- replace the temporary Contact-page booking route with a real scheduling link later
 - review and refine the integrated homepage hero content against the final visual direction
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - turn the approved case-study directions into final page-ready content
