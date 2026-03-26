@@ -17,7 +17,7 @@ export function WorkPage() {
     <>
       <SiteHeader />
       <main className="bg-background">
-        <section className="relative overflow-hidden px-6 pb-20 pt-10 sm:pt-12 md:pb-28 md:pt-40">
+        <section className="relative overflow-hidden px-6 pb-12 pt-10 sm:pt-12 md:pb-16 md:pt-40">
           <div
             aria-hidden
             className="absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(55%_55%_at_50%_0%,rgba(155,153,254,0.14),transparent_70%)]"
@@ -52,7 +52,7 @@ export function WorkPage() {
           </div>
         </section>
 
-        <section className="px-6 py-16 md:py-24">
+        <section className="px-6 pb-16 pt-6 md:pb-24 md:pt-10">
           <div className="mx-auto max-w-6xl">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
@@ -67,7 +67,7 @@ export function WorkPage() {
               </p>
             </div>
 
-            <div className="mt-14 space-y-8">
+            <div className="mt-10 space-y-8 md:mt-12">
               {caseStudies.map((caseStudy) => (
                 <article
                   key={caseStudy.title}
