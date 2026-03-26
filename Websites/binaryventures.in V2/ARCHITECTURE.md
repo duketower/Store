@@ -66,6 +66,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 
 - introduce the founder-led studio model without making the site feel personality-led
 - strengthen trust, process clarity, and working style
+- now implemented as a real route at `src/app/about/page.tsx`
 
 ### Contact Page Role
 
@@ -99,6 +100,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/site/site-footer.tsx` is the shared footer for real multi-page routes
 - `src/components/work/work-page.tsx` is the first real secondary page assembly, powered by `src/content/work.ts`
 - `src/components/services/services-page.tsx` is the Services page assembly, powered by `src/content/services.ts`
+- `src/components/about/about-page.tsx` is the About page assembly, powered by `src/content/about.ts`
 - `src/components/ui/ai-models-preview.tsx` now reads from the shared services content model so homepage preview content stays aligned with the full Services page
 - the V2 palette and semantic token setup continue to live in `src/app/globals.css`; imported components are adapted to that system rather than replacing it
 

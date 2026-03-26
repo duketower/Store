@@ -11,7 +11,7 @@
 ## Next
 
 - define the final visual system for bold premium tech using the integrated section set
-- build the real page shells for `About` and `Contact`
+- build the real page shell for `Contact`
 - decide whether to refine or replace any integrated homepage components after visual review
 
 ## Done
@@ -33,3 +33,4 @@
 - defined the first public pricing anchors and contact email
 - built and verified the first real secondary page at `/work`
 - built and verified the real `/services` page with synced pricing and engagement models
+- built the real `/about` page from the approved founder-led positioning content
