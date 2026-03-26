@@ -8,6 +8,7 @@
 - review and refine the integrated homepage hero content against the final visual direction
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - turn the approved case-study directions into final page-ready content
+- build the Services page around four main categories, with maintenance framed as post-launch support
 
 ## Next
 

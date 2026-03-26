@@ -248,14 +248,6 @@ Automation
 **Body**
 Automations that connect tools, reduce manual work, and create smoother business operations across the stack.
 
-### Service 5
-
-**Title**
-Business Systems
-
-**Body**
-Operational systems such as POS setups, workflow tools, and process-led software for businesses that need more than a marketing layer.
-
 ### Engagement Models
 
 **Headline**
@@ -272,6 +264,9 @@ For businesses that need a more tailored system, a broader setup, or a more stra
 **Model 3**
 Ongoing support
 For businesses that want continuity, maintenance, and technical help after launch.
+
+**Note**
+Maintenance and support should be presented as a post-launch continuity option, not as a primary top-level service category.
 
 ### Pricing Direction
 

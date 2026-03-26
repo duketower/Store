@@ -57,7 +57,8 @@ Complete business tech setup.
 - web apps
 - bots
 - automation
-- business systems
+
+Business systems and POS work should be represented inside custom web app and automation capability rather than as a separate top-level service category.
 
 ### Commercial Model
 
