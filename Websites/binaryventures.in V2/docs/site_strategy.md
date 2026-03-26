@@ -45,6 +45,10 @@ Without feeling:
 
 The company should feel direct and accountable, while still appearing as a studio rather than a personal freelancer landing page.
 
+### 5. International Credibility
+
+The brand can credibly present an India and Adelaide, Australia presence to support trust with Australian and international clients, without overemphasizing geography on the homepage.
+
 ## Offer Strategy
 
 ### Front-Facing Offer
@@ -125,3 +129,5 @@ Show operating style, standards, and founder-led trust.
 ### Contact
 
 Low-friction, serious-enquiry focused.
+
+The Contact page can later include dual-location details for India and Adelaide when the final public contact information is confirmed.

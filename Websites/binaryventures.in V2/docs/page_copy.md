@@ -329,7 +329,7 @@ How we prefer to work.
 ### Studio Line
 
 **Copy**
-Based in India. Building for clients in the US, Australia, and beyond.
+Operating across India and Adelaide, Australia. Building for clients in the US, Australia, and beyond.
 
 ### About CTA
 
@@ -356,6 +356,9 @@ Book a Call
 
 **Option 2**
 Email Us at `connect@binaryventures.in`
+
+**Option 3**
+Location and phone details for India and Adelaide can be shown on the Contact page if desired.
 
 ### Contact Qualifier Copy
 
