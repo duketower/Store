@@ -2,7 +2,6 @@
 
 ## Current
 
-- replace prototype links like `/work`, `/services`, and `/contact` with live routes as those pages are built
 - replace the temporary Contact-page booking route with a real scheduling link later
 - review and refine the integrated homepage hero content against the final visual direction
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
@@ -12,7 +11,6 @@
 
 - define the final visual system for bold premium tech using the integrated section set
 - decide whether to refine or replace any integrated homepage components after visual review
-- polish site metadata and shared page framing now that the core pages exist
 
 ## Done
 
@@ -35,3 +33,4 @@
 - built and verified the real `/services` page with synced pricing and engagement models
 - built the real `/about` page from the approved founder-led positioning content
 - built the real `/contact` page with dual-location details and enquiry guidance
+- polished the core site metadata and project framing after the main routes were added
