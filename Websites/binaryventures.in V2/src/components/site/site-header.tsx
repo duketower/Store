@@ -65,20 +65,29 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </div>
 
             <div className="absolute inset-0 m-auto hidden size-fit lg:block">
-              <ul className="flex items-center gap-2 text-sm">
+              <ul className="flex items-center gap-8 text-sm">
                 {siteNavigation.map((item) => (
                   <li key={item.name}>
                     <Link
                       href={item.href}
                       aria-current={isActiveLink(item.href) ? "page" : undefined}
                       className={cn(
-                        "inline-flex h-11 items-center rounded-full border px-5 text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-150",
+                        "relative inline-flex h-11 items-center px-1 text-sm font-medium transition-colors duration-150",
                         isActiveLink(item.href)
-                          ? "border-border/85 bg-white/75 text-foreground shadow-[0_14px_28px_-24px_rgba(15,23,42,0.38)]"
-                          : "border-transparent text-muted-foreground hover:border-border/65 hover:bg-white/45 hover:text-foreground"
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      <span>{item.name}</span>
+                      <span className="relative">
+                        {item.name}
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "absolute left-1/2 top-[calc(100%+0.45rem)] h-px -translate-x-1/2 rounded-full bg-border transition-all duration-200",
+                            isActiveLink(item.href) ? "w-[calc(100%+1rem)] opacity-100" : "w-0 opacity-0"
+                          )}
+                        />
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -94,10 +103,10 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                         href={item.href}
                         aria-current={isActiveLink(item.href) ? "page" : undefined}
                         className={cn(
-                          "inline-flex min-h-11 items-center rounded-full border px-5 py-2 text-base transition-[color,background-color,border-color] duration-150",
+                          "inline-flex min-h-11 items-center rounded-full px-5 py-2 text-base transition-[color,background-color,border-color] duration-150",
                           isActiveLink(item.href)
-                            ? "border-border/85 bg-white/85 text-foreground"
-                            : "border-transparent text-muted-foreground hover:border-border/65 hover:bg-white/50 hover:text-foreground"
+                            ? "bg-white/60 text-foreground"
+                            : "text-muted-foreground hover:bg-white/50 hover:text-foreground"
                         )}
                       >
                         <span>{item.name}</span>

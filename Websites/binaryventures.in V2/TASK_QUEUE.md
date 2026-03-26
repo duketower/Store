@@ -10,6 +10,7 @@
 - rebalance the connected systems mockup section after live layout review
 - fix dark CTA label contrast after live review
 - refine active desktop navigation state after visual review
+- simplify active navigation so only the current route gets emphasis
 
 ## Next
 
