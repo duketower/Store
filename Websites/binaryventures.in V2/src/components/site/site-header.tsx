@@ -38,12 +38,19 @@ export function SiteHeader({ className }: SiteHeaderProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  React.useEffect(() => {
+    setMenuState(false);
+  }, [pathname]);
+
   return (
     <header className={className}>
-      <nav data-state={menuState ? "active" : "inactive"} className="group fixed z-20 w-full px-2">
+      <nav
+        data-state={menuState ? "active" : "inactive"}
+        className="group fixed z-20 w-full px-2"
+      >
         <div
           className={cn(
-            "mx-auto mt-2 max-w-6xl px-6 transition-all duration-300 lg:px-12",
+            "mx-auto mt-2 max-w-6xl px-4 transition-all duration-300 sm:px-6 lg:px-12",
             isScrolled &&
               "max-w-4xl rounded-2xl border bg-background/70 backdrop-blur-lg lg:px-5"
           )}
@@ -149,6 +156,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           </div>
         </div>
       </nav>
+      <div aria-hidden className="h-24 sm:h-28 lg:hidden" />
     </header>
   );
 }

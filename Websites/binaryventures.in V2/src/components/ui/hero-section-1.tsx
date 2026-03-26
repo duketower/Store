@@ -59,7 +59,7 @@ export function HeroSection() {
           <div className="absolute left-0 top-0 h-[80rem] w-56 -translate-y-[350px] -rotate-45 bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.04)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]" />
         </div>
         <section>
-          <div className="relative pt-24 md:pt-36">
+          <div className="relative pt-10 sm:pt-12 md:pt-36">
             <AnimatedGroup
               variants={{
                 container: {
@@ -104,9 +104,9 @@ export function HeroSection() {
                 <AnimatedGroup variants={transitionVariants}>
                   <Link
                     href="/services"
-                    className="bg-muted group mx-auto flex w-fit items-center gap-4 rounded-full border p-1 pl-4 shadow-md shadow-black/5 transition-all duration-300 hover:bg-background dark:border-t-white/5 dark:shadow-zinc-950 dark:hover:border-t-border"
+                    className="bg-muted group mx-auto flex w-fit max-w-full items-center gap-3 rounded-full border p-1 pl-3 pr-1 shadow-md shadow-black/5 transition-all duration-300 hover:bg-background dark:border-t-white/5 dark:shadow-zinc-950 dark:hover:border-t-border sm:gap-4 sm:pl-4"
                   >
-                    <span className="text-foreground text-sm">
+                    <span className="text-foreground text-xs sm:text-sm">
                       Websites, systems, and automation
                     </span>
                     <span className="block h-4 w-0.5 border-l bg-white dark:border-background dark:bg-zinc-700" />
@@ -123,10 +123,10 @@ export function HeroSection() {
                     </div>
                   </Link>
 
-                  <h1 className="mx-auto mt-8 max-w-4xl text-balance text-6xl md:text-7xl lg:mt-16 xl:text-[5.25rem]">
+                  <h1 className="mx-auto mt-8 max-w-4xl text-balance text-4xl leading-[0.95] sm:text-5xl md:text-7xl lg:mt-16 xl:text-[5.25rem]">
                     We build the technology your business runs on.
                   </h1>
-                  <p className="mx-auto mt-8 max-w-2xl text-balance text-lg text-muted-foreground">
+                  <p className="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
                     Binary Ventures helps businesses set up high-trust websites,
                     internal systems, bots, and automations that improve
                     operations and support real growth.
@@ -145,9 +145,13 @@ export function HeroSection() {
                     },
                     ...transitionVariants,
                   }}
-                  className="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row"
+                  className="mx-auto mt-10 flex max-w-sm flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row md:mt-12"
                 >
-                  <Button asChild size="lg" className="h-14 px-7 text-base">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="h-14 w-full px-7 text-base sm:w-auto"
+                  >
                     <Link href="/contact">
                       <span className="text-nowrap">Book a Call</span>
                     </Link>
@@ -156,7 +160,7 @@ export function HeroSection() {
                     asChild
                     size="lg"
                     variant="outline"
-                    className="h-14 px-7 text-base"
+                    className="h-14 w-full px-7 text-base sm:w-auto"
                   >
                     <Link href="/work">
                       <span className="text-nowrap">View Case Studies</span>
@@ -179,21 +183,21 @@ export function HeroSection() {
                 ...transitionVariants,
               }}
             >
-              <div className="relative -mr-56 mt-8 overflow-hidden px-2 sm:mr-0 sm:mt-12 md:mt-20">
+              <div className="relative mx-auto mt-10 overflow-hidden px-4 sm:mt-12 sm:px-2 md:mt-20 lg:-mr-16 xl:-mr-24">
                 <div
                   aria-hidden
                   className="absolute inset-0 z-10 bg-gradient-to-b from-transparent from-35% to-background"
                 />
                 <div className="inset-shadow-2xs bg-background ring-background relative mx-auto max-w-6xl overflow-hidden rounded-2xl border p-4 shadow-lg shadow-zinc-950/15 ring-1 dark:inset-shadow-white/20">
                   <img
-                    className="bg-background relative hidden aspect-15/8 rounded-2xl dark:block"
+                    className="bg-background relative hidden aspect-[4/3] rounded-2xl object-cover sm:aspect-[15/8] dark:block"
                     src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=2400&q=80"
                     alt="business systems collaboration"
                     width="2700"
                     height="1440"
                   />
                   <img
-                    className="border-border/25 relative z-[2] aspect-15/8 rounded-2xl border dark:hidden"
+                    className="border-border/25 relative z-[2] aspect-[4/3] rounded-2xl border object-cover sm:aspect-[15/8] dark:hidden"
                     src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=2400&q=80"
                     alt="technology workspace"
                     width="2700"
