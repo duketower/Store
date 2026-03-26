@@ -347,7 +347,7 @@ const HeroHeader = () => {
                   size="sm"
                   className={cn(isScrolled && "lg:hidden")}
                 >
-                  <Link href="mailto:hello@binaryventures.in">
+                  <Link href="mailto:connect@binaryventures.in">
                     <span>Email Us</span>
                   </Link>
                 </Button>

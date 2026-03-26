@@ -61,10 +61,10 @@ Practical systems. Real use. Measurable value.
 The work is built to be used in real operations, not just to look impressive in a portfolio.
 
 **Preview Items**
-- retail operations software designed for real store workflows
-- lead sourcing and enrichment systems that reduce manual effort
-- service business websites built to improve credibility and enquiries
-- operational automations that turn repeated work into a cleaner process
+- custom retail systems built around real billing, stock, cash, and reporting workflows
+- managed websites for service businesses that need stronger trust and cleaner enquiries
+- managed websites for schools and academic institutions that need ongoing updates and reliability
+- bots and automation workflows that reduce repeated work and improve operational visibility
 
 **CTA**
 Explore Work
@@ -122,53 +122,70 @@ Each case study should follow:
 ### Sample Case Study 1
 
 **Title**
-Retail Operations System
+Custom Retail Operations System
 
 **Context**
-A growing retail business needed billing, inventory visibility, and day-to-day store operations to run through one dependable system.
+An inventory-led business needed a dependable system to manage billing, stock, day-to-day operations, and reporting in one place.
 
 **Challenge**
-The operation needed software that could support real staff workflows without relying on ideal conditions or constant connectivity.
+Sales records, end-of-day reporting, stock visibility, expiry tracking, cash management, and business reporting were difficult to manage cleanly through disconnected tools and manual processes. Different businesses also needed different workflows.
 
 **Solution**
-Built an offline-first retail system covering billing, inventory handling, reporting, and hardware-linked operations.
+Built a highly customizable retail operations system with workflow-specific dashboards, billing, inventory controls, expiry-product handling, cash management, sale forecasting, weekly and monthly reporting, and bot-based end-of-day sales summaries.
 
 **Outcome**
-The business gained a more structured, software-led way to run day-to-day operations with stronger control and less friction.
+The business gained stronger operational visibility, cleaner sales records, faster reporting, and a system that could adapt to the way the business actually runs.
 
 ### Sample Case Study 2
 
 **Title**
-Lead Sourcing and Enrichment Workflow
+Managed Website for a Service Business
 
 **Context**
-A business needed a more reliable way to source and organize targeted leads.
+A service-led business needed a stronger website presence that could support trust, explain the offer clearly, and stay updated over time.
 
 **Challenge**
-Lead collection was manual, inconsistent, and difficult to scale.
+The existing website was outdated, difficult to maintain, weaker on mobile, and not presenting the business clearly enough to support enquiries.
 
 **Solution**
-Built a workflow that extracts, filters, structures, and prepares lead data for follow-up.
+Rebuilt and continue to manage the site with regular content changes, structural improvements, maintenance, and ongoing support.
 
 **Outcome**
-The lead pipeline became faster, cleaner, and easier to act on.
+The business gained a more credible digital presence, a site that is easier to keep current, and a stronger platform for incoming enquiries.
 
 ### Sample Case Study 3
 
 **Title**
-Service Business Website
+Managed Website for an Academic Institution
 
 **Context**
-A service-led business needed a stronger digital presence to improve trust and inbound enquiries.
+An academic institution needed a website that could communicate clearly, stay current, and support regular updates without friction.
 
 **Challenge**
-The existing presence did not communicate value clearly enough to support conversion.
+The site needed better design, better maintenance, clearer information structure, and reliable ongoing management.
 
 **Solution**
-Built a clearer, more credible website aligned to the offer and the audience.
+Delivered and continue to manage the website with regular updates, structured maintenance, and ongoing improvements as needs evolve.
 
 **Outcome**
-The business gained a more professional digital front door and a stronger platform for new conversations.
+The institution gained a clearer public-facing platform, more dependable upkeep, and less operational stress around website changes.
+
+### Sample Case Study 4
+
+**Title**
+Automation and Bot Workflows
+
+**Context**
+Businesses needed faster reporting, cleaner internal visibility, and less manual follow-up across routine operational tasks.
+
+**Challenge**
+Important updates were trapped in repeated manual work, scattered data, and delayed reporting. Teams needed simpler ways to collect information, trigger actions, and stay informed.
+
+**Solution**
+Built report automation, internal notification bots, scraping and data collection workflows, lead capture and follow-up systems, and Telegram bots designed around the actual business process rather than a generic template.
+
+**Outcome**
+Operations became faster to monitor, easier to act on, and less dependent on manual coordination for routine work.
 
 ### Work CTA
 
@@ -258,8 +275,20 @@ For businesses that want continuity, maintenance, and technical help after launc
 
 ### Pricing Direction
 
+**Website Builds**
+Business Websites from $500
+
+**Custom Systems**
+Custom Web Apps from $1,500+
+
+**Bots and Automation**
+Bots & Automation from $750+
+
+**Ongoing Support**
+Maintenance & Support from $150/mo
+
 **Note**
-Starting-from pricing can be introduced later to create clarity without making the offer feel rigid.
+Starting prices create clarity, while larger or more tailored systems are still scoped after a conversation.
 
 ### Services CTA
 
@@ -277,18 +306,18 @@ Book a Call
 ### Page Intro
 
 **Headline**
-A founder-led studio built around practical technology.
+We build systems that do real work.
 
 **Body**
-Binary Ventures builds the kinds of systems businesses actually use: websites, software, bots, automation, and operational tools designed to support real work.
+Binary Ventures is a founder-led software and automation studio. We build production-ready websites, internal systems, bots, and operational tools for businesses that need technology to support day-to-day operations, not just sit on the surface.
 
 ### Founder-Led Position
 
 **Headline**
-Direct communication. Clear accountability. Less noise.
+Direct communication. Clear accountability. No unnecessary layers.
 
 **Body**
-This is a founder-led studio, which means clients work with people who understand both the business requirement and the implementation process. The goal is not complexity for its own sake. The goal is to put the right system in place and make it work properly.
+Clients work closely with the people defining and building the system. That means fewer handoffs, faster decisions, and a better chance of getting the right result without agency noise or avoidable delay.
 
 ### Working Style
 
@@ -301,6 +330,11 @@ How we prefer to work.
 - direct communication throughout the project
 - quality and usability over surface-level polish alone
 - systems designed for real use, not just presentation
+
+### Studio Line
+
+**Copy**
+Based in India. Building for clients in the US, Australia, and beyond.
 
 ### About CTA
 
@@ -326,7 +360,7 @@ If you need a new website, a custom system, a bot, automation, or a broader digi
 Book a Call
 
 **Option 2**
-Email Us at `hello@binaryventures.in`
+Email Us at `connect@binaryventures.in`
 
 ### Contact Qualifier Copy
 

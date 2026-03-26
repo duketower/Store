@@ -337,7 +337,7 @@ export function FinalCtaSection() {
               <Link href="/contact">Book a Call</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full px-8">
-              <a href="mailto:hello@binaryventures.in">Email Us</a>
+              <a href="mailto:connect@binaryventures.in">Email Us</a>
             </Button>
           </div>
         </div>

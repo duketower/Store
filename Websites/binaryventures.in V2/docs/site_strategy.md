@@ -62,16 +62,23 @@ Complete business tech setup.
 ### Commercial Model
 
 - clear service categories
-- optional starting-from pricing later
+- starting-from pricing for defined offers
 - custom solutions available after contact
 - maintenance/support framed as an ongoing option, not the homepage core
+
+### Pricing Anchors
+
+- business websites from $500
+- custom web apps from $1,500+
+- bots and automation from $750+
+- ongoing support from $150/mo
 
 ## Conversion Strategy
 
 ### Primary CTA
 
 - book a call
-- send an email
+- send an email to `connect@binaryventures.in`
 
 ### Secondary CTA
 
@@ -86,6 +93,12 @@ Use a mix of:
 - real project types
 - process clarity
 - founder-led accountability
+
+Current proof directions:
+- custom retail operations systems
+- managed websites for service businesses
+- managed websites for academic institutions
+- bots and automation workflows for reporting, notifications, data collection, and follow-up
 
 ## Content Strategy
 

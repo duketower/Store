@@ -2,16 +2,12 @@
 
 ## Current
 
-- finalize service packaging and pricing philosophy
 - identify which real projects should become case studies first
-- decide final CTA destination for booking a call
 - replace prototype links like `/work`, `/services`, and `/contact` with live routes as those pages are built
 - decide the real booking link for the primary CTA
 - review and refine the integrated homepage hero content against the final visual direction
-- decide whether the next homepage section after proof should be process, services, or a featured case-study block
-- decide what section should follow the positioning/mockup block on the homepage
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
-- replace prototype links like `/work`, `/services`, and `/contact` with real route implementations as those pages are built
+- turn the approved case-study directions into final page-ready content
 
 ## Next
 
@@ -35,3 +31,4 @@
 - integrated and verified the homepage services preview section
 - integrated and verified the homepage process section
 - integrated and verified the homepage final CTA section
+- defined the first public pricing anchors and contact email
