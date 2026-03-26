@@ -53,6 +53,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - serve as the main proof engine of the site
 - present anonymized case studies
 - show capability through real solution types and outcomes
+- now implemented as a real route at `src/app/work/page.tsx`
 
 ### Services Page Role
 
@@ -94,6 +95,8 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/ui/grid-feature-cards.tsx` currently serves as the homepage process/working-method block using adapted feature cards
 - `src/components/ui/pulse-beams.tsx` currently serves as the homepage final CTA block using an adapted animated beam background
 - `src/components/site/site-header.tsx` is now the shared V2 header used by the homepage and future secondary routes
+- `src/components/site/site-footer.tsx` is the shared footer for real multi-page routes
+- `src/components/work/work-page.tsx` is the first real secondary page assembly, powered by `src/content/work.ts`
 - the V2 palette and semantic token setup continue to live in `src/app/globals.css`; imported components are adapted to that system rather than replacing it
 
 ## Implementation Constraints

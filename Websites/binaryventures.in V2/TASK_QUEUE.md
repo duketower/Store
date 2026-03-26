@@ -2,18 +2,17 @@
 
 ## Current
 
-- identify which real projects should become case studies first
 - replace prototype links like `/work`, `/services`, and `/contact` with live routes as those pages are built
 - replace the temporary Contact-page booking route with a real scheduling link later
 - review and refine the integrated homepage hero content against the final visual direction
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
-- turn the approved case-study directions into final page-ready content
+- add visual assets to the Work page case studies later
 - build the Services page around four main categories, with maintenance framed as post-launch support
 
 ## Next
 
 - define the final visual system for bold premium tech using the integrated section set
-- build the real page shells for `Work`, `Services`, `About`, and `Contact`
+- build the real page shells for `Services`, `About`, and `Contact`
 - decide whether to refine or replace any integrated homepage components after visual review
 
 ## Done
@@ -33,3 +32,4 @@
 - integrated and verified the homepage process section
 - integrated and verified the homepage final CTA section
 - defined the first public pricing anchors and contact email
+- built and verified the first real secondary page at `/work`

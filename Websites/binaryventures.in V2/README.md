@@ -24,6 +24,9 @@ Move from strategy-only planning into V2 implementation without inheriting the o
 - reusable UI components live in `src/components/ui`
 - shared site shell pieces now live in `src/components/site`
 - shared navigation and contact details now live in `src/content/site.ts`
+- the first real secondary route is now live at `src/app/work/page.tsx`
+- the Work page composition and content live in `src/components/work/work-page.tsx` and `src/content/work.ts`
+- a reusable site footer is available in `src/components/site/site-footer.tsx`
 - the first integrated shared component is `src/components/ui/header-3.tsx`
 - the homepage hero prototype is integrated in `src/components/ui/hero-section-1.tsx`
 - motion helper components are available in `src/components/ui/animated-group.tsx` and `src/components/ui/text-effect.tsx`
