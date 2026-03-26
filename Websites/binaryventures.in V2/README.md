@@ -67,5 +67,6 @@ npm run dev
 - `docs/visual_system_brief.md`
 - `docs/component_request_plan.md`
 - `docs/component_inventory.md`
+- `docs/reference_websites.md`
 - `docs/api_design.md`
 - `docs/workflows.md`
