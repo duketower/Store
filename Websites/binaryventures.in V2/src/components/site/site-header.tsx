@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React from "react";
 import { Menu, X } from "lucide-react";
 
@@ -15,6 +16,18 @@ type SiteHeaderProps = {
 export function SiteHeader({ className }: SiteHeaderProps) {
   const [menuState, setMenuState] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const pathname = usePathname();
+
+  const isActiveLink = React.useCallback(
+    (href: string) => {
+      if (href === "/") {
+        return pathname === "/";
+      }
+
+      return pathname === href || pathname.startsWith(`${href}/`);
+    },
+    [pathname]
+  );
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -52,12 +65,18 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             </div>
 
             <div className="absolute inset-0 m-auto hidden size-fit lg:block">
-              <ul className="flex gap-8 text-sm">
+              <ul className="flex items-center gap-2 text-sm">
                 {siteNavigation.map((item) => (
                   <li key={item.name}>
                     <Link
                       href={item.href}
-                      className="block text-muted-foreground duration-150 hover:text-foreground"
+                      aria-current={isActiveLink(item.href) ? "page" : undefined}
+                      className={cn(
+                        "inline-flex h-11 items-center rounded-full border px-5 text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-150",
+                        isActiveLink(item.href)
+                          ? "border-border/85 bg-white/75 text-foreground shadow-[0_14px_28px_-24px_rgba(15,23,42,0.38)]"
+                          : "border-transparent text-muted-foreground hover:border-border/65 hover:bg-white/45 hover:text-foreground"
+                      )}
                     >
                       <span>{item.name}</span>
                     </Link>
@@ -73,7 +92,13 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        className="block text-muted-foreground duration-150 hover:text-foreground"
+                        aria-current={isActiveLink(item.href) ? "page" : undefined}
+                        className={cn(
+                          "inline-flex min-h-11 items-center rounded-full border px-5 py-2 text-base transition-[color,background-color,border-color] duration-150",
+                          isActiveLink(item.href)
+                            ? "border-border/85 bg-white/85 text-foreground"
+                            : "border-transparent text-muted-foreground hover:border-border/65 hover:bg-white/50 hover:text-foreground"
+                        )}
                       >
                         <span>{item.name}</span>
                       </Link>
