@@ -8,6 +8,7 @@
 - add visual assets to the Work page case studies later
 - continue tuning CTA treatment after live visual review
 - rebalance the connected systems mockup section after live layout review
+- fix dark CTA label contrast after live review
 
 ## Next
 
