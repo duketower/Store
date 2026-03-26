@@ -360,6 +360,18 @@ Email Us at `connect@binaryventures.in`
 **Option 3**
 Show public phone numbers and address details for both India and Adelaide on the Contact page.
 
+### Contact Locations
+
+**India**
+- Phone: `+91 7399006699`
+- Address line: Lucknow, Uttar Pradesh
+- Pin code: pending confirmation
+
+**Australia**
+- Phone: `+61 8 7200 0070`
+- Address line: Adelaide, Australia
+- Pin code: pending confirmation
+
 ### Contact Qualifier Copy
 
 Helpful prompts for the contact page or form:
