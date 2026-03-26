@@ -68,5 +68,6 @@ npm run dev
 - `docs/component_request_plan.md`
 - `docs/component_inventory.md`
 - `docs/reference_websites.md`
+- `docs/adelaide_seo_report.md`
 - `docs/api_design.md`
 - `docs/workflows.md`
