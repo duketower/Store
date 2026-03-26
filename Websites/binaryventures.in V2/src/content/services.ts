@@ -1,3 +1,5 @@
+import { publicContact } from "@/content/site";
+
 export type ServiceOffer = {
   id: string;
   name: string;
@@ -22,6 +24,20 @@ export type ServiceOffer = {
     includes: string;
     bestFor: string;
   };
+};
+
+export type PricingMode = "project" | "support";
+
+export type PricingPlan = {
+  id: string;
+  title: string;
+  desc: string;
+  price: number;
+  unitLabel: string;
+  buttonText: string;
+  features: string[];
+  href: string;
+  badge?: string;
 };
 
 export const serviceOffers: ServiceOffer[] = [
@@ -194,6 +210,135 @@ export const pricingAnchors = [
   { label: "Bots & Automation", value: "From $750+" },
   { label: "Maintenance & Support", value: "From $150/mo" },
 ];
+
+export const pricingPlans: Record<PricingMode, PricingPlan[]> = {
+  project: [
+    {
+      id: "project-websites",
+      title: "Websites",
+      desc: "Positioning-led business websites for stronger presentation, trust, and better enquiry quality.",
+      price: 500,
+      unitLabel: "/project",
+      buttonText: "Book a Call",
+      href: publicContact.bookingHref,
+      features: [
+        "structured page architecture",
+        "service and offer positioning",
+        "responsive implementation",
+        "contact and enquiry routing",
+      ],
+    },
+    {
+      id: "project-web-apps",
+      title: "Web Apps",
+      desc: "Custom dashboards, portals, and internal systems built around real business operations.",
+      price: 1500,
+      unitLabel: "/project",
+      buttonText: "Book a Call",
+      href: publicContact.bookingHref,
+      badge: "Core Systems",
+      features: [
+        "role-aware dashboards",
+        "workflow-specific business logic",
+        "reporting and operational views",
+        "custom system implementation",
+      ],
+    },
+    {
+      id: "project-bots",
+      title: "Bots",
+      desc: "Practical bots for reporting, notification routing, lead handling, and repeated operational tasks.",
+      price: 750,
+      unitLabel: "/project",
+      buttonText: "Book a Call",
+      href: publicContact.bookingHref,
+      features: [
+        "Telegram or chat workflows",
+        "notification and report delivery",
+        "lead capture and follow-up logic",
+        "integration with existing tools",
+      ],
+    },
+    {
+      id: "project-automation",
+      title: "Automation",
+      desc: "Cross-tool workflows that reduce manual steps and keep reporting, follow-up, and operations moving.",
+      price: 750,
+      unitLabel: "/project",
+      buttonText: "Book a Call",
+      href: publicContact.bookingHref,
+      features: [
+        "workflow mapping and trigger logic",
+        "reporting and alert sequences",
+        "forms, sheets, and CRM handoffs",
+        "exception-aware automation design",
+      ],
+    },
+  ],
+  support: [
+    {
+      id: "support-websites",
+      title: "Website Support",
+      desc: "Ongoing continuity for updates, fixes, small improvements, and operational website support after launch.",
+      price: 150,
+      unitLabel: "/mo",
+      buttonText: "Email Us",
+      href: `mailto:${publicContact.email}`,
+      features: [
+        "content and page updates",
+        "design and layout refinements",
+        "technical fixes and continuity",
+        "general website upkeep",
+      ],
+    },
+    {
+      id: "support-systems",
+      title: "System Support",
+      desc: "Post-launch support for internal tools, reporting systems, and custom apps that need regular tuning.",
+      price: 150,
+      unitLabel: "/mo",
+      buttonText: "Email Us",
+      href: `mailto:${publicContact.email}`,
+      badge: "Ongoing",
+      features: [
+        "small workflow improvements",
+        "dashboard and logic adjustments",
+        "issue handling and refinements",
+        "operational continuity support",
+      ],
+    },
+    {
+      id: "support-bots",
+      title: "Bot Support",
+      desc: "Maintenance for notification bots, report bots, and other business chat workflows after rollout.",
+      price: 150,
+      unitLabel: "/mo",
+      buttonText: "Email Us",
+      href: `mailto:${publicContact.email}`,
+      features: [
+        "bot logic adjustments",
+        "message and trigger updates",
+        "reporting or alert changes",
+        "maintenance after deployment",
+      ],
+    },
+    {
+      id: "support-automation",
+      title: "Automation Support",
+      desc: "Ongoing attention for workflow maintenance, connection changes, and automation refinements as the business evolves.",
+      price: 150,
+      unitLabel: "/mo",
+      buttonText: "Email Us",
+      href: `mailto:${publicContact.email}`,
+      features: [
+        "trigger and routing changes",
+        "integration upkeep",
+        "reporting flow adjustments",
+        "workflow continuity support",
+      ],
+    },
+  ],
+};
 
 export const servicesIntro = {
   title: "Services built around complete business tech setup.",

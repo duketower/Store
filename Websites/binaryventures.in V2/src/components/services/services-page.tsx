@@ -5,7 +5,6 @@ import { SiteHeader } from "@/components/site/site-header";
 import { publicContact } from "@/content/site";
 import {
   engagementModels,
-  pricingAnchors,
   serviceOffers,
   technicalCapabilities,
   servicesFraming,
@@ -13,6 +12,7 @@ import {
 } from "@/content/services";
 import { Button } from "@/components/ui/button";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
+import RuixenPricing04 from "@/components/ui/ruixen-pricing-04";
 
 export function ServicesPage() {
   return (
@@ -39,19 +39,7 @@ export function ServicesPage() {
           </div>
         </section>
 
-        <section className="px-6 pb-12 pt-2 md:pb-16">
-          <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-4">
-            {pricingAnchors.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-border/80 bg-card/70 px-5 py-5 shadow-sm"
-              >
-                <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
-                <p className="mt-3 text-xl font-semibold text-foreground">{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <RuixenPricing04 />
 
         <section className="px-6 py-16 md:py-24">
           <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[0.95fr_1.05fr]">
