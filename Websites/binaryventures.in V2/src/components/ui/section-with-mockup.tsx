@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion, type Variants } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface SectionWithMockupProps {
   title: string | React.ReactNode;
@@ -40,8 +41,10 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
     ? "md:grid-cols-2 md:grid-flow-col-dense"
     : "md:grid-cols-2";
 
-  const textOrderClass = reverseLayout ? "md:col-start-2" : "";
-  const imageOrderClass = reverseLayout ? "md:col-start-1" : "";
+  const textOrderClass = reverseLayout ? "md:col-start-2 md:pl-6 lg:pl-10" : "md:pr-6 lg:pr-10";
+  const imageOrderClass = reverseLayout
+    ? "md:col-start-1 md:justify-self-start"
+    : "md:justify-self-end";
 
   return (
     <section className="relative overflow-hidden bg-background py-24 md:py-40">
@@ -56,14 +59,14 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
 
       <div className="container relative z-10 mx-auto w-full max-w-[1220px] px-6 md:px-10">
         <motion.div
-          className={`grid w-full grid-cols-1 items-center gap-16 md:gap-8 ${layoutClasses}`}
+          className={`grid w-full grid-cols-1 items-center gap-14 md:gap-10 lg:gap-14 ${layoutClasses}`}
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
         >
           <motion.div
-            className={`mx-auto mt-10 flex max-w-[546px] flex-col items-start gap-4 md:mx-0 md:mt-0 ${textOrderClass}`}
+            className={`mx-auto mt-10 flex max-w-[34rem] flex-col items-start gap-4 md:mx-0 md:mt-0 ${textOrderClass}`}
             variants={itemVariants}
           >
             <div className="space-y-3 md:space-y-2">
@@ -81,26 +84,22 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
           </motion.div>
 
           <motion.div
-            className={`relative mx-auto mt-10 w-full max-w-[300px] md:mt-0 md:max-w-[471px] ${imageOrderClass}`}
+            className={`relative mx-auto mt-10 w-full max-w-[22rem] sm:max-w-[28rem] md:mt-0 md:max-w-[30rem] lg:max-w-[34rem] ${imageOrderClass}`}
             variants={itemVariants}
           >
             <motion.div
-              className="absolute z-0 h-[317px] w-[300px] rounded-[32px] border border-border/40 bg-[#090909] md:h-[500px] md:w-[472px]"
-              style={{
-                top: reverseLayout ? "auto" : "10%",
-                bottom: reverseLayout ? "10%" : "auto",
-                left: reverseLayout ? "auto" : "-20%",
-                right: reverseLayout ? "-20%" : "auto",
-                transform: reverseLayout ? "translate(0, 0)" : "translateY(10%)",
-                filter: "blur(2px)",
-              }}
+              className={cn(
+                "absolute inset-y-10 z-0 hidden w-[76%] rounded-[30px] border border-border/35 bg-[#090909] md:block",
+                reverseLayout ? "-left-10" : "-right-10"
+              )}
+              style={{ filter: "blur(1px)" }}
               initial={{ y: 0 }}
-              whileInView={{ y: reverseLayout ? -20 : -30 }}
+              whileInView={{ y: reverseLayout ? -12 : -18 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
               viewport={{ once: true, amount: 0.5 }}
             >
               <div
-                className="relative h-full w-full rounded-[32px] bg-cover bg-center"
+                className="relative h-full w-full rounded-[30px] bg-cover bg-center opacity-90"
                 style={{
                   backgroundImage: `url(${secondaryImageSrc})`,
                 }}
@@ -108,13 +107,13 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
             </motion.div>
 
             <motion.div
-              className="relative z-10 h-[405px] w-full overflow-hidden rounded-[32px] border border-border/50 bg-white/6 backdrop-blur-[15px] backdrop-brightness-[100%] md:h-[637px]"
+              className="relative z-10 overflow-hidden rounded-[32px] border border-border/50 bg-white/6 shadow-[0_32px_90px_-48px_rgba(15,23,42,0.35)] backdrop-blur-[15px] backdrop-brightness-[100%]"
               initial={{ y: 0 }}
-              whileInView={{ y: reverseLayout ? 20 : 30 }}
+              whileInView={{ y: reverseLayout ? 14 : 18 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
               viewport={{ once: true, amount: 0.5 }}
             >
-              <div className="h-full p-0">
+              <div className="aspect-[4/5] h-full p-0 sm:aspect-[5/6] lg:aspect-[4/5]">
                 <div
                   className="relative h-full"
                   style={{
