@@ -20,7 +20,7 @@ Whenever a user-supplied component is added, replaced, removed, or intentionally
 4. Positioning
 5. Services
 6. Process
-7. Final CTA not yet selected
+7. Final CTA
 
 ## Integrated Components
 
@@ -32,6 +32,7 @@ Whenever a user-supplied component is added, replaced, removed, or intentionally
 | `section-with-mockup.tsx` | `src/components/ui/section-with-mockup.tsx` | Homepage positioning block | Integrated | Adapted to explain the end-to-end setup model |
 | `ai-models-preview.tsx` | `src/components/ui/ai-models-preview.tsx` | Homepage services preview | Integrated | Converted from AI model cards into Binary Ventures service pillars with modal details |
 | `grid-feature-cards.tsx` | `src/components/ui/grid-feature-cards.tsx` | Homepage process block | Integrated | Converted from generic feature cards into a working-method section |
+| `pulse-beams.tsx` | `src/components/ui/pulse-beams.tsx` | Homepage final CTA | Integrated | Converted from a full-screen effect demo into a shorter CTA section with real homepage actions |
 
 ## Support Components Added For Imported Sections
 

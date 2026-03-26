@@ -11,13 +11,13 @@
 - decide whether the next homepage section after proof should be process, services, or a featured case-study block
 - decide what section should follow the positioning/mockup block on the homepage
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
-- define the final homepage CTA section after the process block
+- replace prototype links like `/work`, `/services`, and `/contact` with real route implementations as those pages are built
 
 ## Next
 
-- select the final homepage CTA component after the process section
-- define the final visual system for bold premium tech using approved component directions
-- build the real shared layout and page shells inside this folder
+- define the final visual system for bold premium tech using the integrated section set
+- build the real page shells for `Work`, `Services`, `About`, and `Contact`
+- decide whether to refine or replace any integrated homepage components after visual review
 
 ## Done
 
@@ -34,3 +34,4 @@
 - integrated and verified the homepage positioning/mockup section
 - integrated and verified the homepage services preview section
 - integrated and verified the homepage process section
+- integrated and verified the homepage final CTA section

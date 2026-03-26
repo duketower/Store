@@ -37,7 +37,9 @@ Current status:
 - the services block has been adapted from a generic preview-card component into Binary Ventures service pillars with modal details
 - the process section is integrated in code as `grid-feature-cards.tsx`
 - the process block has been adapted into a working-method section aligned to the V2 strategy
-- the next step is to choose the final CTA section that closes the homepage
+- the final CTA section is integrated in code as `pulse-beams.tsx`
+- the CTA block has been adapted from a full-screen effect demo into a shorter closing section with real Binary Ventures actions
+- the next step is to review the homepage visually and then build real page routes around the approved system
 
 ### Work
 
