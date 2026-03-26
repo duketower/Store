@@ -52,5 +52,6 @@ npm run dev
 - `docs/page_design_brief.md`
 - `docs/visual_system_brief.md`
 - `docs/component_request_plan.md`
+- `docs/component_inventory.md`
 - `docs/api_design.md`
 - `docs/workflows.md`

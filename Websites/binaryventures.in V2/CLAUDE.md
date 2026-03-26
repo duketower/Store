@@ -16,6 +16,7 @@ This folder is the strategy and future implementation workspace for the complete
 - `docs/page_design_brief.md`
 - `docs/visual_system_brief.md`
 - `docs/component_request_plan.md`
+- `docs/component_inventory.md`
 - `docs/api_design.md`
 - `docs/workflows.md`
 
@@ -40,6 +41,7 @@ This is a zero-based redesign.
 
 - A task is not complete until the relevant docs in this folder match the current strategy or implementation state
 - If setup, structure, page strategy, content, or workflow changes, update the relevant markdown files in the same task
+- If a user-supplied component is integrated, replaced, removed, or deferred, update `docs/component_inventory.md`
 - If no documentation update is needed, say so explicitly in the final summary
 
 ## Project-Specific Notes

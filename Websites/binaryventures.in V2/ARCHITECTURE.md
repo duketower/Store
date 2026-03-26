@@ -77,6 +77,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components` holds page-level composition such as temporary demos and future page assemblies
 - `src/lib/utils.ts` exposes the shared `cn` utility expected by shadcn-style components
 - `components.json` keeps the folder aliases compatible with future shadcn CLI usage
+- `docs/component_inventory.md` tracks which user-supplied components are currently integrated, adapted, or deferred
 
 ## Current Integrated Component
 

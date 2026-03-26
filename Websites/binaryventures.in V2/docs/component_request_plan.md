@@ -2,6 +2,8 @@
 
 This file defines the roles of components we may ask for later. It is not a commitment to any specific external design.
 
+For source tracking and swap history, also maintain `docs/component_inventory.md`.
+
 ## Rule
 
 Ask for components by role and purpose only after the page structure is approved.
