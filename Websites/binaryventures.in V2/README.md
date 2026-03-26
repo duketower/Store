@@ -43,7 +43,6 @@ Move from core implementation into visual refinement, proof enrichment, and laun
 - the homepage services preview section is integrated in `src/components/ui/ai-models-preview.tsx`
 - the homepage process section is integrated in `src/components/ui/grid-feature-cards.tsx`
 - the homepage final CTA section is integrated in `src/components/ui/pulse-beams.tsx`
-- the Services pricing section is now integrated in `src/components/ui/ruixen-pricing-04.tsx`
 - the existing `src/app/globals.css` token system remains the source of truth; external theme resets are adapted selectively instead of overwritten wholesale
 
 ## Local Development

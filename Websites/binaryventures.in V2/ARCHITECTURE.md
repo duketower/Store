@@ -98,7 +98,6 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/ui/ai-models-preview.tsx` currently serves as the homepage services preview block using adapted service cards and a detail modal
 - `src/components/ui/grid-feature-cards.tsx` currently serves as the homepage process/working-method block using adapted feature cards
 - `src/components/ui/pulse-beams.tsx` currently serves as the homepage final CTA block using an adapted animated beam background
-- `src/components/ui/ruixen-pricing-04.tsx` now serves as the Services page pricing section using adapted project/support pricing modes
 - `src/components/site/site-header.tsx` is now the shared V2 header used by the homepage and future secondary routes
 - `src/components/site/site-footer.tsx` is the shared footer for real multi-page routes
 - `src/components/work/work-page.tsx` is the first real secondary page assembly, powered by `src/content/work.ts`

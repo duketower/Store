@@ -33,7 +33,6 @@ Whenever a user-supplied component is added, replaced, removed, or intentionally
 | `ai-models-preview.tsx` | `src/components/ui/ai-models-preview.tsx` | Homepage services preview | Integrated | Converted from AI model cards into Binary Ventures service pillars with modal details |
 | `grid-feature-cards.tsx` | `src/components/ui/grid-feature-cards.tsx` | Homepage process block | Integrated | Converted from generic feature cards into a working-method section |
 | `pulse-beams.tsx` | `src/components/ui/pulse-beams.tsx` | Homepage final CTA | Integrated | Converted from a full-screen effect demo into a shorter CTA section with real homepage actions |
-| `ruixen-pricing-04.tsx` | `src/components/ui/ruixen-pricing-04.tsx` | Services page pricing block | Integrated | Converted from SaaS monthly/annual pricing into a `Project Work / Ongoing Support` switch with Binary Ventures pricing |
 
 ## Support Components Added For Imported Sections
 
