@@ -52,24 +52,6 @@ export function WorkPage() {
           </div>
         </section>
 
-        <section className="px-6 py-12 md:py-16">
-          <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-4">
-            {[
-              "Websites",
-              "Web Apps",
-              "Bots",
-              "Automation",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-2xl border border-border/80 bg-card/70 px-5 py-4 text-sm font-medium text-foreground shadow-sm"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
-
         <section className="px-6 py-16 md:py-24">
           <div className="mx-auto max-w-6xl">
             <div className="max-w-2xl">

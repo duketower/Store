@@ -83,46 +83,10 @@ export function ServicesPage() {
                 {servicesFraming.body}
               </p>
               <p className="mt-6 text-sm leading-8 text-muted-foreground md:text-base">
-                The service architecture is now split into clear groups so the main
-                build work, the automation work, and the surrounding setup services
-                all stay visible without turning the site into a cluttered directory.
+                The work usually starts with a core build, then expands into the
+                supporting pieces that make it usable in practice: automation,
+                launch setup, brand support, and continuity after launch.
               </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-10 md:py-12">
-          <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Service Architecture
-              </p>
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-                Grouped so nothing important gets buried.
-              </h2>
-              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
-                The services are structured around how clients usually buy them:
-                core builds, AI and automation, launch setup, brand support, and
-                continuity after launch.
-              </p>
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              {groupedServiceOffers.map((group) => (
-                <a
-                  key={group.id}
-                  href={`#${group.id}`}
-                  className="rounded-full border border-border/80 bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                >
-                  {group.name}
-                </a>
-              ))}
-              <a
-                href="#continuity"
-                className="rounded-full border border-border/80 bg-background/80 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                Continuity
-              </a>
             </div>
           </div>
         </section>

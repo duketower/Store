@@ -65,3 +65,4 @@
 - rebuilt the Services page around grouped sections so the expanded offer set does not feel buried
 - updated the homepage service preview and Contact page so the grouped services stay visible outside the Services route
 - ignored generated Firebase deploy logs to keep the V2 workspace clean after deploys
+- removed low-value category strips from Case Studies and simplified the Services page structure after live review
