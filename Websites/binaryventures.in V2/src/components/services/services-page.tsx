@@ -55,9 +55,9 @@ export function ServicesPage() {
                   {item.includes.map((detail) => (
                     <li
                       key={detail}
-                      className="flex gap-2 text-sm leading-6 text-foreground/80"
+                      className="grid grid-cols-[0.5rem_1fr] items-start gap-x-3 text-sm leading-6 text-foreground/80"
                     >
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground/35" />
+                      <span className="mt-[0.55rem] h-1.5 w-1.5 rounded-full bg-foreground/35" />
                       <span>{detail}</span>
                     </li>
                   ))}

@@ -15,6 +15,7 @@
 - deepen Services and Case Studies with more technical implementation detail
 - save the AU/US reference website shortlist into project docs for later review
 - enrich the simple pricing cards with the useful detail from the reverted pricing experiment
+- align pricing card bullet lists after visual review
 
 ## Next
 
