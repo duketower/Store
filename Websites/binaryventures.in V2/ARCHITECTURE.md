@@ -74,7 +74,9 @@ This workspace has moved from strategy-only into early implementation. The curre
 
 - `src/app` holds routes, layout, and global styles
 - `src/components/ui` holds reusable shadcn-style primitives and imported UI building blocks
+- `src/components/site` holds shared site shell pieces such as the reusable header and footer
 - `src/components` holds page-level composition such as temporary demos and future page assemblies
+- `src/content` holds shared navigation, contact details, and page-specific content models
 - `src/lib/utils.ts` exposes the shared `cn` utility expected by shadcn-style components
 - `components.json` keeps the folder aliases compatible with future shadcn CLI usage
 - `docs/component_inventory.md` tracks which user-supplied components are currently integrated, adapted, or deferred
@@ -91,6 +93,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/ui/ai-models-preview.tsx` currently serves as the homepage services preview block using adapted service cards and a detail modal
 - `src/components/ui/grid-feature-cards.tsx` currently serves as the homepage process/working-method block using adapted feature cards
 - `src/components/ui/pulse-beams.tsx` currently serves as the homepage final CTA block using an adapted animated beam background
+- `src/components/site/site-header.tsx` is now the shared V2 header used by the homepage and future secondary routes
 - the V2 palette and semantic token setup continue to live in `src/app/globals.css`; imported components are adapted to that system rather than replacing it
 
 ## Implementation Constraints
