@@ -97,6 +97,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/site/site-header.tsx` is now the shared V2 header used by the homepage and future secondary routes
 - `src/components/site/site-footer.tsx` is the shared footer for real multi-page routes
 - `src/components/work/work-page.tsx` is the first real secondary page assembly, powered by `src/content/work.ts`
+- `src/components/ui/ai-models-preview.tsx` now reads from the shared services content model so homepage preview content stays aligned with the full Services page
 - the V2 palette and semantic token setup continue to live in `src/app/globals.css`; imported components are adapted to that system rather than replacing it
 
 ## Implementation Constraints

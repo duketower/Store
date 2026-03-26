@@ -3,25 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-type ServiceOffer = {
-  id: string;
-  name: string;
-  category?: string;
-  delivery?: string;
-  scope?: string;
-  description?: string;
-  startingFromUSD?: number;
-  supportPlanUSD?: number;
-  capabilities?: {
-    strategy?: boolean;
-    build?: boolean;
-    support?: boolean;
-    automation?: boolean;
-    integrations?: boolean;
-  };
-  tags?: string[];
-  meta?: Record<string, unknown>;
-};
+import { serviceOffers, type ServiceOffer } from "@/content/services";
 
 type Props = {
   models: ServiceOffer[];
@@ -123,11 +105,11 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
               <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
                 <div className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">Category</div>
-                  <div>{selected.category || "—"}</div>
+                  <div>{selected.category}</div>
                 </div>
                 <div className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">Delivery</div>
-                  <div>{selected.delivery || "—"}</div>
+                  <div>{selected.delivery}</div>
                 </div>
                 <div className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">Starting Point</div>
@@ -139,30 +121,30 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
                 </div>
               </div>
 
-              {selected.scope && (
-                <div className="mt-4 rounded-md border p-3 text-sm">
-                  <div className="mb-1 text-xs text-muted-foreground">
-                    Typical Scope
-                  </div>
-                  <div>{selected.scope}</div>
+              <div className="mt-4 rounded-md border p-3 text-sm">
+                <div className="mb-1 text-xs text-muted-foreground">
+                  Typical Scope
                 </div>
-              )}
+                <div>{selected.scope}</div>
+              </div>
 
-              {selected.meta && (
-                <div className="mt-4 text-sm">
-                  <h4 className="mb-2 font-medium">What This Usually Includes</h4>
-                  <div className="space-y-2">
-                    {Object.entries(selected.meta).map(([k, v]) => (
-                      <div key={k} className="flex gap-2">
-                        <span className="w-32 shrink-0 text-muted-foreground">
-                          {k}:
-                        </span>
-                        <span>{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
-                      </div>
-                    ))}
+              <div className="mt-4 text-sm">
+                <h4 className="mb-2 font-medium">What This Usually Includes</h4>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <span className="w-32 shrink-0 text-muted-foreground">
+                      includes:
+                    </span>
+                    <span>{selected.meta.includes}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="w-32 shrink-0 text-muted-foreground">
+                      best for:
+                    </span>
+                    <span>{selected.meta.bestFor}</span>
                   </div>
                 </div>
-              )}
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -170,77 +152,6 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
     </div>
   );
 };
-
-const services: ServiceOffer[] = [
-  {
-    id: "websites",
-    name: "Websites",
-    category: "Presence",
-    delivery: "Project-based",
-    scope: "Positioning-led business websites built to increase trust and support real enquiries.",
-    description:
-      "Credible, high-trust websites for businesses that need clearer communication, better positioning, and a stronger digital front door.",
-    startingFromUSD: 1200,
-    supportPlanUSD: 150,
-    capabilities: { strategy: true, build: true, support: true },
-    tags: ["trust", "enquiries"],
-    meta: {
-      includes: "Structure, copy direction, design system, build, launch support",
-      bestFor: "Service businesses, local businesses, operators, professional teams",
-    },
-  },
-  {
-    id: "web-apps",
-    name: "Web Apps",
-    category: "Systems",
-    delivery: "Custom build",
-    scope: "Internal tools, dashboards, portals, and operational systems designed around real workflows.",
-    description:
-      "Custom software, dashboards, and internal tools built around process, visibility, and operational control.",
-    startingFromUSD: 2500,
-    supportPlanUSD: 250,
-    capabilities: { strategy: true, build: true, support: true, integrations: true },
-    tags: ["dashboard", "internal"],
-    meta: {
-      includes: "Workflow mapping, UI, data handling, reporting, role-aware access",
-      bestFor: "Teams that have outgrown spreadsheets and disconnected tools",
-    },
-  },
-  {
-    id: "bots",
-    name: "Bots",
-    category: "Automation",
-    delivery: "Custom or scoped package",
-    scope: "Bots for notifications, routing, lead flow, and repeated operational tasks.",
-    description:
-      "Bots that handle repetitive tasks, route information, support lead flow, and reduce operational drag.",
-    startingFromUSD: 900,
-    supportPlanUSD: 120,
-    capabilities: { build: true, automation: true, support: true, integrations: true },
-    tags: ["telegram", "workflow"],
-    meta: {
-      includes: "Bot logic, trigger handling, integrations, deployment, maintenance options",
-      bestFor: "Businesses that lose time on repeated manual tasks",
-    },
-  },
-  {
-    id: "automation",
-    name: "Automation",
-    category: "Operations",
-    delivery: "Scoped workflow system",
-    scope: "Workflow automation that connects tools, reduces manual handoffs, and keeps the right work moving.",
-    description:
-      "Automations that connect tools, reduce manual work, and create smoother operations across the business.",
-    startingFromUSD: 1100,
-    supportPlanUSD: 180,
-    capabilities: { strategy: true, automation: true, integrations: true, support: true },
-    tags: ["ops", "integration"],
-    meta: {
-      includes: "Workflow mapping, trigger design, app connections, exception handling",
-      bestFor: "Teams running repeated steps across forms, sheets, CRMs, and communication tools",
-    },
-  },
-];
 
 export function ServicesPreviewSection() {
   return (
@@ -250,7 +161,7 @@ export function ServicesPreviewSection() {
         className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(55%_55%_at_50%_0%,rgba(155,153,254,0.10),transparent_70%)]"
       />
       <div className="relative z-10 px-6">
-        <AiModelsList models={services} />
+        <AiModelsList models={serviceOffers} />
       </div>
     </section>
   );
