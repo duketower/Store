@@ -21,6 +21,7 @@
 - convert the service pillars detail modal into a mobile-safe scrollable sheet
 - save a detailed Adelaide SEO strategy report into project docs
 - save a detailed service expansion strategy based on the reference website shortlist
+- restructure the service architecture so expanded offers do not feel buried
 
 ## Next
 
@@ -28,6 +29,7 @@
 - decide whether to refine or replace any integrated homepage components after visual review
 - implement the site-side Adelaide SEO foundations after strategy approval
 - decide whether to add the supporting setup services as a secondary Services-page section or implement them directly into the current content model
+- review the grouped services architecture on live mobile after deploy
 
 ## Done
 
@@ -59,3 +61,4 @@
 - ignored generated Firebase cache artifacts to keep the V2 workspace clean after deploys
 - created and saved a detailed Adelaide SEO strategy report with official Google source references
 - created and saved a detailed service expansion strategy for adding adjacent services without breaking the current visual system
+- restructured the services architecture into grouped categories with visible pricing for the expanded offer set

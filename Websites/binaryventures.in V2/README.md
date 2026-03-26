@@ -22,7 +22,7 @@ Move from core implementation into visual refinement, proof enrichment, and laun
 - reusable UI components live in `src/components/ui`
 - shared site shell pieces now live in `src/components/site`
 - shared navigation and contact details now live in `src/content/site.ts`
-- service definitions, pricing anchors, and engagement models now live in `src/content/services.ts`
+- grouped service architecture, pricing anchors, and engagement models now live in `src/content/services.ts`
 - about page content now lives in `src/content/about.ts`
 - contact page content now lives in `src/content/contact.ts`
 - the first real secondary route is now live at `src/app/work/page.tsx`
@@ -41,6 +41,7 @@ Move from core implementation into visual refinement, proof enrichment, and laun
 - the homepage proof/testimonial columns section is integrated in `src/components/ui/testimonials-columns-1.tsx`
 - the homepage positioning/mockup section is integrated in `src/components/ui/section-with-mockup.tsx`
 - the homepage services preview section is integrated in `src/components/ui/ai-models-preview.tsx`
+- the service architecture is now grouped across core builds, AI and automation, launch infrastructure, and brand/presence support
 - the homepage process section is integrated in `src/components/ui/grid-feature-cards.tsx`
 - the homepage final CTA section is integrated in `src/components/ui/pulse-beams.tsx`
 - the existing `src/app/globals.css` token system remains the source of truth; external theme resets are adapted selectively instead of overwritten wholesale
