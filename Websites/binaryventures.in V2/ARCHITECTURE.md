@@ -52,7 +52,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 
 - serve as the main proof engine of the site
 - present anonymized case studies
-- show capability through real solution types and outcomes
+- show capability through real solution types, outcomes, and technical shape
 - now implemented as a real route at `src/app/work/page.tsx`
 
 ### Services Page Role
@@ -60,6 +60,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - clarify what Binary Ventures actually offers
 - group offers under a complete business tech setup umbrella
 - balance packaged clarity with custom-solution flexibility
+- expose technical depth through system elements, workflow logic, and integration examples
 - now implemented as a real route at `src/app/services/page.tsx`
 
 ### About Page Role

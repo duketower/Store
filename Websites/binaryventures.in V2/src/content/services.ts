@@ -7,6 +7,9 @@ export type ServiceOffer = {
   description: string;
   startingFromUSD?: number;
   supportPlanUSD?: number;
+  technicalScope: string[];
+  systemElements: string[];
+  integrationExamples: string[];
   capabilities: {
     strategy?: boolean;
     build?: boolean;
@@ -33,6 +36,24 @@ export const serviceOffers: ServiceOffer[] = [
       "High-trust websites for businesses that need stronger positioning, clearer communication, and better-quality enquiries.",
     startingFromUSD: 500,
     supportPlanUSD: 150,
+    technicalScope: [
+      "site architecture and page hierarchy",
+      "content-managed page structures",
+      "enquiry flows and contact routing",
+      "mobile-first responsive implementation",
+    ],
+    systemElements: [
+      "landing and service pages",
+      "contact and enquiry forms",
+      "trust sections and proof blocks",
+      "ongoing update workflow",
+    ],
+    integrationExamples: [
+      "lead forms and email routing",
+      "analytics and reporting",
+      "CMS or structured content updates",
+      "maintenance and publishing support",
+    ],
     capabilities: { strategy: true, build: true, support: true },
     tags: ["trust", "enquiries"],
     meta: {
@@ -51,6 +72,24 @@ export const serviceOffers: ServiceOffer[] = [
       "Custom software, dashboards, and internal systems built around process, visibility, and operational control.",
     startingFromUSD: 1500,
     supportPlanUSD: 150,
+    technicalScope: [
+      "role-aware dashboards and portals",
+      "custom business logic and workflow rules",
+      "reporting, filters, and operational views",
+      "data handling for daily business operations",
+    ],
+    systemElements: [
+      "admin and staff panels",
+      "reporting and analytics layers",
+      "inventory or billing flows",
+      "approval and status workflows",
+    ],
+    integrationExamples: [
+      "forms, sheets, and existing internal tools",
+      "notification channels and bots",
+      "lead and customer data flow",
+      "custom export and reporting pipelines",
+    ],
     capabilities: { strategy: true, build: true, support: true, integrations: true },
     tags: ["dashboard", "internal"],
     meta: {
@@ -68,6 +107,24 @@ export const serviceOffers: ServiceOffer[] = [
       "Bots for lead capture, notifications, internal operations, workflow support, and repeated task handling.",
     startingFromUSD: 750,
     supportPlanUSD: 150,
+    technicalScope: [
+      "trigger-based bot logic",
+      "message routing and state handling",
+      "report delivery and notification flows",
+      "task and input collection through chat interfaces",
+    ],
+    systemElements: [
+      "Telegram bot workflows",
+      "internal notification logic",
+      "report digests and updates",
+      "lead qualification or routing steps",
+    ],
+    integrationExamples: [
+      "forms and lead sources",
+      "internal systems and dashboards",
+      "email and messaging alerts",
+      "data collection and handoff flows",
+    ],
     capabilities: { build: true, automation: true, support: true, integrations: true },
     tags: ["telegram", "workflow"],
     meta: {
@@ -86,6 +143,24 @@ export const serviceOffers: ServiceOffer[] = [
       "Automations that connect tools, reduce manual work, and create smoother business operations across the stack.",
     startingFromUSD: 750,
     supportPlanUSD: 150,
+    technicalScope: [
+      "workflow mapping and automation logic",
+      "cross-tool data movement and syncing",
+      "scheduled reporting and event triggers",
+      "exception handling for real-world operations",
+    ],
+    systemElements: [
+      "lead capture and follow-up sequences",
+      "reporting workflows",
+      "approval or notification chains",
+      "internal status updates and handoffs",
+    ],
+    integrationExamples: [
+      "forms, sheets, and CRMs",
+      "email, chat, and notification channels",
+      "data collection or scraping workflows",
+      "custom business reporting outputs",
+    ],
     capabilities: { strategy: true, automation: true, integrations: true, support: true },
     tags: ["ops", "integration"],
     meta: {
@@ -131,3 +206,36 @@ export const servicesFraming = {
   body:
     "Some businesses need a stronger public-facing presence. Others need better internal systems. Many need both. Our role is to help define the right setup, then build it well.",
 };
+
+export const technicalCapabilities = [
+  {
+    title: "Role-Based Views",
+    body:
+      "Systems can be shaped around owners, managers, staff, or different workflows so the right people see the right actions and reporting.",
+  },
+  {
+    title: "Reporting Layers",
+    body:
+      "We build reporting that supports day-to-day visibility, including end-of-day summaries, weekly reviews, operational dashboards, and business analysis.",
+  },
+  {
+    title: "Workflow Logic",
+    body:
+      "The work is not just screens. It includes the actual logic behind approvals, status changes, routing, follow-up, and repeated tasks.",
+  },
+  {
+    title: "Integrations",
+    body:
+      "Forms, sheets, CRMs, internal tools, bots, email, and notification channels can be connected so information moves cleanly through the business.",
+  },
+  {
+    title: "Automation and Alerts",
+    body:
+      "From lead follow-up to internal notifications and scheduled reports, automation is shaped around the process rather than added as a gimmick.",
+  },
+  {
+    title: "Operational Support",
+    body:
+      "When needed, the work continues after launch through maintenance, updates, refinement, and technical help as the business evolves.",
+  },
+];

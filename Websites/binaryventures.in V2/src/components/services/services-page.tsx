@@ -7,6 +7,7 @@ import {
   engagementModels,
   pricingAnchors,
   serviceOffers,
+  technicalCapabilities,
   servicesFraming,
   servicesIntro,
 } from "@/content/services";
@@ -124,6 +125,33 @@ export function ServicesPage() {
                     </p>
                   </div>
 
+                  <div className="mt-8 grid gap-6 lg:grid-cols-2">
+                    <ListBlock
+                      label="Technical Scope"
+                      items={service.technicalScope}
+                    />
+                    <ListBlock
+                      label="Common System Elements"
+                      items={service.systemElements}
+                    />
+                  </div>
+
+                  <div className="mt-8">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Integration Examples
+                    </p>
+                    <ul className="mt-4 flex flex-wrap gap-2">
+                      {service.integrationExamples.map((item) => (
+                        <li
+                          key={item}
+                          className="rounded-full border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground"
+                        >
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
                   <ul className="mt-8 flex flex-wrap gap-2">
                     {service.tags.map((tag) => (
                       <li
@@ -135,6 +163,40 @@ export function ServicesPage() {
                     ))}
                   </ul>
                 </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Technical Capability
+              </p>
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                Technical depth is built into the service, not bolted on afterward.
+              </h2>
+              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
+                The work can include reporting layers, workflow logic, dashboards,
+                integrations, bots, alerts, and post-launch support where the
+                business actually needs them.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {technicalCapabilities.map((capability) => (
+                <div
+                  key={capability.title}
+                  className="rounded-[1.5rem] border border-border/80 bg-background/80 p-5"
+                >
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {capability.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                    {capability.body}
+                  </p>
+                </div>
               ))}
             </div>
           </div>
@@ -239,6 +301,24 @@ function DetailBlock({ label, body }: { label: string; body: string }) {
         {label}
       </p>
       <p className="mt-3 text-sm leading-7 text-foreground/80">{body}</p>
+    </div>
+  );
+}
+
+function ListBlock({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      <ul className="mt-3 space-y-3">
+        {items.map((item) => (
+          <li key={item} className="flex gap-3 text-sm leading-7 text-foreground/80">
+            <span className="mt-[0.7rem] h-1.5 w-1.5 rounded-full bg-foreground/40" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -12,6 +12,7 @@
 - refine active desktop navigation state after visual review
 - simplify active navigation so only the current route gets emphasis
 - rename the public Work label to Case Studies while keeping the `/work` route stable
+- deepen Services and Case Studies with more technical implementation detail
 
 ## Next
 

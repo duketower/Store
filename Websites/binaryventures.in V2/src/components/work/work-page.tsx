@@ -3,7 +3,12 @@ import Link from "next/link";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { publicContact } from "@/content/site";
-import { caseStudies, deliveryStandards, workCapabilities } from "@/content/work";
+import {
+  caseStudies,
+  deliveryStandards,
+  implementationPatterns,
+  workCapabilities,
+} from "@/content/work";
 import { Button } from "@/components/ui/button";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
 
@@ -97,7 +102,42 @@ export function WorkPage() {
 
                     <div className="space-y-6 rounded-[1.5rem] border border-border/80 bg-background/80 p-6">
                       <InfoBlock label="Solution" body={caseStudy.solution} />
+                      <InfoBlock
+                        label="Technical Detail"
+                        body={caseStudy.technicalDetail}
+                      />
                       <InfoBlock label="Outcome" body={caseStudy.outcome} />
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          Workflow Highlights
+                        </p>
+                        <ul className="mt-4 space-y-3">
+                          {caseStudy.workflowHighlights.map((item) => (
+                            <li
+                              key={item}
+                              className="flex gap-3 text-sm leading-7 text-foreground/80"
+                            >
+                              <span className="mt-[0.7rem] h-1.5 w-1.5 rounded-full bg-foreground/40" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          System Elements
+                        </p>
+                        <ul className="mt-4 flex flex-wrap gap-2">
+                          {caseStudy.systemElements.map((item) => (
+                            <li
+                              key={item}
+                              className="rounded-full border border-border/80 bg-card/70 px-3 py-1.5 text-xs font-medium text-foreground"
+                            >
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                           Capabilities
@@ -116,6 +156,40 @@ export function WorkPage() {
                     </div>
                   </div>
                 </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Technical Patterns
+              </p>
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                The technical layer usually sits underneath the visible outcome.
+              </h2>
+              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
+                Behind the website, dashboard, or bot, the real value often comes
+                from reporting, workflow logic, role-based access, automation,
+                and connected systems that make the business easier to run.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-2">
+              {implementationPatterns.map((pattern) => (
+                <div
+                  key={pattern.title}
+                  className="rounded-[1.5rem] border border-border/80 bg-background/80 p-6"
+                >
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {pattern.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                    {pattern.body}
+                  </p>
+                </div>
               ))}
             </div>
           </div>

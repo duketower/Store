@@ -128,6 +128,33 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
                 <div>{selected.scope}</div>
               </div>
 
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <DetailList
+                  label="Technical Scope"
+                  items={selected.technicalScope}
+                />
+                <DetailList
+                  label="System Elements"
+                  items={selected.systemElements}
+                />
+              </div>
+
+              <div className="mt-4 rounded-md border p-3 text-sm">
+                <div className="mb-2 text-xs text-muted-foreground">
+                  Integration Examples
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selected.integrationExamples.map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-border/80 bg-muted/40 px-2.5 py-1 text-xs font-medium text-foreground/80"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-4 text-sm">
                 <h4 className="mb-2 font-medium">What This Usually Includes</h4>
                 <div className="space-y-2">
@@ -152,6 +179,22 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
     </div>
   );
 };
+
+function DetailList({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="rounded-md border p-3 text-sm">
+      <div className="mb-2 text-xs text-muted-foreground">{label}</div>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2 leading-6 text-foreground/80">
+            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground/35" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function ServicesPreviewSection() {
   return (

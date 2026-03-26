@@ -31,6 +31,7 @@ Move from core implementation into visual refinement, proof enrichment, and laun
 - the fourth real secondary route is now live at `src/app/contact/page.tsx`
 - the Work page composition and content live in `src/components/work/work-page.tsx` and `src/content/work.ts`
 - the Services page composition lives in `src/components/services/services-page.tsx`
+- Services and Case Studies now include structured technical capability layers instead of only high-level marketing copy
 - the About page composition lives in `src/components/about/about-page.tsx`
 - the Contact page composition lives in `src/components/contact/contact-page.tsx`
 - a reusable site footer is available in `src/components/site/site-footer.tsx`
