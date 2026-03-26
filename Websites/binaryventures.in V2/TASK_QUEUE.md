@@ -11,6 +11,7 @@
 - fix dark CTA label contrast after live review
 - refine active desktop navigation state after visual review
 - simplify active navigation so only the current route gets emphasis
+- rename the public Work label to Case Studies while keeping the `/work` route stable
 
 ## Next
 

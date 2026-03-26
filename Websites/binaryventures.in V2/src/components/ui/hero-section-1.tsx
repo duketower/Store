@@ -159,7 +159,7 @@ export function HeroSection() {
                     className="h-14 px-7 text-base"
                   >
                     <Link href="/work">
-                      <span className="text-nowrap">View Work</span>
+                      <span className="text-nowrap">View Case Studies</span>
                     </Link>
                   </Button>
                 </AnimatedGroup>

@@ -20,7 +20,7 @@ export function WorkPage() {
           <div className="mx-auto max-w-6xl">
             <div className="max-w-4xl">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Work
+                Case Studies
               </p>
               <h1 className="mt-6 max-w-4xl text-balance text-5xl font-semibold tracking-tight text-foreground md:text-7xl">
                 Systems built around real operational needs.
