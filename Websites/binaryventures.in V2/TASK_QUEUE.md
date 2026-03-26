@@ -34,3 +34,4 @@
 - built the real `/about` page from the approved founder-led positioning content
 - built the real `/contact` page with dual-location details and enquiry guidance
 - polished the core site metadata and project framing after the main routes were added
+- fixed the homepage hydration mismatch caused by random decorative grid patterns

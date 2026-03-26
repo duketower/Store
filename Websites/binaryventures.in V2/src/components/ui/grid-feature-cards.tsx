@@ -28,7 +28,7 @@ export function FeatureCard({
   className,
   ...props
 }: FeatureCardProps) {
-  const p = genRandomPattern();
+  const p = genDeterministicPattern(feature.title);
 
   return (
     <div className={cn("relative overflow-hidden p-6", className)} {...props}>
@@ -95,12 +95,31 @@ function GridPattern({
   );
 }
 
-function genRandomPattern(length?: number): number[][] {
-  length = length ?? 5;
-  return Array.from({ length }, () => [
-    Math.floor(Math.random() * 4) + 7,
-    Math.floor(Math.random() * 6) + 1,
-  ]);
+function genDeterministicPattern(seed: string, length = 5): number[][] {
+  let state = hashString(seed);
+
+  return Array.from({ length }, () => {
+    state = nextSeed(state);
+    const x = (state % 4) + 7;
+    state = nextSeed(state);
+    const y = (state % 6) + 1;
+    return [x, y];
+  });
+}
+
+function hashString(value: string) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function nextSeed(seed: number) {
+  return (Math.imul(seed, 1664525) + 1013904223) >>> 0;
 }
 
 const features: FeatureType[] = [
