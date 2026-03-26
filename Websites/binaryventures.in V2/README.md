@@ -26,12 +26,15 @@ Move from strategy-only planning into V2 implementation without inheriting the o
 - shared navigation and contact details now live in `src/content/site.ts`
 - service definitions, pricing anchors, and engagement models now live in `src/content/services.ts`
 - about page content now lives in `src/content/about.ts`
+- contact page content now lives in `src/content/contact.ts`
 - the first real secondary route is now live at `src/app/work/page.tsx`
 - the second real secondary route is now live at `src/app/services/page.tsx`
 - the third real secondary route is now live at `src/app/about/page.tsx`
+- the fourth real secondary route is now live at `src/app/contact/page.tsx`
 - the Work page composition and content live in `src/components/work/work-page.tsx` and `src/content/work.ts`
 - the Services page composition lives in `src/components/services/services-page.tsx`
 - the About page composition lives in `src/components/about/about-page.tsx`
+- the Contact page composition lives in `src/components/contact/contact-page.tsx`
 - a reusable site footer is available in `src/components/site/site-footer.tsx`
 - the first integrated shared component is `src/components/ui/header-3.tsx`
 - the homepage hero prototype is integrated in `src/components/ui/hero-section-1.tsx`

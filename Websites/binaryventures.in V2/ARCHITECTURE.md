@@ -72,6 +72,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 
 - reduce friction
 - route serious enquiries to email or a call
+- now implemented as a real route at `src/app/contact/page.tsx`
 
 ## Implementation Structure
 
@@ -101,6 +102,7 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/work/work-page.tsx` is the first real secondary page assembly, powered by `src/content/work.ts`
 - `src/components/services/services-page.tsx` is the Services page assembly, powered by `src/content/services.ts`
 - `src/components/about/about-page.tsx` is the About page assembly, powered by `src/content/about.ts`
+- `src/components/contact/contact-page.tsx` is the Contact page assembly, powered by `src/content/contact.ts`
 - `src/components/ui/ai-models-preview.tsx` now reads from the shared services content model so homepage preview content stays aligned with the full Services page
 - the V2 palette and semantic token setup continue to live in `src/app/globals.css`; imported components are adapted to that system rather than replacing it
 
