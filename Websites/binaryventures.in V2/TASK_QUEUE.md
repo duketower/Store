@@ -20,12 +20,14 @@
 - normalize the secondary page mobile spacing after the shared header fix
 - convert the service pillars detail modal into a mobile-safe scrollable sheet
 - save a detailed Adelaide SEO strategy report into project docs
+- save a detailed service expansion strategy based on the reference website shortlist
 
 ## Next
 
 - define the final visual system for bold premium tech using the integrated section set
 - decide whether to refine or replace any integrated homepage components after visual review
 - implement the site-side Adelaide SEO foundations after strategy approval
+- decide whether to add the supporting setup services as a secondary Services-page section or implement them directly into the current content model
 
 ## Done
 
@@ -56,3 +58,4 @@
 - fixed the service pillars detail overlay so it scrolls cleanly on mobile without clipping behind the header
 - ignored generated Firebase cache artifacts to keep the V2 workspace clean after deploys
 - created and saved a detailed Adelaide SEO strategy report with official Google source references
+- created and saved a detailed service expansion strategy for adding adjacent services without breaking the current visual system
