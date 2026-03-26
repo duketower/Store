@@ -22,6 +22,19 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
   const formatPrice = (n?: number) =>
     typeof n === "number" ? `From $${n.toLocaleString()}` : "Custom scope";
 
+  React.useEffect(() => {
+    if (!selected) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selected]);
+
   const Badge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <span className="inline-flex items-center rounded-md bg-muted/70 px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border/80">
       {children}
@@ -76,7 +89,7 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
       <AnimatePresence>
         {selected && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 px-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 px-4 py-24 backdrop-blur-sm sm:items-center sm:py-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -87,18 +100,18 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 50 }}
               transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className="relative w-full max-w-2xl rounded-2xl border border-border/80 bg-card p-6 text-card-foreground shadow-lg shadow-primary/10"
+              className="relative my-auto max-h-[calc(100svh-8rem)] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] border border-border/80 bg-card p-5 text-card-foreground shadow-lg shadow-primary/10 overscroll-contain sm:max-h-[min(90vh,48rem)] sm:p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="absolute right-4 top-4 rounded-md bg-muted px-2 py-1 text-sm hover:bg-muted-foreground/20"
+                className="absolute right-4 top-4 z-10 rounded-full border border-border/80 bg-background/90 px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted"
                 onClick={() => setSelected(null)}
               >
-                Close x
+                Close
               </button>
 
-              <h3 className="mb-2 text-xl font-semibold">{selected.name}</h3>
-              <p className="mb-4 text-sm leading-6 text-muted-foreground">
+              <h3 className="mb-2 pr-20 text-xl font-semibold">{selected.name}</h3>
+              <p className="mb-4 pr-8 text-sm leading-6 text-muted-foreground">
                 {selected.description}
               </p>
 
@@ -158,14 +171,14 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
               <div className="mt-4 text-sm">
                 <h4 className="mb-2 font-medium">What This Usually Includes</h4>
                 <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <span className="w-32 shrink-0 text-muted-foreground">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                    <span className="shrink-0 text-muted-foreground sm:w-32">
                       includes:
                     </span>
                     <span>{selected.meta.includes}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <span className="w-32 shrink-0 text-muted-foreground">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                    <span className="shrink-0 text-muted-foreground sm:w-32">
                       best for:
                     </span>
                     <span>{selected.meta.bestFor}</span>
