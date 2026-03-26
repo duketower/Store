@@ -87,6 +87,8 @@ This workspace has moved from strategy-only into early implementation. The curre
 - `src/components/ui/animated-group.tsx` and `src/components/ui/text-effect.tsx` provide reusable motion helpers for hero and marketing sections
 - `src/components/ui/testimonials-columns-1.tsx` currently serves as the homepage proof strip using anonymized outcome cards rather than named client testimonials
 - `src/components/ui/section-with-mockup.tsx` currently serves as the homepage positioning block for explaining the end-to-end setup model
+- `src/components/ui/ai-models-preview.tsx` currently serves as the homepage services preview block using adapted service cards and a detail modal
+- the V2 palette and semantic token setup continue to live in `src/app/globals.css`; imported components are adapted to that system rather than replacing it
 
 ## Implementation Constraints
 

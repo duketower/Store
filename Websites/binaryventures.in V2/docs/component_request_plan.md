@@ -31,7 +31,9 @@ Current status:
 - the first proof preview block is integrated in code as `testimonials-columns-1.tsx`
 - the proof block has been adapted into anonymized outcome cards to stay aligned with the no-client-name rule
 - the positioning section is integrated in code as `section-with-mockup.tsx`
-- the next step is to choose the section that follows the positioning block on the real homepage
+- the services preview section is integrated in code as `ai-models-preview.tsx`
+- the services block has been adapted from a generic preview-card component into Binary Ventures service pillars with modal details
+- the next step is to choose the section that follows the services block on the real homepage
 
 ### Work
 

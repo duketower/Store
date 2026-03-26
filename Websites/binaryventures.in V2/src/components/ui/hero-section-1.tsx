@@ -6,6 +6,7 @@ import { ArrowRight, ChevronRight, Menu, X } from "lucide-react";
 import type { Variants } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
+import { ServicesPreviewSection } from "@/components/ui/ai-models-preview";
 import { AnimatedGroup } from "@/components/ui/animated-group";
 import { ProofColumnsSection } from "@/components/ui/testimonials-columns-1";
 import SectionWithMockup from "@/components/ui/section-with-mockup";
@@ -253,6 +254,7 @@ export function HeroSection() {
           secondaryImageSrc="https://images.unsplash.com/photo-1497366412874-3415097a27e7?auto=format&fit=crop&w=1400&q=80"
           reverseLayout
         />
+        <ServicesPreviewSection />
       </main>
     </>
   );
