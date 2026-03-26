@@ -7,12 +7,11 @@
 - review and refine the integrated homepage hero content against the final visual direction
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - add visual assets to the Work page case studies later
-- build the Services page around four main categories, with maintenance framed as post-launch support
 
 ## Next
 
 - define the final visual system for bold premium tech using the integrated section set
-- build the real page shells for `Services`, `About`, and `Contact`
+- build the real page shells for `About` and `Contact`
 - decide whether to refine or replace any integrated homepage components after visual review
 
 ## Done
@@ -33,3 +32,4 @@
 - integrated and verified the homepage final CTA section
 - defined the first public pricing anchors and contact email
 - built and verified the first real secondary page at `/work`
+- built and verified the real `/services` page with synced pricing and engagement models
