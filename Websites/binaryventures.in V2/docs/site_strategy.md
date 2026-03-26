@@ -130,4 +130,4 @@ Show operating style, standards, and founder-led trust.
 
 Low-friction, serious-enquiry focused.
 
-The Contact page can later include dual-location details for India and Adelaide when the final public contact information is confirmed.
+The Contact page should include public phone numbers and address details for both India and Adelaide once the final public contact information is confirmed.

@@ -358,7 +358,7 @@ Book a Call
 Email Us at `connect@binaryventures.in`
 
 **Option 3**
-Location and phone details for India and Adelaide can be shown on the Contact page if desired.
+Show public phone numbers and address details for both India and Adelaide on the Contact page.
 
 ### Contact Qualifier Copy
 
