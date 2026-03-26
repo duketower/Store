@@ -48,6 +48,20 @@ export function ServicesPage() {
               >
                 <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
                 <p className="mt-3 text-xl font-semibold text-foreground">{item.value}</p>
+                <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                  {item.summary}
+                </p>
+                <ul className="mt-5 space-y-2">
+                  {item.includes.map((detail) => (
+                    <li
+                      key={detail}
+                      className="flex gap-2 text-sm leading-6 text-foreground/80"
+                    >
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground/35" />
+                      <span>{detail}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>

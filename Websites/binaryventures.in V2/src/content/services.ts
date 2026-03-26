@@ -24,6 +24,13 @@ export type ServiceOffer = {
   };
 };
 
+export type PricingAnchor = {
+  label: string;
+  value: string;
+  summary: string;
+  includes: string[];
+};
+
 export const serviceOffers: ServiceOffer[] = [
   {
     id: "websites",
@@ -188,11 +195,51 @@ export const engagementModels = [
   },
 ];
 
-export const pricingAnchors = [
-  { label: "Business Websites", value: "From $500" },
-  { label: "Custom Web Apps", value: "From $1,500+" },
-  { label: "Bots & Automation", value: "From $750+" },
-  { label: "Maintenance & Support", value: "From $150/mo" },
+export const pricingAnchors: PricingAnchor[] = [
+  {
+    label: "Business Websites",
+    value: "From $500",
+    summary:
+      "For stronger presentation, clearer communication, and better enquiry quality.",
+    includes: [
+      "page structure and service hierarchy",
+      "contact and enquiry routing",
+      "responsive implementation",
+    ],
+  },
+  {
+    label: "Custom Web Apps",
+    value: "From $1,500+",
+    summary:
+      "For dashboards, reporting systems, portals, and operational software shaped around real workflows.",
+    includes: [
+      "role-aware dashboards",
+      "workflow-specific logic",
+      "reporting and operations views",
+    ],
+  },
+  {
+    label: "Bots & Automation",
+    value: "From $750+",
+    summary:
+      "For notifications, reporting flows, lead handling, and repeated business tasks that need cleaner execution.",
+    includes: [
+      "notification or Telegram bots",
+      "automation triggers and routing",
+      "workflow integrations",
+    ],
+  },
+  {
+    label: "Maintenance & Support",
+    value: "From $150/mo",
+    summary:
+      "For updates, fixes, refinement, and continuity after launch without turning support into the main product.",
+    includes: [
+      "content and technical updates",
+      "small system refinements",
+      "ongoing continuity support",
+    ],
+  },
 ];
 
 export const servicesIntro = {
