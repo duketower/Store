@@ -17,6 +17,7 @@
 - enrich the simple pricing cards with the useful detail from the reverted pricing experiment
 - align pricing card bullet lists after visual review
 - tighten the homepage mobile header and hero spacing after live device review
+- normalize the secondary page mobile spacing after the shared header fix
 
 ## Next
 
@@ -48,4 +49,5 @@
 - fixed the homepage hydration mismatch caused by random decorative grid patterns
 - refined the shared CTA button styling after homepage visual review
 - improved the mobile header offset and hero responsiveness without changing the desktop structure
+- aligned the secondary page mobile hero spacing and CTA button behavior with the shared header changes
 - ignored generated Firebase cache artifacts to keep the V2 workspace clean after deploys

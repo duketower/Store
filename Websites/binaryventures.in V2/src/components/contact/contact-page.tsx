@@ -16,7 +16,7 @@ export function ContactPage() {
     <>
       <SiteHeader />
       <main className="bg-background">
-        <section className="relative overflow-hidden px-6 pb-20 pt-32 md:pb-28 md:pt-40">
+        <section className="relative overflow-hidden px-6 pb-20 pt-10 sm:pt-12 md:pb-28 md:pt-40">
           <div
             aria-hidden
             className="absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(55%_55%_at_50%_0%,rgba(43,200,183,0.12),transparent_70%)]"
@@ -51,11 +51,16 @@ export function ContactPage() {
                 </p>
                 <div className="mt-8">
                   {option.variant === "primary" ? (
-                    <Button asChild size="lg" className="rounded-full px-8">
+                    <Button asChild size="lg" className="w-full rounded-full px-8 sm:w-auto">
                       <Link href={option.actionHref}>{option.actionLabel}</Link>
                     </Button>
                   ) : (
-                    <Button asChild size="lg" variant="outline" className="rounded-full px-8">
+                    <Button
+                      asChild
+                      size="lg"
+                      variant="outline"
+                      className="w-full rounded-full px-8 sm:w-auto"
+                    >
                       <a href={option.actionHref}>{option.actionLabel}</a>
                     </Button>
                   )}
@@ -150,10 +155,15 @@ export function ContactPage() {
               </h2>
             </div>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="rounded-full px-8">
+              <Button asChild size="lg" className="w-full rounded-full px-8 sm:w-auto">
                 <a href={`mailto:${publicContact.email}`}>{publicContact.email}</a>
               </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-full px-8">
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="w-full rounded-full px-8 sm:w-auto"
+              >
                 <Link href="/services">View Services</Link>
               </Button>
             </div>
