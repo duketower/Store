@@ -23,6 +23,36 @@ import {
 import { markOutboxFailed, markOutboxSyncing } from '@/db/queries/outbox'
 import { toFiniteNumber } from '@/utils/numbers'
 
+const MAX_OUTBOX_RETRIES = 10
+const OUTBOX_BASE_BACKOFF_MS = 5_000
+const OUTBOX_MAX_BACKOFF_MS = 5 * 60_000
+const STALE_SYNC_WINDOW_MS = 30_000
+
+let flushInFlight: Promise<void> | null = null
+
+function getRetryDelayMs(retryCount: number): number {
+  if (retryCount <= 0) return 0
+  return Math.min(OUTBOX_MAX_BACKOFF_MS, OUTBOX_BASE_BACKOFF_MS * 2 ** Math.max(0, retryCount - 1))
+}
+
+function isRetryableEntry(
+  entry: { status: string; retryCount: number; lastAttemptAt?: Date; createdAt: Date },
+  nowMs: number
+): boolean {
+  if (entry.status === 'pending') return true
+
+  if (entry.status === 'syncing') {
+    if (!entry.lastAttemptAt) return true
+    return nowMs - new Date(entry.lastAttemptAt).getTime() >= STALE_SYNC_WINDOW_MS
+  }
+
+  if (entry.status !== 'failed') return false
+  if (entry.retryCount >= MAX_OUTBOX_RETRIES) return false
+  if (!entry.lastAttemptAt) return true
+
+  return nowMs - new Date(entry.lastAttemptAt).getTime() >= getRetryDelayMs(entry.retryCount)
+}
+
 async function rebuildLegacySalePayload(
   data: Record<string, unknown>,
   fallbackCreatedAt: Date
@@ -109,93 +139,98 @@ async function rebuildLegacySalePayload(
  * syncSaleToFirestore uses setDoc (idempotent) — safe to retry.
  */
 export async function flushOutbox(): Promise<void> {
-  const pending = await db.outbox.orderBy('createdAt').toArray()
-  if (pending.length === 0) return
+  if (flushInFlight) return flushInFlight
 
-  console.log(`[Outbox] Flushing ${pending.length} pending entries…`)
+  flushInFlight = (async () => {
+    const nowMs = Date.now()
+    const entries = await db.outbox.orderBy('createdAt').toArray()
+    const pending = entries.filter((entry) => isRetryableEntry(entry, nowMs))
+    if (pending.length === 0) return
 
-  for (const entry of pending) {
-    if (!entry.id) continue
+    console.log(`[Outbox] Flushing ${pending.length} retryable entries…`)
 
-    if (entry.action === 'update_product_stock' || entry.action === 'upsert_product') {
-      try {
-        await markOutboxSyncing(entry.id)
-        const data = JSON.parse(entry.payload)
-        await syncProductToFirestore({
-          ...data,
-          ...(data.createdAt ? { createdAt: new Date(data.createdAt) } : {}),
-          ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
-        })
-        await db.outbox.delete(entry.id!)
-      } catch (error) {
-        await markOutboxFailed(entry.id, error)
+    for (const entry of pending) {
+      if (!entry.id) continue
+
+      if (entry.action === 'update_product_stock' || entry.action === 'upsert_product') {
+        try {
+          await markOutboxSyncing(entry.id)
+          const data = JSON.parse(entry.payload)
+          await syncProductToFirestore({
+            ...data,
+            ...(data.createdAt ? { createdAt: new Date(data.createdAt) } : {}),
+            ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
+          })
+          await db.outbox.delete(entry.id!)
+        } catch (error) {
+          await markOutboxFailed(entry.id, error)
+        }
+        continue
       }
-      continue
-    }
 
-    if (entry.action === 'upsert_customer') {
-      try {
-        await markOutboxSyncing(entry.id)
-        const data = JSON.parse(entry.payload)
-        await syncCustomerToFirestore({
-          ...data,
-          createdAt: new Date(data.createdAt),
-          updatedAt: new Date(data.updatedAt),
-        })
-        await db.outbox.delete(entry.id!)
-      } catch (error) {
-        await markOutboxFailed(entry.id, error)
+      if (entry.action === 'upsert_customer') {
+        try {
+          await markOutboxSyncing(entry.id)
+          const data = JSON.parse(entry.payload)
+          await syncCustomerToFirestore({
+            ...data,
+            createdAt: new Date(data.createdAt),
+            updatedAt: new Date(data.updatedAt),
+          })
+          await db.outbox.delete(entry.id!)
+        } catch (error) {
+          await markOutboxFailed(entry.id, error)
+        }
+        continue
       }
-      continue
-    }
 
-    if (entry.action === 'upsert_employee') {
-      try {
-        await markOutboxSyncing(entry.id)
-        const data = JSON.parse(entry.payload)
-        await syncEmployeeToFirestore({
-          ...data,
-          createdAt: new Date(data.createdAt),
-          ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
-        })
-        await db.outbox.delete(entry.id!)
-      } catch (error) {
-        await markOutboxFailed(entry.id, error)
+      if (entry.action === 'upsert_employee') {
+        try {
+          await markOutboxSyncing(entry.id)
+          const data = JSON.parse(entry.payload)
+          await syncEmployeeToFirestore({
+            ...data,
+            createdAt: new Date(data.createdAt),
+            ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
+          })
+          await db.outbox.delete(entry.id!)
+        } catch (error) {
+          await markOutboxFailed(entry.id, error)
+        }
+        continue
       }
-      continue
-    }
 
-    if (entry.action === 'upsert_vendor') {
-      try {
-        await markOutboxSyncing(entry.id)
-        const data = JSON.parse(entry.payload)
-        await syncVendorToFirestore({
-          ...data,
-          createdAt: new Date(data.createdAt),
-          updatedAt: new Date(data.updatedAt),
-        })
-        await db.outbox.delete(entry.id!)
-      } catch (error) {
-        await markOutboxFailed(entry.id, error)
+      if (entry.action === 'upsert_vendor') {
+        try {
+          await markOutboxSyncing(entry.id)
+          const data = JSON.parse(entry.payload)
+          await syncVendorToFirestore({
+            ...data,
+            createdAt: new Date(data.createdAt),
+            updatedAt: new Date(data.updatedAt),
+          })
+          await db.outbox.delete(entry.id!)
+        } catch (error) {
+          await markOutboxFailed(entry.id, error)
+        }
+        continue
       }
-      continue
-    }
 
-    if (entry.action === 'upsert_external_staff') {
-      try {
-        await markOutboxSyncing(entry.id)
-        const data = JSON.parse(entry.payload)
-        await syncExternalStaffToFirestore({
-          ...data,
-          createdAt: new Date(data.createdAt),
-          ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
-        })
-        await db.outbox.delete(entry.id!)
-      } catch (error) {
-        await markOutboxFailed(entry.id, error)
+      if (entry.action === 'upsert_external_staff') {
+        try {
+          await markOutboxSyncing(entry.id)
+          const data = JSON.parse(entry.payload)
+          await syncExternalStaffToFirestore({
+            ...data,
+            createdAt: new Date(data.createdAt),
+            ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
+          })
+          await db.outbox.delete(entry.id!)
+        } catch (error) {
+          await markOutboxFailed(entry.id, error)
+        }
+        continue
       }
-      continue
-    }
 
     if (entry.action === 'upsert_attendance_log') {
       try {
@@ -477,7 +512,12 @@ export async function flushOutbox(): Promise<void> {
     } catch (error) {
       await markOutboxFailed(entry.id, error)
     }
-  }
+    }
+  })().finally(() => {
+    flushInFlight = null
+  })
+
+  return flushInFlight
 }
 
 export async function getPendingCount(): Promise<number> {

@@ -9,7 +9,8 @@ export async function createGrn(grn: Omit<Grn, 'id'> & { id?: number }): Promise
 }
 
 export async function getAllGrns(): Promise<Grn[]> {
-  return db.grns.orderBy('id').reverse().toArray()
+  const entries = await db.grns.toArray()
+  return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 }
 
 export async function getGrnBatches(grnId: number): Promise<Array<Batch & { productName: string }>> {

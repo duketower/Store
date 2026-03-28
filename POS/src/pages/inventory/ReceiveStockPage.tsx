@@ -81,6 +81,10 @@ export function ReceiveStockPage() {
         addToast('error', `Expiry date required for ${line.product.name}`)
         return
       }
+      if (line.purchasePrice <= 0) {
+        addToast('error', `Purchase price must be greater than 0 for ${line.product.name}`)
+        return
+      }
       if (line.qty <= 0) {
         addToast('error', `Qty must be > 0 for ${line.product.name}`)
         return

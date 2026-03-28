@@ -378,7 +378,10 @@ export async function processReturn(
       } else {
         const batches = await db.batches.where('productId').equals(item.productId).toArray()
         if (batches.length > 0) {
-          const latest = batches.sort((a, b) => (b.id ?? 0) - (a.id ?? 0))[0]
+          const latest = batches.sort(
+            (a, b) =>
+              (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0) || (b.id ?? 0) - (a.id ?? 0)
+          )[0]
           await db.batches.where('id').equals(latest.id!).modify((b) => {
             b.qtyRemaining = toFiniteNumber(b.qtyRemaining) + item.qty
           })

@@ -189,6 +189,45 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
   const cashAmount = parseAmount(cashReceived)
   const cashReturn = cashAmount - grandTotal
 
+  const validateCreditCustomer = useCallback(
+    async (creditAmount: number): Promise<Customer | null> => {
+      if (creditAmount <= 0) return selectedCustomer
+      if (!selectedCustomer?.id) {
+        setCreditError('Select a customer for the credit portion')
+        return null
+      }
+
+      const latestCustomer = await getCustomerById(selectedCustomer.id)
+      if (!latestCustomer) {
+        setCreditError('Selected customer is no longer available')
+        setSelectedCustomerLocal(null)
+        return null
+      }
+
+      setSelectedCustomerLocal(latestCustomer)
+
+      if (!latestCustomer.creditApproved) {
+        setCreditError(`Credit not enabled for ${latestCustomer.name}. Go to Customers page to request.`)
+        return null
+      }
+
+      const currentBalance = toFiniteNumber(latestCustomer.currentBalance)
+      const creditLimit = toFiniteNumber(latestCustomer.creditLimit)
+      const nextBalance = currentBalance + creditAmount
+
+      if (nextBalance > creditLimit) {
+        setCreditError(
+          `Limit exceeded. Limit: ${formatCurrency(creditLimit)}, Would be: ${formatCurrency(nextBalance)}`
+        )
+        return null
+      }
+
+      setCreditError('')
+      return latestCustomer
+    },
+    [selectedCustomer]
+  )
+
   // Complete handlers
   const complete = async (payments: PaymentEntry[], change = 0, customerId?: number) => {
     if (completing) return
@@ -216,36 +255,31 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
     complete([{ method: 'card', amount: grandTotal, referenceNo: cardRef || undefined }], 0, selectedCustomer?.id)
   }
 
-  const handleCredit = () => {
-    if (!selectedCustomer) return
-    if (!selectedCustomer.creditApproved) {
-      setCreditError(`Credit not enabled for ${selectedCustomer.name}. Go to Customers page to request.`)
-      return
-    }
-    const currentBalance = toFiniteNumber(selectedCustomer.currentBalance)
-    const newBalance = currentBalance + grandTotal
-    if (newBalance > selectedCustomer.creditLimit) {
-      setCreditError(`Limit exceeded. Limit: ${formatCurrency(selectedCustomer.creditLimit)}, Would be: ${formatCurrency(newBalance)}`)
-      return
-    }
-    complete([{ method: 'credit', amount: grandTotal, customerId: selectedCustomer.id }], 0, selectedCustomer.id)
+  const handleCredit = async () => {
+    const latestCustomer = await validateCreditCustomer(grandTotal)
+    if (!latestCustomer?.id) return
+    complete([{ method: 'credit', amount: grandTotal, customerId: latestCustomer.id }], 0, latestCustomer.id)
   }
 
   // Split
   const splitTotal = (Object.values(splitAmounts) as string[]).reduce((s, v) => s + parseAmount(v), 0)
   const splitRemaining = grandTotal - splitTotal
 
-  const handleSplit = () => {
+  const handleSplit = async () => {
+    const creditAmount = parseAmount(splitAmounts.credit)
+    const latestCustomer = creditAmount > 0 ? await validateCreditCustomer(creditAmount) : selectedCustomer
+    if (creditAmount > 0 && !latestCustomer?.id) return
+
     const payments: PaymentEntry[] = []
     for (const [method, value] of Object.entries(splitAmounts)) {
       const amount = parseAmount(value)
       if (amount > 0) {
         const entry: PaymentEntry = { method: method as PaymentMethod, amount }
-        if (method === 'credit' && selectedCustomer) entry.customerId = selectedCustomer.id
+        if (method === 'credit' && latestCustomer?.id) entry.customerId = latestCustomer.id
         payments.push(entry)
       }
     }
-    complete(payments, 0, selectedCustomer?.id)
+    complete(payments, 0, latestCustomer?.id ?? selectedCustomer?.id)
   }
 
   // Hold bill

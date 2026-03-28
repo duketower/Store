@@ -27,7 +27,7 @@ export async function createRtvTransaction(
         b.qtyRemaining = Math.max(0, toFiniteNumber(b.qtyRemaining) - item.qty)
       })
       await db.products.where('id').equals(item.productId).modify((p) => {
-        p.stock = Math.max(0, p.stock - item.qty)
+        p.stock = toFiniteNumber(p.stock) - item.qty
         p.updatedAt = createdAt
       })
     }
@@ -63,7 +63,8 @@ export async function createRtvTransaction(
 }
 
 export async function getAllRtvs(): Promise<RtvSession[]> {
-  return db.rtvs.orderBy('id').reverse().toArray()
+  const entries = await db.rtvs.toArray()
+  return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 }
 
 export async function getRtvItems(rtvId: number): Promise<Array<RtvItem & { productName: string }>> {

@@ -10,7 +10,6 @@ function buildEmployeeSyncPayload(employee: Employee, id: number) {
     name: employee.name,
     role: employee.role,
     pinHash: employee.pinHash,
-    passwordHash: employee.passwordHash,
     isActive: employee.isActive,
     monthlyLeaveAllotment: employee.monthlyLeaveAllotment ?? 3,
     createdAt: employee.createdAt,

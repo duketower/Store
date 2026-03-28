@@ -687,7 +687,6 @@ function startEmployeeListener(): () => void {
             name: data.name,
             role: data.role,
             ...(data.pinHash !== undefined && { pinHash: data.pinHash }),
-            ...(data.passwordHash !== undefined && { passwordHash: data.passwordHash }),
             isActive: Boolean(data.isActive),
             createdAt: tsToDate(data.createdAt ?? new Date()),
             ...(data.updatedAt ? { updatedAt: tsToDate(data.updatedAt) } : {}),

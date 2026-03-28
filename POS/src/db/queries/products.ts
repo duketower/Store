@@ -75,7 +75,7 @@ export async function updateStock(productId: number, delta: number): Promise<voi
     .where('id')
     .equals(productId)
     .modify((product) => {
-      product.stock = Math.max(0, product.stock + delta)
+      product.stock = product.stock + delta
       product.updatedAt = new Date()
     })
 }
@@ -119,7 +119,7 @@ export async function adjustStock(
   const product = await db.products.get(productId)
   if (!product) throw new Error('Product not found')
   const before = product.stock
-  const after = Math.max(0, before + delta)
+  const after = before + delta
   const now = new Date()
   const saved: Product = {
     ...product,

@@ -6,9 +6,15 @@ export function createSyncId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-let entityCounter = 0
-
 export function createEntityId(): number {
-  entityCounter = (entityCounter + 1) % 1000
-  return Date.now() * 1000 + entityCounter
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const parts = new Uint32Array(2)
+    crypto.getRandomValues(parts)
+    const high = parts[0] & 0x1fffff
+    const low = parts[1]
+    const nextId = high * 0x100000000 + low
+    return nextId === 0 ? 1 : nextId
+  }
+
+  return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) || Date.now()
 }

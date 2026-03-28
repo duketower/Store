@@ -37,16 +37,19 @@ async function queueCustomerSync(customer: Customer, id: number, createdAt: Date
 }
 
 async function syncCustomerSnapshot(customerId: number, mutate: (customer: Customer, now: Date) => Customer): Promise<void> {
-  const existing = await db.customers.get(customerId)
-  if (!existing) throw new Error('Customer not found')
   const now = new Date()
-  const nextCustomer = mutate(existing, now)
+  let nextCustomer: Customer | null = null
 
   await db.transaction('rw', [db.customers, db.outbox], async () => {
+    const existing = await db.customers.get(customerId)
+    if (!existing) throw new Error('Customer not found')
+    nextCustomer = mutate(existing, now)
+    if (!nextCustomer) throw new Error('Customer update failed')
     await db.customers.put(nextCustomer)
     await queueCustomerSync(nextCustomer, customerId, now)
   })
 
+  if (!nextCustomer) throw new Error('Customer update failed')
   syncCustomerToFirestore(buildCustomerSyncPayload(nextCustomer, customerId)).catch((err: unknown) =>
     console.warn('[Firestore] customer sync failed (will retry):', err)
   )

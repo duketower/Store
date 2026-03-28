@@ -3,7 +3,7 @@
  * Pushes data to Firestore after local IndexedDB writes.
  * Never throws — a sync failure must never break the local POS flow.
  */
-import { deleteDoc, doc, increment, runTransaction, setDoc, Timestamp } from 'firebase/firestore'
+import { deleteDoc, deleteField, doc, increment, runTransaction, setDoc, Timestamp } from 'firebase/firestore'
 import { firestore } from '.'
 import type {
   BatchAllocation,
@@ -93,14 +93,10 @@ export async function syncSaleToFirestore(payload: SaleSyncPayload): Promise<voi
       )
 
       for (const allocation of stockDelta.batchAllocations) {
-        const batchRef = doc(firestore, 'batches', String(allocation.batchId))
-        const batchSnapshot = await txn.get(batchRef)
-        const currentQty = toFiniteNumber(batchSnapshot.data()?.qtyRemaining)
-
         txn.set(
-          batchRef,
+          doc(firestore, 'batches', String(allocation.batchId)),
           {
-            qtyRemaining: Math.max(0, currentQty - allocation.qty),
+            qtyRemaining: increment(-allocation.qty),
             updatedAt: Timestamp.now(),
           },
           { merge: true }
@@ -448,7 +444,15 @@ export async function syncEmployeeToFirestore(employee: Employee & { id: number 
     await setDoc(
       doc(firestore, 'employees', String(employee.id)),
       {
-        ...employee,
+        id: employee.id,
+        name: employee.name,
+        role: employee.role,
+        ...(employee.pinHash !== undefined ? { pinHash: employee.pinHash } : { pinHash: deleteField() }),
+        passwordHash: deleteField(),
+        isActive: employee.isActive,
+        ...(employee.monthlyLeaveAllotment !== undefined
+          ? { monthlyLeaveAllotment: employee.monthlyLeaveAllotment }
+          : {}),
         createdAt: toTimestamp(employee.createdAt),
         ...(employee.updatedAt ? { updatedAt: toTimestamp(employee.updatedAt) } : { updatedAt: Timestamp.now() }),
       },
@@ -564,6 +568,7 @@ export async function syncGrnToFirestore(payload: GrnSyncPayload): Promise<void>
           mfgDate: batch.mfgDate ? toTimestamp(batch.mfgDate) : null,
           expiryDate: toTimestamp(batch.expiryDate),
           createdAt: toTimestamp(batch.createdAt),
+          qtyRemaining: increment(batch.qtyRemaining),
           updatedAt: Timestamp.now(),
         },
         { merge: true }
@@ -614,14 +619,10 @@ export async function syncRtvToFirestore(payload: RtvSyncPayload): Promise<void>
         { merge: true }
       )
 
-      const batchRef = doc(firestore, 'batches', String(item.batchId))
-      const batchSnapshot = await txn.get(batchRef)
-      const currentQty = toFiniteNumber(batchSnapshot.data()?.qtyRemaining)
-
       txn.set(
-        batchRef,
+        doc(firestore, 'batches', String(item.batchId)),
         {
-          qtyRemaining: Math.max(0, currentQty - item.qty),
+          qtyRemaining: increment(-item.qty),
           updatedAt: Timestamp.now(),
         },
         { merge: true }

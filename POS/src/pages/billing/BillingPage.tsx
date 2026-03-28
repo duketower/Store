@@ -7,8 +7,11 @@ import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { getProductByBarcode } from '@/db/queries/products'
 import { createSaleTransaction, getSaleWithItems } from '@/db/queries/sales'
+import { getCustomerById } from '@/db/queries/customers'
 import { getBatchesFEFO } from '@/db/queries/batches'
 import { generateBillNumber } from '@/utils/billNumber'
+import { formatCurrency } from '@/utils/currency'
+import { toFiniteNumber } from '@/utils/numbers'
 import type { Product } from '@/types'
 import { BarcodeInput } from './components/BarcodeInput'
 import { ProductSearch } from './components/ProductSearch'
@@ -86,6 +89,34 @@ export function BillingPage() {
     setSaleSubmitting(true)
     try {
       const billNo = await generateBillNumber()
+      const creditAmount = payments
+        .filter((payment) => payment.method === 'credit')
+        .reduce((sum, payment) => sum + payment.amount, 0)
+
+      if (creditAmount > 0) {
+        if (!customerId) {
+          throw new Error('Select a customer for the credit portion of the bill')
+        }
+
+        const latestCustomer = await getCustomerById(customerId)
+        if (!latestCustomer) {
+          throw new Error('Selected customer is no longer available')
+        }
+        if (!latestCustomer.creditApproved) {
+          throw new Error(`Credit not enabled for ${latestCustomer.name}`)
+        }
+
+        const currentBalance = toFiniteNumber(latestCustomer.currentBalance)
+        const creditLimit = toFiniteNumber(latestCustomer.creditLimit)
+        const nextBalance = currentBalance + creditAmount
+
+        if (nextBalance > creditLimit) {
+          throw new Error(
+            `Credit limit exceeded. Limit: ${formatCurrency(creditLimit)}, would be: ${formatCurrency(nextBalance)}`
+          )
+        }
+      }
+
       const saleId = await createSaleTransaction({
         billNo,
         cashierId: employeeId,
