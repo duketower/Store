@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Save, RotateCcw, DatabaseZap, AlertTriangle, Info, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -13,7 +14,7 @@ import { flushOutbox } from '@/services/sync/outbox'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import { ROUTES } from '@/constants/routes'
 import { formatDate } from '@/utils/date'
-import type { OutboxEntry, StoreConfig } from '@/types'
+import type { StoreConfig } from '@/types'
 
 export function SettingsPage() {
   const { addToast } = useUiStore()
@@ -21,6 +22,7 @@ export function SettingsPage() {
   const [form, setForm] = useState<StoreConfig>(loadStoreConfig)
   const [saved, setSaved] = useState(false)
   const [storeLoading, setStoreLoading] = useState(true)
+  const [storeDirty, setStoreDirty] = useState(false)
   const [targetForm, setTargetForm] = useState({
     monthlySalesTarget: '0',
     monthlyBreakEvenTarget: '0',
@@ -28,70 +30,43 @@ export function SettingsPage() {
   const [targetsLoading, setTargetsLoading] = useState(true)
   const [targetsSaving, setTargetsSaving] = useState(false)
   const [targetsSaved, setTargetsSaved] = useState(false)
-  const [syncEntries, setSyncEntries] = useState<OutboxEntry[]>([])
-  const [syncSummary, setSyncSummary] = useState({ pending: 0, failed: 0, syncing: 0 })
+  const [targetsDirty, setTargetsDirty] = useState(false)
   const [syncRefreshing, setSyncRefreshing] = useState(false)
   const [isOnline, setIsOnline] = useState(() => window.navigator.onLine)
+  const liveStoreSettings = useLiveQuery(async () => getStoreSettings(), [])
+  const liveTargets = useLiveQuery(async () => getPerformanceTargets(), [])
+  const syncEntries = useLiveQuery(async () => listPendingOutboxEntries(), []) ?? []
+  const syncSummary = useLiveQuery(async () => getOutboxSummary(), []) ?? { pending: 0, failed: 0, syncing: 0 }
 
   useEffect(() => {
-    let active = true
-
-    getStoreSettings()
-      .then((settings) => {
-        if (!active) return
-        setForm(settings.config)
-      })
-      .finally(() => {
-        if (active) setStoreLoading(false)
-      })
-
-    getPerformanceTargets()
-      .then((targets) => {
-        if (!active) return
-        setTargetForm({
-          monthlySalesTarget: String(targets.monthlySalesTarget || 0),
-          monthlyBreakEvenTarget: String(targets.monthlyBreakEvenTarget || 0),
-        })
-      })
-      .finally(() => {
-        if (active) setTargetsLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
+    if (!liveStoreSettings) return
+    if (!storeDirty) setForm(liveStoreSettings.config)
+    setStoreLoading(false)
+  }, [liveStoreSettings, storeDirty])
 
   useEffect(() => {
-    let active = true
-
-    const refreshSyncState = async () => {
-      const [entries, summary] = await Promise.all([listPendingOutboxEntries(), getOutboxSummary()])
-      if (!active) return
-      setSyncEntries(entries)
-      setSyncSummary(summary)
+    if (!liveTargets) return
+    if (!targetsDirty) {
+      setTargetForm({
+        monthlySalesTarget: String(liveTargets.monthlySalesTarget || 0),
+        monthlyBreakEvenTarget: String(liveTargets.monthlyBreakEvenTarget || 0),
+      })
     }
+    setTargetsLoading(false)
+  }, [liveTargets, targetsDirty])
 
-    void refreshSyncState()
-    const interval = window.setInterval(() => {
-      void refreshSyncState()
-    }, 4000)
-
+  useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true)
-      void refreshSyncState()
     }
     const handleOffline = () => {
       setIsOnline(false)
-      void refreshSyncState()
     }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
     return () => {
-      active = false
-      window.clearInterval(interval)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
@@ -100,11 +75,13 @@ export function SettingsPage() {
   const set = (key: keyof StoreConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }))
     setSaved(false)
+    setStoreDirty(true)
   }
 
   const setTarget = (key: keyof typeof targetForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setTargetForm((prev) => ({ ...prev, [key]: e.target.value }))
     setTargetsSaved(false)
+    setTargetsDirty(true)
   }
 
   const canEditSharedSettings = role === 'admin'
@@ -115,6 +92,7 @@ export function SettingsPage() {
       updatedAt: new Date(),
       updatedBy: employeeId ?? undefined,
     })
+    setStoreDirty(false)
     setSaved(true)
     addToast('success', 'Settings saved')
   }
@@ -128,6 +106,7 @@ export function SettingsPage() {
       updatedAt: new Date(),
       updatedBy: employeeId ?? undefined,
     })
+    setStoreDirty(false)
     setSaved(false)
     addToast('success', 'Reset to defaults')
   }
@@ -141,6 +120,7 @@ export function SettingsPage() {
         updatedAt: new Date(),
         updatedBy: employeeId ?? undefined,
       })
+      setTargetsDirty(false)
       setTargetsSaved(true)
       addToast('success', 'Performance targets saved')
     } finally {
@@ -152,9 +132,7 @@ export function SettingsPage() {
     setSyncRefreshing(true)
     try {
       await flushOutbox()
-      const [entries, summary] = await Promise.all([listPendingOutboxEntries(), getOutboxSummary()])
-      setSyncEntries(entries)
-      setSyncSummary(summary)
+      const summary = await getOutboxSummary()
       addToast('success', summary.pending === 0 && summary.failed === 0 ? 'All pending updates synced' : 'Sync retry completed')
     } finally {
       setSyncRefreshing(false)

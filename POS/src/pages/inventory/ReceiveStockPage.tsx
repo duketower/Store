@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2, Save, Search } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
@@ -12,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { syncGrnToFirestore } from '@/services/firebase/sync'
 import { formatCurrency } from '@/utils/currency'
-import type { Batch, Grn, Product, Vendor } from '@/types'
+import type { Batch, Grn, Product } from '@/types'
 import { createEntityId, createSyncId } from '@/utils/syncIds'
 import { queueOutboxEntry } from '@/db/queries/outbox'
 
@@ -29,16 +30,12 @@ export function ReceiveStockPage() {
   const [vendorId, setVendorId] = useState<number | '' | 'other'>('')
   const [vendorFreeText, setVendorFreeText] = useState('')
   const [invoiceNo, setInvoiceNo] = useState('')
-  const [vendors, setVendors] = useState<Vendor[]>([])
   const [lines, setLines] = useState<GrnLine[]>([])
   const [saving, setSaving] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const { addToast } = useUiStore()
   const { employeeId } = useAuth()
-
-  useEffect(() => {
-    getActiveVendors().then(setVendors)
-  }, [])
+  const vendors = useLiveQuery(async () => getActiveVendors(), []) ?? []
 
   const addLine = (product: Product) => {
     // Default batch no based on date

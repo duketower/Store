@@ -11,14 +11,10 @@ Target operating model:
 - Non-billing devices must not silently diverge from the live store state.
 
 Current rollout status:
-- Phase 1 is now in progress in code: sale returns have a shared event model, retryable outbox replay, and bill-level remaining-qty protection.
-- Phase 2 is now in progress in code: product edits, stock adjustments, customer edits, and credit approval-state changes use the retryable sync path.
-- Phase 3 has started in code: vendor sync and GRN replay/listener plumbing are now present, but the wider intake module still needs full validation.
-- Phase 4 has started in code: RTV creation now follows the same replay/listener approach, but secondary-device validation is still required.
-- Phase 5 is now in progress in code: attendance logs, leave requests, and external staff use sync-backed writes/listeners, but live secondary-device validation is still required.
-- Phase 6 is now in progress in code: store settings are shared through `app_settings/store_details` with a Dexie mirror and local cache bridge for receipt code.
-- Phase 7 is now in progress in code: employee provisioning now replays through the outbox and migration keeps PIN hashes in sync, but the live auth path still needs multi-device validation.
-- The remaining roadmap phases are still required before the whole app can be called fully multi-device.
+- Phases 1 through 7 are now complete in code: shared entities, retryable outbox replay, listeners, migration paths, store settings, attendance, vendor/GRN/RTV flows, and employee provisioning all use the shared sync architecture.
+- Phase 8 is now complete in code: report screens, attendance, customers, users, settings, dashboard alerts, shift/cash-out screens, receive-stock vendor selection, and the login employee list all re-read the mirrored shared state when cross-device updates land.
+- The old static `Local Mode` badge has been replaced in code with a live sync-status indicator driven by connectivity plus the outbox state.
+- Phase 9 remains a validation and operational-readiness pass: the code paths are in place, but real-store two-device verification and outage drills are still required before calling the system “perfect” in live operations.
 
 ## Definition Of Done
 
@@ -35,32 +31,31 @@ The POS is only considered fully multi-device when all of the following are true
 
 | Module | Current State | Main Gaps |
 | --- | --- | --- |
-| Billing / Sales / Payments | Partial | Core sale replay exists, but returns are still local-only and bill-level return visibility is incomplete. |
-| Products / Stock | Partial | Product edits and stock adjustments still bypass the retry queue in some paths. |
-| Batches / FEFO | Partial | Sales now replay stock deductions, but GRN/RTV batch changes are not end-to-end queued and mirrored. |
-| Customers / Credit | Partial | Credit ledger is shared, but request/approve/decline/revoke credit flags still mutate locally only. |
-| Cash Out / Day Session | Mostly shared | Needs final parity checks around session lifecycle and historical reporting on secondary devices. |
+| Billing / Sales / Payments | Shared in code | Needs live two-device validation and outage drills. |
+| Products / Stock | Shared in code | Needs real-world validation around concurrent operational use. |
+| Batches / FEFO | Shared in code | Needs multi-device validation against GRN, sale, return, and RTV combinations. |
+| Customers / Credit | Shared in code | Needs live secondary-device verification for approvals, collections, and ledger parity. |
+| Cash Out / Day Session | Shared in code | Needs final operational validation during an actual shift. |
 | Expenses / Dashboard Targets | Shared | Keep as baseline. |
-| Vendors | Local only | Vendor CRUD is Dexie-only. |
-| GRNs / Receive Stock | Local only | GRN docs are local, stock receipt writes are fire-and-forget, no retryable event replay. |
-| RTVs | Local only | RTV docs/items are local, stock reductions are local, no shared replay. |
-| Attendance Logs | Local only | No sync IDs, no queue, no listeners. |
-| Leave Requests | Local only | No sync IDs, no queue, no listeners. |
-| External Staff | Local only | No shared sync or listeners. |
-| Users / Employees / Auth | Partial and inconsistent | Live employee sync exists, but credential hash policy conflicts with migration and security expectations. |
-| Store / Receipt Settings | Local only | `storeConfig` still uses localStorage only. |
-| Reports | Partial | Many tabs rely on mirrored Dexie data, so full parity depends on finishing the missing shared entities above. |
-| Migration / Backfill | Partial | Migration currently skips GRNs, RTVs, vendors, attendance, leave, cash entries, sessions, sales history hydration, and shared settings. |
+| Vendors | Shared in code | Needs secondary-device validation. |
+| GRNs / Receive Stock | Shared in code | Needs secondary-device validation. |
+| RTVs | Shared in code | Needs secondary-device validation. |
+| Attendance Logs | Shared in code | Needs live validation. |
+| Leave Requests | Shared in code | Needs live validation. |
+| External Staff | Shared in code | Needs live validation. |
+| Users / Employees / Auth | Shared in code | Final decision is shared credential hashes with listener-backed employee provisioning; needs live device validation. |
+| Store / Receipt Settings | Shared in code | Needs admin-side validation while multiple devices stay open. |
+| Reports | Shared in code | Needs cross-device spot checks on every tab. |
+| Migration / Backfill | Shared in code | Needs execution on an older local-history device to validate field migration end to end. |
 
 ## Missed Items Found In Audit
 
-- Customer credit approval/request actions do not currently sync after local mutation.
-- Manual product stock adjustment writes local stock and audit logs only.
-- Returns restore local stock and customer balance only; they do not replay to Firestore.
-- Store details / receipt branding / Sheets URL remain device-local via `localStorage`.
-- User sync currently writes credential hashes in some live paths even though migration strips them.
-- Vendor, GRN, RTV, attendance, leave, and external staff data have no retryable shared sync path.
-- Audit log entries are still local-only.
+- Open report tabs only remounted when table counts changed, so stock-only or settings-only edits could stay stale on another device.
+- Attendance screens used count-only refresh cues, so status changes without count changes could stay stale on an open page.
+- Customers, users, login, settings, dashboard inventory alerts, cash-out, shift-close, and receive-stock vendor lists still had one-time loads instead of live mirrored reloads.
+- The header still showed a static `Local Mode` label even though the app now uses shared sync and queued recovery.
+
+All four of the above are now closed in code in this pass.
 
 ## Task List
 
@@ -152,18 +147,26 @@ The POS is only considered fully multi-device when all of the following are true
   - Cashier Report
   - Attendance-related exports
 - Add missing derived fields or listeners needed so each tab reflects shared state.
+- Add page-level refresh signals so open report and admin screens react when mirrored Dexie rows change without requiring a manual reopen.
 - Acceptance:
   - Reports opened on any device show the same operational truth for the same date range.
+  - Open screens update when stock, settings, customer balances, employee lists, or attendance status change on another device.
 
 ### Phase 9: Migration, Recovery, And QA
 
 - Extend migration to all newly shared collections.
 - Add queue/backfill diagnostics for pending, failed, and stale sync items by entity type.
+- Replace stale UI mode indicators with real sync-health indicators tied to connectivity plus outbox state.
 - Add repeatable test scripts for:
   - online two-device sync
   - one-device offline billing then recovery
   - idempotent retry after partial failure
   - same-day GRN + sale + return + cash-out interactions
+- Add manual validation checklist coverage for:
+  - login screen employee updates
+  - customer credit request/approval/collection parity
+  - live settings/targets update across two open devices
+  - shift, cash-out, dashboard, and report refresh without reopening pages
 - Acceptance:
   - A fresh device can be brought into sync safely, and outage recovery is testable rather than manual guesswork.
 

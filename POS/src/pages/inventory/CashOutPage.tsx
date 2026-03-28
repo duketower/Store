@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Banknote, ArrowDownLeft, Clock } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
@@ -7,7 +8,7 @@ import { useUiStore } from '@/stores/uiStore'
 import { addCashEntry, getTodayCashEntries, getTodayCashOutTotal } from '@/db/queries/cashEntries'
 import { getTodayCashTotal } from '@/db/queries/sales'
 import { formatCurrency } from '@/utils/currency'
-import type { CashEntry, CashEntryCategory } from '@/types'
+import type { CashEntryCategory } from '@/types'
 
 const CATEGORY_LABELS: Record<CashEntryCategory, string> = {
   supplies:       'Store Supplies',
@@ -22,32 +23,28 @@ export function CashOutPage() {
   const { session } = useAuth()
   const { currentSession } = useSessionStore()
   const { addToast } = useUiStore()
-
-  const [entries, setEntries] = useState<CashEntry[]>([])
-  const [cashSalesTotal, setCashSalesTotal] = useState(0)
-  const [cashOutTotal, setCashOutTotal] = useState(0)
   const [loading, setLoading] = useState(false)
+  const snapshot = useLiveQuery(async () => {
+    const [entries, cashSalesTotal, cashOutTotal] = await Promise.all([
+      getTodayCashEntries(),
+      getTodayCashTotal(),
+      getTodayCashOutTotal(),
+    ])
+
+    return {
+      entries: entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      cashSalesTotal,
+      cashOutTotal,
+    }
+  }, [currentSession?.id]) ?? null
 
   // Form state
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<CashEntryCategory>('supplies')
   const [note, setNote] = useState('')
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    const [fetched, cashTotal, outTotal] = await Promise.all([
-      getTodayCashEntries(),
-      getTodayCashTotal(),
-      getTodayCashOutTotal(),
-    ])
-    setEntries(fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
-    setCashSalesTotal(cashTotal)
-    setCashOutTotal(outTotal)
-  }
-
+  const entries = snapshot?.entries ?? []
+  const cashSalesTotal = snapshot?.cashSalesTotal ?? 0
+  const cashOutTotal = snapshot?.cashOutTotal ?? 0
   const cashInDrawer = (currentSession?.openingFloat ?? 0) + cashSalesTotal - cashOutTotal
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +67,6 @@ export function CashOutPage() {
       setAmount('')
       setNote('')
       setCategory('supplies')
-      await loadData()
     } catch {
       addToast('error', 'Failed to record cash out')
     } finally {

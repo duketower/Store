@@ -9,9 +9,9 @@
 
 ## Next
 
-- Re-test every report tab on a second device after the new shared settings, attendance, and employee-auth rollout
+- Run a full two-device live validation pass against billing, receive stock, returns, cash-out, reports, settings, users, attendance, and dashboard refresh behavior
 - Validate migration/backfill on a device with older local-only history before calling the remaining modules production-safe
-- Continue the roadmap with any remaining report-parity and QA hardening gaps found during live validation
+- Document any field issues found during the live two-device drill and close them before calling the app perfect for store operations
 
 ## Done
 
@@ -30,3 +30,5 @@
 - Added retryable multi-device sync for attendance logs, leave requests, external staff, and employee provisioning
 - Added migration coverage for sales history, returns, credit ledger, sessions, cash entries, attendance, leave, and shared settings
 - Added an admin utility script to reset all live user PINs in Firestore back to a known value
+- Replaced stale count-only refresh behavior with live mirrored-state refresh across reports, attendance, customers, users, settings, dashboard alerts, shift/cash-out, login, and receive stock
+- Replaced the old static `Local Mode` badge with a live shared-sync status indicator

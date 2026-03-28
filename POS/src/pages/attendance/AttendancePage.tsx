@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ChevronLeft, ChevronRight, Download, Plus, Edit2, UserCheck, UserX,
   Clock, CheckCircle, XCircle, Calendar,
@@ -29,6 +30,7 @@ import {
   getLeaveExport,
 } from '@/db/queries/attendance'
 import { formatDate } from '@/utils/date'
+import { textChecksum, toTimeValue } from '@/utils/syncPulse'
 import type {
   AttendanceLog,
   AttendanceStatus,
@@ -103,6 +105,21 @@ function downloadCsv(rows: string[][], filename: string) {
 export function AttendancePage() {
   const { role } = useAuth()
   const today = new Date()
+  const syncKey = useLiveQuery(async () => {
+    const [employees, externalStaff, attendanceLogs, leaveRequests] = await Promise.all([
+      db.employees.toArray(),
+      db.staff_external.toArray(),
+      db.attendance_logs.toArray(),
+      db.leave_requests.toArray(),
+    ])
+
+    return [
+      `employees:${employees.length}:${employees.reduce((sum, employee) => sum + (employee.isActive ? 1 : 0) + textChecksum(employee.name) + textChecksum(employee.role), 0)}:${employees.reduce((sum, employee) => sum + toTimeValue(employee.updatedAt ?? employee.createdAt), 0)}`,
+      `external:${externalStaff.length}:${externalStaff.reduce((sum, staff) => sum + (staff.isActive ? 1 : 0) + textChecksum(staff.name) + textChecksum(staff.designation), 0)}:${externalStaff.reduce((sum, staff) => sum + toTimeValue(staff.updatedAt ?? staff.createdAt), 0)}`,
+      `attendance:${attendanceLogs.length}:${attendanceLogs.reduce((sum, log) => sum + textChecksum(log.status) + textChecksum(log.date) + toTimeValue(log.checkIn) + toTimeValue(log.checkOut), 0)}`,
+      `leave:${leaveRequests.length}:${leaveRequests.reduce((sum, request) => sum + textChecksum(request.status) + textChecksum(request.startDate) + textChecksum(request.endDate) + toTimeValue(request.createdAt) + toTimeValue(request.approvedAt), 0)}`,
+    ].join('|')
+  }, []) ?? 'boot'
   const [tab, setTab] = useState<AttendanceTab>(() => {
     if (role === 'admin' || role === 'manager') return 'board'
     return 'my'
@@ -136,10 +153,10 @@ export function AttendancePage() {
         ))}
       </div>
 
-      {tab === 'board'    && <BoardTab today={today} />}
-      {tab === 'leaves'   && <LeavesTab />}
-      {tab === 'my'       && <MyAttendanceTab today={today} />}
-      {tab === 'external' && <ExternalStaffTab today={today} />}
+      {tab === 'board'    && <BoardTab today={today} syncKey={syncKey} />}
+      {tab === 'leaves'   && <LeavesTab syncKey={syncKey} />}
+      {tab === 'my'       && <MyAttendanceTab today={today} syncKey={syncKey} />}
+      {tab === 'external' && <ExternalStaffTab today={today} syncKey={syncKey} />}
     </PageContainer>
   )
 }
@@ -148,7 +165,7 @@ export function AttendancePage() {
 // Tab 1: Board
 // ─────────────────────────────────────────────────────────────────────────────
 
-function BoardTab({ today }: { today: Date }) {
+function BoardTab({ today, syncKey }: { today: Date; syncKey: string }) {
   const { addToast } = useUiStore()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
@@ -169,7 +186,7 @@ function BoardTab({ today }: { today: Date }) {
     setBoard(brd)
   }, [year, month])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, syncKey])
 
   const days = Array.from({ length: daysInMonth(year, month) }, (_, i) => i + 1)
 
@@ -400,7 +417,7 @@ function LogAttendanceModal({
 // Tab 2: Leave Requests (admin/manager)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LeavesTab() {
+function LeavesTab({ syncKey }: { syncKey: string }) {
   const { addToast } = useUiStore()
   const { employeeId } = useAuth()
   const [pending, setPending] = useState<(LeaveRequest & { employeeName: string })[]>([])
@@ -424,7 +441,7 @@ function LeavesTab() {
     setHistory(hist.map(enrich))
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, syncKey])
 
   const handleApprove = async (id: number) => {
     try {
@@ -689,7 +706,7 @@ function RejectLeaveModal({
 // Tab 3: My Attendance
 // ─────────────────────────────────────────────────────────────────────────────
 
-function MyAttendanceTab({ today }: { today: Date }) {
+function MyAttendanceTab({ today, syncKey }: { today: Date; syncKey: string }) {
   const { employeeId, addToast } = { ...useAuth(), ...useUiStore() }
   const [todayLog, setTodayLog] = useState<AttendanceLog | undefined>()
   const [balance, setBalance] = useState<LeaveBalance | null>(null)
@@ -720,8 +737,8 @@ function MyAttendanceTab({ today }: { today: Date }) {
     setMyLogs(logs)
   }, [employeeId, viewMonth])
 
-  useEffect(() => { load() }, [load])
-  useEffect(() => { loadMonthLogs() }, [loadMonthLogs])
+  useEffect(() => { load() }, [load, syncKey])
+  useEffect(() => { loadMonthLogs() }, [loadMonthLogs, syncKey])
 
   const handleClockIn = async () => {
     if (!employeeId) return
@@ -990,7 +1007,7 @@ function ApplyLeaveModal({
 // Tab 4: External Staff (admin only)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ExternalStaffTab({ today }: { today: Date }) {
+function ExternalStaffTab({ today, syncKey }: { today: Date; syncKey: string }) {
   const { employeeId, addToast } = { ...useAuth(), ...useUiStore() }
   const [staff, setStaff] = useState<ExternalStaff[]>([])
   const [todayLogs, setTodayLogs] = useState<Map<number, AttendanceLog>>(new Map())
@@ -1012,7 +1029,7 @@ function ExternalStaffTab({ today }: { today: Date }) {
     setTodayLogs(map)
   }, [today, todayStr])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load() }, [load, syncKey])
 
   const logStatus = async (staffId: number, status: AttendanceStatus) => {
     setLogging(staffId)

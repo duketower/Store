@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Clock, ShoppingCart, TrendingUp, Wallet } from 'lucide-react'
 import { InventoryAlertsPanel } from '@/components/common/InventoryAlertsPanel'
@@ -11,12 +12,6 @@ import { getNearExpiryBatches } from '@/db/queries/batches'
 import { formatCurrency } from '@/utils/currency'
 import { NEAR_EXPIRY_DAYS } from '@/constants/app'
 import { ROUTES as APP_ROUTES } from '@/constants/routes'
-import type { Product } from '@/types'
-
-interface InventoryData {
-  lowStock: Product[]
-  nearExpiry: Array<{ id?: number; productName?: string; batchNo: string; expiryDate: Date; qtyRemaining: number }>
-}
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -24,11 +19,13 @@ export function DashboardPage() {
   const { currentSession } = useSessionStore()
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [selectedMonth, setSelectedMonth] = useState(() => formatMonthInputValue(new Date()))
-  const [inventoryData, setInventoryData] = useState<InventoryData>({
-    lowStock: [],
-    nearExpiry: [],
-  })
-  const [inventoryLoading, setInventoryLoading] = useState(true)
+  const inventoryData = useLiveQuery(async () => {
+    const [lowStock, nearExpiry] = await Promise.all([
+      getLowStockProducts(),
+      getNearExpiryBatches(NEAR_EXPIRY_DAYS),
+    ])
+    return { lowStock, nearExpiry }
+  }, []) ?? null
 
   useEffect(() => {
     const unsubscribe = subscribeDashboardMetrics(parseMonthInput(selectedMonth), (nextMetrics) => {
@@ -38,17 +35,7 @@ export function DashboardPage() {
     return unsubscribe
   }, [selectedMonth])
 
-  useEffect(() => {
-    Promise.all([getLowStockProducts(), getNearExpiryBatches(NEAR_EXPIRY_DAYS)])
-      .then(([lowStock, nearExpiry]) => {
-        setInventoryData({ lowStock, nearExpiry })
-      })
-      .finally(() => {
-        setInventoryLoading(false)
-      })
-  }, [])
-
-  const loading = !metrics || inventoryLoading
+  const loading = !metrics || !inventoryData
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
   const currentMonthValue = formatMonthInputValue(new Date())
   const selectedMonthDate = parseMonthInput(selectedMonth)

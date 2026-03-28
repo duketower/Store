@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Edit2, UserCheck, UserX, ShieldCheck } from 'lucide-react'
 import bcrypt from 'bcryptjs'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -21,22 +22,17 @@ const ROLE_COLORS: Record<Role, string> = {
 
 export function UsersPage() {
   const { addToast } = useUiStore()
-  const [employees, setEmployees] = useState<Employee[]>([])
   const [formOpen, setFormOpen] = useState(false)
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
-
-  const load = async () => {
+  const employees = useLiveQuery(async () => {
     const all = await getAllEmployees()
-    setEmployees(all.sort((a, b) => a.name.localeCompare(b.name)))
-  }
-
-  useEffect(() => { load() }, [])
+    return all.sort((a, b) => a.name.localeCompare(b.name))
+  }, []) ?? []
 
   const toggleActive = async (emp: Employee) => {
     const newActive = !emp.isActive
     await setEmployeeActive(emp.id!, newActive)
     addToast('success', `${emp.name} ${emp.isActive ? 'deactivated' : 'reactivated'}`)
-    await load()
   }
 
   return (
@@ -123,7 +119,7 @@ export function UsersPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         editEmployee={editEmployee}
-        onSaved={async () => { await load(); setFormOpen(false) }}
+        onSaved={async () => { setFormOpen(false) }}
       />
     </PageContainer>
   )

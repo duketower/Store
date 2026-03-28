@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { Delete, ShoppingCart } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
@@ -19,22 +20,18 @@ export function LoginScreen() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   const [screen, setScreen] = useState<Screen>('staff')
-  const [employees, setEmployees] = useState<Employee[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null)
+  const employees = useLiveQuery(async () => getActiveEmployees(), []) ?? []
 
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated()) navigate(ROUTES.BILLING, { replace: true })
   }, [isAuthenticated, navigate])
-
-  useEffect(() => {
-    getActiveEmployees().then(setEmployees)
-  }, [])
 
   const isLockedOut = lockoutUntil && new Date() < lockoutUntil
 

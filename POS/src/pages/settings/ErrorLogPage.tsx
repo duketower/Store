@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore'
+import { collection, query, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore'
 import { AlertTriangle, RefreshCw, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react'
 import { firestore } from '@/services/firebase'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -35,40 +35,45 @@ export function ErrorLogPage() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  const load = async () => {
+  useEffect(() => {
     setLoading(true)
     setFetchError(null)
-    try {
-      const q = query(
-        collection(firestore, 'errors'),
-        orderBy('createdAt', 'desc'),
-        limit(100)
-      )
-      const snap = await getDocs(q)
-      setErrors(
-        snap.docs.map((doc) => {
-          const d = doc.data()
-          return {
-            id: doc.id,
-            type: d.type ?? 'unknown',
-            message: d.message ?? '',
-            stack: d.stack ?? null,
-            url: d.url ?? '',
-            userAgent: d.userAgent ?? '',
-            createdAt: d.createdAt instanceof Timestamp ? d.createdAt.toDate() : new Date(d.createdAt),
-          }
-        })
-      )
-    } catch (err) {
-      setFetchError('Failed to load errors from Firestore.')
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
+    const errorsQuery = query(
+      collection(firestore, 'errors'),
+      orderBy('createdAt', 'desc'),
+      limit(100)
+    )
 
-  useEffect(() => { load() }, [])
+    const unsubscribe = onSnapshot(
+      errorsQuery,
+      (snapshot) => {
+        setErrors(
+          snapshot.docs.map((doc) => {
+            const data = doc.data()
+            return {
+              id: doc.id,
+              type: data.type ?? 'unknown',
+              message: data.message ?? '',
+              stack: data.stack ?? null,
+              url: data.url ?? '',
+              userAgent: data.userAgent ?? '',
+              createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+            }
+          })
+        )
+        setLoading(false)
+      },
+      (error) => {
+        setFetchError('Failed to load errors from Firestore.')
+        setLoading(false)
+        console.error(error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [refreshKey])
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -84,7 +89,7 @@ export function ErrorLogPage() {
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">Last 100 errors, newest first.</p>
           <button
-            onClick={load}
+            onClick={() => setRefreshKey((current) => current + 1)}
             disabled={loading}
             className="btn-secondary flex items-center gap-2 text-sm"
           >

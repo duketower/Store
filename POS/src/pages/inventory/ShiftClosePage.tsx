@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { DollarSign, TrendingUp, TrendingDown, Printer, CheckCircle, Hash } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
@@ -39,28 +40,11 @@ export function ShiftClosePage() {
   const [closing, setClosing] = useState(false)
   const [opening, setOpening] = useState(false)
   const [openingFloat, setOpeningFloat] = useState('')
-  const [report, setReport] = useState<ZReport | null>(null)
   const [closed, setClosed] = useState(false)
   const [showDenomCounter, setShowDenomCounter] = useState(false)
   const [denoms, setDenoms] = useState<Record<number, string>>({})
   const reportRef = useRef<HTMLDivElement>(null)
-
-  const DENOM_VALUES = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1]
-
-  const denomTotal = DENOM_VALUES.reduce((sum, d) => {
-    const count = parseInt(denoms[d] ?? '0', 10) || 0
-    return sum + d * count
-  }, 0)
-
-  const applyDenomTotal = () => {
-    setClosingCash(String(denomTotal))
-  }
-
-  useEffect(() => {
-    loadReport()
-  }, [])
-
-  const loadReport = async () => {
+  const report = useLiveQuery(async (): Promise<ZReport> => {
     const sales = await getTodaySales()
     const [cashTotal, cashOutTotal, cashEntries] = await Promise.all([
       getTodayCashTotal(),
@@ -75,9 +59,9 @@ export function ShiftClosePage() {
 
     for (const sale of sales) {
       const payments = await db.payments.where('saleId').equals(sale.id!).toArray()
-      for (const p of payments) {
-        if (p.method === 'upi') upiTotal += p.amount
-        if (p.method === 'credit') creditTotal += p.amount
+      for (const payment of payments) {
+        if (payment.method === 'upi') upiTotal += payment.amount
+        if (payment.method === 'credit') creditTotal += payment.amount
       }
       const items = await db.sale_items.where('saleId').equals(sale.id!).toArray()
       for (const item of items) {
@@ -87,11 +71,9 @@ export function ShiftClosePage() {
         }
         productQtyMap[item.productId].qty += item.qty
         productQtyMap[item.productId].total += item.lineTotal
-        // GST
-        const taxRate = item.taxRate
-        if (taxRate > 0) {
-          const taxAmount = item.lineTotal - item.lineTotal / (1 + taxRate / 100)
-          gstMap[taxRate] = (gstMap[taxRate] ?? 0) + taxAmount
+        if (item.taxRate > 0) {
+          const taxAmount = item.lineTotal - item.lineTotal / (1 + item.taxRate / 100)
+          gstMap[item.taxRate] = (gstMap[item.taxRate] ?? 0) + taxAmount
         }
       }
     }
@@ -107,9 +89,9 @@ export function ShiftClosePage() {
 
     const openFloat = currentSession?.openingFloat ?? 0
 
-    setReport({
+    return {
       totalBills: sales.length,
-      totalSales: sales.reduce((s, x) => s + x.grandTotal, 0),
+      totalSales: sales.reduce((sum, sale) => sum + sale.grandTotal, 0),
       cashTotal,
       upiTotal,
       creditTotal,
@@ -119,7 +101,18 @@ export function ShiftClosePage() {
       expectedCash: openFloat + cashTotal - cashOutTotal,
       gstByRate,
       topProducts,
-    })
+    }
+  }, [currentSession?.id]) ?? null
+
+  const DENOM_VALUES = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1]
+
+  const denomTotal = DENOM_VALUES.reduce((sum, d) => {
+    const count = parseInt(denoms[d] ?? '0', 10) || 0
+    return sum + d * count
+  }, 0)
+
+  const applyDenomTotal = () => {
+    setClosingCash(String(denomTotal))
   }
 
   const handleOpenShift = async () => {
