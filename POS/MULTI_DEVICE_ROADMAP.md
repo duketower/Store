@@ -14,6 +14,7 @@ Current rollout status:
 - Phases 1 through 7 are now complete in code: shared entities, retryable outbox replay, listeners, migration paths, store settings, attendance, vendor/GRN/RTV flows, and employee provisioning all use the shared sync architecture.
 - Phase 8 is now complete in code: report screens, attendance, customers, users, settings, dashboard alerts, shift/cash-out screens, receive-stock vendor selection, and the login employee list all re-read the mirrored shared state when cross-device updates land.
 - The old static `Local Mode` badge has been replaced in code with a live sync-status indicator driven by connectivity plus the outbox state.
+- The follow-up financial correctness pass is now complete in code: checkout uses a locked cart snapshot, credit balances are guarded against `NaN`, GST is calculated after bill discounts, legacy sale outbox entries rebuild instead of being silently dropped, and sale/return batch allocations are preserved for traceability.
 - Phase 9 now becomes the final release gate: the code paths are in place, but they still need technical verification, live two-device drills, and a recovery signoff before calling the system “picture perfect” in live operations.
 
 ## Definition Of Done

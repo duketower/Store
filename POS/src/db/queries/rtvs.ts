@@ -1,6 +1,7 @@
 import { db } from '@/db'
 import type { RtvSession, RtvItem } from '@/types'
 import { createEntityId, createSyncId } from '@/utils/syncIds'
+import { toFiniteNumber } from '@/utils/numbers'
 import { queueOutboxEntry } from './outbox'
 import { syncRtvToFirestore } from '@/services/firebase/sync'
 
@@ -23,7 +24,7 @@ export async function createRtvTransaction(
       rtvItems.push(rtvItem)
 
       await db.batches.where('id').equals(item.batchId).modify((b) => {
-        b.qtyRemaining = Math.max(0, b.qtyRemaining - item.qty)
+        b.qtyRemaining = Math.max(0, toFiniteNumber(b.qtyRemaining) - item.qty)
       })
       await db.products.where('id').equals(item.productId).modify((p) => {
         p.stock = Math.max(0, p.stock - item.qty)

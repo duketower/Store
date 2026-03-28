@@ -18,8 +18,89 @@ import {
   syncLeaveRequestToFirestore,
   syncStoreSettingsToFirestore,
   syncVendorToFirestore,
+  type SaleSyncPayload,
 } from '@/services/firebase/sync'
 import { markOutboxFailed, markOutboxSyncing } from '@/db/queries/outbox'
+import { toFiniteNumber } from '@/utils/numbers'
+
+async function rebuildLegacySalePayload(
+  data: Record<string, unknown>,
+  fallbackCreatedAt: Date
+): Promise<SaleSyncPayload> {
+  const saleId = Number(data.saleId ?? 0)
+  const billNo = String(data.billNo ?? '')
+  const sale =
+    (saleId ? await db.sales.get(saleId) : undefined) ??
+    (billNo ? await db.sales.where('billNo').equals(billNo).first() : undefined)
+
+  if (!sale?.id) {
+    throw new Error(`Legacy sale outbox entry cannot be rebuilt: sale not found (${billNo || saleId})`)
+  }
+
+  const [items, payments, ledgerEntries] = await Promise.all([
+    db.sale_items.where('saleId').equals(sale.id).toArray(),
+    db.payments.where('saleId').equals(sale.id).toArray(),
+    db.credit_ledger.filter((entry) => entry.saleId === sale.id).toArray(),
+  ])
+  const products = await db.products.bulkGet(items.map((item) => item.productId))
+  const productNameById = new Map<number, string>()
+  for (const product of products) {
+    if (product?.id) {
+      productNameById.set(product.id, product.name)
+    }
+  }
+  const creditLedgerEntry = ledgerEntries.find((entry) => entry.entryType === 'debit')
+
+  return {
+    saleId: sale.id,
+    billNo: sale.billNo,
+    cashierId: sale.cashierId,
+    cashierName: data.cashierName ? String(data.cashierName) : null,
+    customerId: sale.customerId ?? null,
+    subtotal: toFiniteNumber(sale.subtotal),
+    discount: toFiniteNumber(sale.discount),
+    taxTotal: toFiniteNumber(sale.taxTotal),
+    grandTotal: toFiniteNumber(sale.grandTotal),
+    cogsTotal: toFiniteNumber(sale.cogsTotal),
+    grossProfitTotal: toFiniteNumber(
+      sale.grossProfitTotal,
+      toFiniteNumber(sale.grandTotal) - toFiniteNumber(sale.cogsTotal)
+    ),
+    profitEstimated: Boolean(sale.profitEstimated ?? false),
+    returnTotal: toFiniteNumber(sale.returnTotal),
+    creditLedgerSyncId: creditLedgerEntry?.syncId ?? (sale.customerId ? `sale-credit-${sale.billNo}` : undefined),
+    payments: payments.map((payment) => ({
+      method: payment.method,
+      amount: toFiniteNumber(payment.amount),
+      ...(payment.referenceNo ? { referenceNo: payment.referenceNo } : {}),
+    })),
+    items: items.map((item, index) => ({
+      lineId: `${sale.billNo}-${index + 1}`,
+      productId: item.productId,
+      productName: productNameById.get(item.productId) ?? `Product #${item.productId}`,
+      ...(item.batchId !== undefined ? { batchId: item.batchId } : {}),
+      ...(item.batchAllocations && item.batchAllocations.length > 0
+        ? { batchAllocations: item.batchAllocations }
+        : {}),
+      qty: toFiniteNumber(item.qty),
+      unitPrice: toFiniteNumber(item.unitPrice),
+      discount: toFiniteNumber(item.discount),
+      taxRate: toFiniteNumber(item.taxRate),
+      lineTotal: toFiniteNumber(item.lineTotal),
+    })),
+    stockDeltas: items.map((item) => ({
+      productId: item.productId,
+      qty: toFiniteNumber(item.qty),
+      batchAllocations:
+        item.batchAllocations && item.batchAllocations.length > 0
+          ? item.batchAllocations
+          : item.batchId !== undefined
+            ? [{ batchId: item.batchId, qty: toFiniteNumber(item.qty) }]
+            : [],
+    })),
+    createdAt: sale.createdAt ?? fallbackCreatedAt,
+  }
+}
 
 /**
  * Flush pending outbox entries to Firestore.
@@ -359,39 +440,37 @@ export async function flushOutbox(): Promise<void> {
 
     try {
       await markOutboxSyncing(entry.id)
-      const data = JSON.parse(entry.payload)
+      const rawData = JSON.parse(entry.payload) as Record<string, unknown>
+      const salePayload = rawData.cashierId
+        ? {
+            saleId: Number(rawData.saleId ?? 0),
+            billNo: String(rawData.billNo ?? ''),
+            cashierId: Number(rawData.cashierId),
+            cashierName: rawData.cashierName ? String(rawData.cashierName) : null,
+            customerId:
+              rawData.customerId === undefined || rawData.customerId === null
+                ? null
+                : Number(rawData.customerId),
+            subtotal: toFiniteNumber(rawData.subtotal),
+            discount: toFiniteNumber(rawData.discount),
+            taxTotal: toFiniteNumber(rawData.taxTotal),
+            grandTotal: toFiniteNumber(rawData.grandTotal),
+            cogsTotal: toFiniteNumber(rawData.cogsTotal),
+            grossProfitTotal: toFiniteNumber(rawData.grossProfitTotal, toFiniteNumber(rawData.grandTotal)),
+            profitEstimated: Boolean(rawData.profitEstimated ?? false),
+            returnTotal: toFiniteNumber(rawData.returnTotal),
+            creditLedgerSyncId: rawData.creditLedgerSyncId ? String(rawData.creditLedgerSyncId) : undefined,
+            payments: Array.isArray(rawData.payments) ? rawData.payments as SaleSyncPayload['payments'] : [],
+            items: Array.isArray(rawData.items) ? rawData.items as SaleSyncPayload['items'] : [],
+            stockDeltas: Array.isArray(rawData.stockDeltas) ? rawData.stockDeltas as SaleSyncPayload['stockDeltas'] : [],
+            createdAt: rawData.createdAt ? new Date(String(rawData.createdAt)) : new Date(entry.createdAt),
+          }
+        : await rebuildLegacySalePayload(rawData, new Date(entry.createdAt))
 
-      // Old-format entries (before full-payload outbox) are missing cashierId — delete them.
-      // The fire-and-forget attempt at time of sale likely already synced them.
-      if (!data.cashierId) {
-        console.warn(`[Outbox] Dropping malformed create_sale entry id=${entry.id} (missing cashierId):`, data)
-        await db.outbox.delete(entry.id!)
-        continue
-      }
-
-      await syncSaleToFirestore({
-        saleId: data.saleId,
-        billNo: data.billNo,
-        cashierId: data.cashierId,
-        cashierName: data.cashierName ?? null,
-        customerId: data.customerId ?? null,
-        subtotal: data.subtotal,
-        discount: data.discount,
-        taxTotal: data.taxTotal,
-        grandTotal: data.grandTotal,
-        cogsTotal: data.cogsTotal ?? 0,
-        grossProfitTotal: data.grossProfitTotal ?? data.grandTotal ?? 0,
-        profitEstimated: data.profitEstimated ?? false,
-        returnTotal: data.returnTotal ?? 0,
-        creditLedgerSyncId: data.creditLedgerSyncId ?? undefined,
-        payments: data.payments ?? [],
-        items: data.items ?? [],
-        stockDeltas: data.stockDeltas ?? [],
-        createdAt: data.createdAt ? new Date(data.createdAt) : new Date(entry.createdAt),
-      })
+      await syncSaleToFirestore(salePayload)
 
       await db.outbox.delete(entry.id!)
-      console.log(`[Outbox] Synced and cleared: ${data.billNo}`)
+      console.log(`[Outbox] Synced and cleared: ${salePayload.billNo}`)
     } catch (error) {
       await markOutboxFailed(entry.id, error)
     }

@@ -5,11 +5,21 @@ import { useSessionStore } from '@/stores/sessionStore'
 import type { PaymentMethod } from '@/types'
 import { CLIENT_CONFIG } from '@/constants/clientConfig'
 import { persistStoreConfigCache } from '@/utils/storeConfig'
+import { toFiniteNumber } from '@/utils/numbers'
 
 function tsToDate(val: unknown): Date {
   if (val instanceof Timestamp) return val.toDate()
   if (val instanceof Date) return val
   return new Date(val as string)
+}
+
+function parseNumericDocId(collectionName: string, docId: string): number | null {
+  const id = Number(docId)
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    console.warn(`[Listener] skipping ${collectionName} doc with non-numeric id: ${docId}`)
+    return null
+  }
+  return id
 }
 
 /**
@@ -78,7 +88,7 @@ function startProductListener(): () => void {
       for (const change of snapshot.docChanges()) {
         if (change.type === 'removed') continue
         const data = change.doc.data()
-        const id = Number(change.doc.id)
+        const id = parseNumericDocId('products', change.doc.id)
         if (!id) continue
 
         db.products
@@ -93,15 +103,15 @@ function startProductListener(): () => void {
               category: data.category ?? existing?.category ?? 'General',
               unit: data.unit ?? existing?.unit ?? 'pcs',
               soldByWeight: Boolean(data.soldByWeight ?? existing?.soldByWeight ?? false),
-              sellingPrice: Number(data.sellingPrice ?? existing?.sellingPrice ?? 0),
-              ...(data.costPrice !== undefined && { costPrice: Number(data.costPrice ?? 0) }),
-              mrp: Number(data.mrp ?? existing?.mrp ?? 0),
-              taxRate: Number(data.taxRate ?? existing?.taxRate ?? 0),
+              sellingPrice: toFiniteNumber(data.sellingPrice ?? existing?.sellingPrice),
+              ...(data.costPrice !== undefined && { costPrice: toFiniteNumber(data.costPrice) }),
+              mrp: toFiniteNumber(data.mrp ?? existing?.mrp),
+              taxRate: toFiniteNumber(data.taxRate ?? existing?.taxRate),
               hsnCode: data.hsnCode ?? existing?.hsnCode ?? '',
-              stock: Number(data.stock ?? existing?.stock ?? 0),
-              reorderLevel: Number(data.reorderLevel ?? existing?.reorderLevel ?? 0),
+              stock: toFiniteNumber(data.stock ?? existing?.stock),
+              reorderLevel: toFiniteNumber(data.reorderLevel ?? existing?.reorderLevel),
               ...(data.baseUnit !== undefined && { baseUnit: data.baseUnit }),
-              ...(data.baseQty !== undefined && { baseQty: Number(data.baseQty ?? 0) }),
+              ...(data.baseQty !== undefined && { baseQty: toFiniteNumber(data.baseQty) }),
               ...(data.isActive !== undefined && { isActive: Boolean(data.isActive) }),
               createdAt: tsToDate(data.createdAt ?? existing?.createdAt ?? new Date()),
               updatedAt: tsToDate(data.updatedAt ?? new Date()),
@@ -122,7 +132,7 @@ function startCustomerListener(): () => void {
       for (const change of snapshot.docChanges()) {
         if (change.type === 'removed') continue
         const data = change.doc.data()
-        const id = Number(change.doc.id)
+        const id = parseNumericDocId('customers', change.doc.id)
         if (!id) continue
 
         db.customers
@@ -133,9 +143,9 @@ function startCustomerListener(): () => void {
               id,
               name: data.name ?? existing?.name ?? `Customer #${id}`,
               ...(data.phone !== undefined && { phone: data.phone }),
-              currentBalance: Number(data.currentBalance ?? existing?.currentBalance ?? 0),
-              creditLimit: Number(data.creditLimit ?? existing?.creditLimit ?? 0),
-              loyaltyPoints: Number(data.loyaltyPoints ?? existing?.loyaltyPoints ?? 0),
+              currentBalance: toFiniteNumber(data.currentBalance ?? existing?.currentBalance),
+              creditLimit: toFiniteNumber(data.creditLimit ?? existing?.creditLimit),
+              loyaltyPoints: toFiniteNumber(data.loyaltyPoints ?? existing?.loyaltyPoints),
               creditApproved: Boolean(data.creditApproved ?? existing?.creditApproved ?? false),
               creditRequested: Boolean(data.creditRequested ?? existing?.creditRequested ?? false),
               createdAt: tsToDate(data.createdAt ?? existing?.createdAt ?? new Date()),
@@ -199,7 +209,7 @@ function startBatchListener(): () => void {
     { includeMetadataChanges: false },
     (snapshot) => {
       for (const change of snapshot.docChanges()) {
-        const id = Number(change.doc.id)
+        const id = parseNumericDocId('batches', change.doc.id)
         if (!id) continue
 
         if (change.type === 'removed') {
@@ -211,12 +221,12 @@ function startBatchListener(): () => void {
         db.batches
           .put({
             id,
-            productId: data.productId,
+            productId: toFiniteNumber(data.productId),
             batchNo: data.batchNo,
             ...(data.mfgDate ? { mfgDate: tsToDate(data.mfgDate) } : {}),
             expiryDate: tsToDate(data.expiryDate),
-            purchasePrice: data.purchasePrice,
-            qtyRemaining: data.qtyRemaining,
+            purchasePrice: toFiniteNumber(data.purchasePrice),
+            qtyRemaining: toFiniteNumber(data.qtyRemaining),
             createdAt: tsToDate(data.createdAt ?? new Date()),
             ...(data.vendor !== undefined && { vendor: data.vendor }),
             ...(data.invoiceNo !== undefined && { invoiceNo: data.invoiceNo }),
@@ -415,6 +425,14 @@ function startSalesListener(): () => void {
                   saleId,
                   productId: Number(item.productId ?? 0),
                   ...(item.batchId !== undefined && { batchId: Number(item.batchId ?? 0) }),
+                  ...(Array.isArray(item.batchAllocations)
+                    ? {
+                        batchAllocations: item.batchAllocations.map((allocation: Record<string, unknown>) => ({
+                          batchId: Number(allocation.batchId ?? 0),
+                          qty: Number(allocation.qty ?? 0),
+                        })),
+                      }
+                    : {}),
                   qty: Number(item.qty ?? 0),
                   unitPrice: Number(item.unitPrice ?? 0),
                   discount: Number(item.discount ?? 0),
@@ -478,6 +496,14 @@ function startSaleReturnListener(): () => void {
                 saleItemId: Number(item.saleItemId ?? 0),
                 productId: Number(item.productId ?? 0),
                 ...(item.batchId !== undefined && item.batchId !== null ? { batchId: Number(item.batchId) } : {}),
+                ...(Array.isArray(item.batchAllocations)
+                  ? {
+                      batchAllocations: item.batchAllocations.map((allocation: Record<string, unknown>) => ({
+                        batchId: Number(allocation.batchId ?? 0),
+                        qty: Number(allocation.qty ?? 0),
+                      })),
+                    }
+                  : {}),
                 qty: Number(item.qty ?? 0),
                 unitPrice: Number(item.unitPrice ?? 0),
                 lineTotal: Number(item.lineTotal ?? 0),
@@ -646,7 +672,7 @@ function startEmployeeListener(): () => void {
     { includeMetadataChanges: false },
     (snapshot) => {
       for (const change of snapshot.docChanges()) {
-        const id = Number(change.doc.id)
+        const id = parseNumericDocId('employees', change.doc.id)
         if (!id) continue
 
         if (change.type === 'removed') {

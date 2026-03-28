@@ -2,6 +2,7 @@ import { db } from '@/db'
 import type { Batch } from '@/types'
 import { planFEFODeduction } from '@/utils/fefo'
 import { createEntityId } from '@/utils/syncIds'
+import { toFiniteNumber } from '@/utils/numbers'
 
 export async function getBatchesForProduct(productId: number): Promise<Batch[]> {
   return db.batches.where('productId').equals(productId).toArray()
@@ -12,7 +13,7 @@ export async function getBatchesFEFO(productId: number): Promise<Batch[]> {
   const batches = await db.batches
     .where('productId')
     .equals(productId)
-    .filter((b) => b.qtyRemaining > 0)
+    .filter((b) => toFiniteNumber(b.qtyRemaining) > 0)
     .toArray()
   return batches.sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime())
 }
@@ -23,7 +24,8 @@ export async function deductBatch(batchId: number, qty: number): Promise<void> {
     .where('id')
     .equals(batchId)
     .modify((batch) => {
-      batch.qtyRemaining = Math.max(0, batch.qtyRemaining - qty)
+      const currentQty = toFiniteNumber(batch.qtyRemaining)
+      batch.qtyRemaining = Math.max(0, currentQty - qty)
     })
 }
 
@@ -56,7 +58,7 @@ export async function getNearExpiryBatches(withinDays: number): Promise<
 > {
   const cutoff = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000)
   const batches = await db.batches
-    .filter((b) => b.qtyRemaining > 0 && b.expiryDate <= cutoff)
+    .filter((b) => toFiniteNumber(b.qtyRemaining) > 0 && b.expiryDate <= cutoff)
     .toArray()
 
   return Promise.all(

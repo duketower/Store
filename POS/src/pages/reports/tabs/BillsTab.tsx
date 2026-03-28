@@ -7,6 +7,7 @@ import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
 import { formatDateTime } from '@/utils/date'
 import { useAuth } from '@/hooks/useAuth'
+import { roundCurrency } from '@/utils/numbers'
 import type { Sale, SaleItem, Payment, Customer } from '@/types'
 
 export interface BillRow {
@@ -130,6 +131,7 @@ export function BillsTab() {
         saleItemId: item.id!,
         productId: item.productId,
         batchId: item.batchId,
+        batchAllocations: item.batchAllocations,
         qty: item.qty,
         unitPrice: item.unitPrice,
         lineTotal: item.lineTotal,
@@ -160,7 +162,11 @@ export function BillsTab() {
       await processReturn(
         returnBill.sale.id!,
         returnBill.sale.billNo,
-        selected.map((r) => ({ ...r.item, qty: r.returnQty, lineTotal: r.item.unitPrice * r.returnQty })),
+        selected.map((r) => ({
+          ...r.item,
+          qty: r.returnQty,
+          lineTotal: roundCurrency((r.item.lineTotal / r.item.qty) * r.returnQty),
+        })),
         returnReason,
         employeeId,
         returnBill.sale.customerId

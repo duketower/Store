@@ -6,6 +6,7 @@
 import { deleteDoc, doc, increment, runTransaction, setDoc, Timestamp } from 'firebase/firestore'
 import { firestore } from '.'
 import type {
+  BatchAllocation,
   CashEntry,
   CreditLedgerEntry,
   SaleReturn,
@@ -20,6 +21,7 @@ import type {
   LeaveRequest,
   Employee,
 } from '@/types'
+import { toFiniteNumber } from '@/utils/numbers'
 
 function toTimestamp(date: Date): Timestamp {
   return Timestamp.fromDate(date instanceof Date ? date : new Date(date))
@@ -48,6 +50,7 @@ export interface SaleSyncPayload {
     productId: number
     productName: string
     batchId?: number
+    batchAllocations?: BatchAllocation[]
     qty: number
     unitPrice: number
     discount: number
@@ -91,7 +94,7 @@ export async function syncSaleToFirestore(payload: SaleSyncPayload): Promise<voi
       for (const allocation of stockDelta.batchAllocations) {
         const batchRef = doc(firestore, 'batches', String(allocation.batchId))
         const batchSnapshot = await txn.get(batchRef)
-        const currentQty = Number(batchSnapshot.data()?.qtyRemaining ?? 0)
+        const currentQty = toFiniteNumber(batchSnapshot.data()?.qtyRemaining)
 
         txn.set(
           batchRef,
@@ -168,7 +171,7 @@ export async function syncReturnToFirestore(payload: ReturnSyncPayload): Promise
       syncedAt: Timestamp.now(),
     })
 
-    const currentReturnTotal = Number(saleSnapshot.data()?.returnTotal ?? 0)
+    const currentReturnTotal = toFiniteNumber(saleSnapshot.data()?.returnTotal)
     txn.set(
       saleRef,
       {
@@ -189,7 +192,18 @@ export async function syncReturnToFirestore(payload: ReturnSyncPayload): Promise
         { merge: true }
       )
 
-      if (item.batchId) {
+      if (Array.isArray(item.batchAllocations) && item.batchAllocations.length > 0) {
+        for (const allocation of item.batchAllocations) {
+          txn.set(
+            doc(firestore, 'batches', String(allocation.batchId)),
+            {
+              qtyRemaining: increment(allocation.qty),
+              updatedAt: Timestamp.now(),
+            },
+            { merge: true }
+          )
+        }
+      } else if (item.batchId) {
         txn.set(
           doc(firestore, 'batches', String(item.batchId)),
           {
@@ -204,7 +218,7 @@ export async function syncReturnToFirestore(payload: ReturnSyncPayload): Promise
     if (payload.customerId && payload.creditLedgerSyncId) {
       const customerRef = doc(firestore, 'customers', String(payload.customerId))
       const customerSnapshot = await txn.get(customerRef)
-      const currentBalance = Number(customerSnapshot.data()?.currentBalance ?? 0)
+      const currentBalance = toFiniteNumber(customerSnapshot.data()?.currentBalance)
 
       txn.set(
         doc(firestore, 'credit_ledger', payload.creditLedgerSyncId),
@@ -593,7 +607,7 @@ export async function syncRtvToFirestore(payload: RtvSyncPayload): Promise<void>
 
       const batchRef = doc(firestore, 'batches', String(item.batchId))
       const batchSnapshot = await txn.get(batchRef)
-      const currentQty = Number(batchSnapshot.data()?.qtyRemaining ?? 0)
+      const currentQty = toFiniteNumber(batchSnapshot.data()?.qtyRemaining)
 
       txn.set(
         batchRef,

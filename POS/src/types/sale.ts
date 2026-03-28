@@ -1,6 +1,11 @@
 export type SaleStatus = 'completed' | 'pending_sync' | 'voided'
 export type PaymentMethod = 'cash' | 'upi' | 'credit' | 'card' | 'split'
 
+export interface BatchAllocation {
+  batchId: number
+  qty: number
+}
+
 export interface Sale {
   id?: number
   billNo: string
@@ -24,6 +29,7 @@ export interface SaleItem {
   saleId: number
   productId: number
   batchId?: number
+  batchAllocations?: BatchAllocation[]
   qty: number
   unitPrice: number
   discount: number
@@ -44,6 +50,7 @@ export interface SaleReturnItem {
   saleItemId: number
   productId: number
   batchId?: number
+  batchAllocations?: BatchAllocation[]
   qty: number
   unitPrice: number
   lineTotal: number

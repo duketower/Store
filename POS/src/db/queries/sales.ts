@@ -6,6 +6,7 @@ import { updateCreditBalance, addCreditLedgerEntry } from './customers'
 import { syncReturnToFirestore, syncSaleToFirestore } from '@/services/firebase/sync'
 import { queueOutboxEntry } from './outbox'
 import { createEntityId, createSyncId } from '@/utils/syncIds'
+import { toFiniteNumber } from '@/utils/numbers'
 
 export interface CreateSaleInput {
   billNo: string
@@ -20,6 +21,30 @@ export interface CreateSaleInput {
   payments: Array<{ method: Payment['method']; amount: number; referenceNo?: string }>
 }
 
+function buildReturnBatchAllocations(
+  qty: number,
+  batchAllocations?: Array<{ batchId: number; qty: number }>,
+  fallbackBatchId?: number
+): Array<{ batchId: number; qty: number }> {
+  if (Array.isArray(batchAllocations) && batchAllocations.length > 0) {
+    let remainingQty = qty
+    const allocationsToRestore: Array<{ batchId: number; qty: number }> = []
+
+    for (const allocation of batchAllocations) {
+      if (remainingQty <= 0) break
+      const soldQty = Math.max(0, toFiniteNumber(allocation.qty))
+      if (soldQty <= 0) continue
+      const restoreQty = Math.min(soldQty, remainingQty)
+      allocationsToRestore.push({ batchId: allocation.batchId, qty: restoreQty })
+      remainingQty -= restoreQty
+    }
+
+    if (allocationsToRestore.length > 0) return allocationsToRestore
+  }
+
+  return fallbackBatchId ? [{ batchId: fallbackBatchId, qty }] : []
+}
+
 // Atomic transaction: sale + items + payments + stock deduction + outbox entry
 export async function createSaleTransaction(input: CreateSaleInput): Promise<number> {
   const createdAt = new Date()
@@ -31,6 +56,18 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
   const creditLedgerSyncId = input.customerId
     ? `sale-credit-${input.billNo}`
     : undefined
+  const syncedItems: Array<{
+    lineId: string
+    productId: number
+    productName: string
+    batchId?: number
+    batchAllocations?: Array<{ batchId: number; qty: number }>
+    qty: number
+    unitPrice: number
+    discount: number
+    taxRate: number
+    lineTotal: number
+  }> = []
 
   const { saleId, cogsTotal, grossProfitTotal, profitEstimated } = await db.transaction(
     'rw',
@@ -60,7 +97,11 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
       for (const item of input.cartItems) {
         const product = await db.products.get(item.productId)
         const batchPlan = await deductStockFEFO(item.productId, item.qty)
-        const batchId = batchPlan[0]?.batchId
+        const batchAllocations = batchPlan.map((batch) => ({
+          batchId: batch.batchId,
+          qty: batch.deductQty,
+        }))
+        const batchId = batchAllocations[0]?.batchId
         const coveredQty = batchPlan.reduce((sum, batch) => sum + batch.deductQty, 0)
         const uncoveredQty = Math.max(0, item.qty - coveredQty)
         const coveredCogs = batchPlan.reduce((sum, batch) => sum + batch.deductQty * batch.purchasePrice, 0)
@@ -75,7 +116,21 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
         await db.sale_items.add({
           saleId,
           productId: item.productId,
-          batchId,
+          ...(batchId !== undefined ? { batchId } : {}),
+          ...(batchAllocations.length > 0 ? { batchAllocations } : {}),
+          qty: item.qty,
+          unitPrice: item.unitPrice,
+          discount: item.discount,
+          taxRate: item.taxRate,
+          lineTotal: item.lineTotal,
+        })
+
+        syncedItems.push({
+          lineId: `${input.billNo}-${syncedItems.length + 1}`,
+          productId: item.productId,
+          productName: item.name,
+          ...(batchId !== undefined ? { batchId } : {}),
+          ...(batchAllocations.length > 0 ? { batchAllocations } : {}),
           qty: item.qty,
           unitPrice: item.unitPrice,
           discount: item.discount,
@@ -88,10 +143,7 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
         stockDeltas.push({
           productId: item.productId,
           qty: item.qty,
-          batchAllocations: batchPlan.map((batch) => ({
-            batchId: batch.batchId,
-            qty: batch.deductQty,
-          })),
+          batchAllocations,
         })
       }
 
@@ -161,17 +213,7 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
             amount: p.amount,
             referenceNo: p.referenceNo,
           })),
-          items: input.cartItems.map((i, index) => ({
-            lineId: `${input.billNo}-${index + 1}`,
-            productId: i.productId,
-            productName: i.name,
-            batchId: i.batchId,
-            qty: i.qty,
-            unitPrice: i.unitPrice,
-            discount: i.discount,
-            taxRate: i.taxRate,
-            lineTotal: i.lineTotal,
-          })),
+          items: syncedItems,
           stockDeltas,
           createdAt: createdAt.toISOString(),
         }),
@@ -209,17 +251,7 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
       amount: p.amount,
       referenceNo: p.referenceNo,
     })),
-    items: input.cartItems.map((i, index) => ({
-      lineId: `${input.billNo}-${index + 1}`,
-      productId: i.productId,
-      productName: i.name,
-      batchId: i.batchId,
-      qty: i.qty,
-      unitPrice: i.unitPrice,
-      discount: i.discount,
-      taxRate: i.taxRate,
-      lineTotal: i.lineTotal,
-    })),
+    items: syncedItems,
     stockDeltas,
     createdAt,
   }).catch((err: unknown) => console.warn('[Firestore] fire-and-forget sync failed (will retry):', err))
@@ -284,6 +316,7 @@ export interface ReturnItem {
   saleItemId: number
   productId: number
   batchId?: number
+  batchAllocations?: Array<{ batchId: number; qty: number }>
   qty: number
   unitPrice: number
   lineTotal: number
@@ -323,20 +356,27 @@ export async function processReturn(
     for (const item of items) {
       // Restore stock
       await db.products.where('id').equals(item.productId).modify((p) => {
-        p.stock = p.stock + item.qty
+        p.stock = toFiniteNumber(p.stock) + item.qty
         p.updatedAt = createdAt
       })
       // Restore the original sold batch when available; otherwise fall back to the latest batch.
-      if (item.batchId) {
-        await db.batches.where('id').equals(item.batchId).modify((b) => {
-          b.qtyRemaining += item.qty
-        })
+      const allocationsToRestore = buildReturnBatchAllocations(
+        item.qty,
+        item.batchAllocations,
+        item.batchId
+      )
+      if (allocationsToRestore.length > 0) {
+        for (const allocation of allocationsToRestore) {
+          await db.batches.where('id').equals(allocation.batchId).modify((b) => {
+            b.qtyRemaining = toFiniteNumber(b.qtyRemaining) + allocation.qty
+          })
+        }
       } else {
         const batches = await db.batches.where('productId').equals(item.productId).toArray()
         if (batches.length > 0) {
           const latest = batches.sort((a, b) => (b.id ?? 0) - (a.id ?? 0))[0]
           await db.batches.where('id').equals(latest.id!).modify((b) => {
-            b.qtyRemaining += item.qty
+            b.qtyRemaining = toFiniteNumber(b.qtyRemaining) + item.qty
           })
         }
       }
@@ -354,7 +394,7 @@ export async function processReturn(
         createdAt,
       })
       await db.customers.where('id').equals(customerId).modify((c) => {
-        c.currentBalance = Math.max(0, c.currentBalance - totalRefund)
+        c.currentBalance = Math.max(0, toFiniteNumber(c.currentBalance) - totalRefund)
         c.updatedAt = createdAt
       })
     }

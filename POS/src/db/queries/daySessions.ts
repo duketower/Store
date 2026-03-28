@@ -50,9 +50,20 @@ export async function closeSession(
 ): Promise<void> {
   const variance = closingCash - expectedCash
   const closedAt = new Date()
+  let sessionToSync: DaySession | null = null
 
   await db.transaction('rw', [db.day_sessions, db.outbox], async () => {
-    await db.day_sessions.update(sessionId, {
+    const session = await db.day_sessions.get(sessionId)
+    if (!session) {
+      throw new Error('Session not found')
+    }
+    if (session.status === 'closed') {
+      sessionToSync = null
+      return
+    }
+
+    const nextSession: DaySession = {
+      ...session,
       closedBy,
       closingCash,
       expectedCash,
@@ -60,33 +71,27 @@ export async function closeSession(
       varianceNote,
       status: 'closed',
       closedAt,
-    })
+    }
 
-    const session = await db.day_sessions.get(sessionId)
-    if (!session?.syncId) return
+    await db.day_sessions.put(nextSession)
+    sessionToSync = nextSession
+    if (!nextSession.syncId) return
 
     await queueOutboxEntry({
       action: 'upsert_day_session',
       entityType: 'day_session',
-      entityKey: session.syncId,
+      entityKey: nextSession.syncId,
       payload: JSON.stringify({
-        ...session,
-        closedBy,
-        closingCash,
-        expectedCash,
-        variance,
-        varianceNote,
-        status: 'closed',
-        openedAt: session.openedAt.toISOString(),
+        ...nextSession,
+        openedAt: nextSession.openedAt.toISOString(),
         closedAt: closedAt.toISOString(),
       }),
       createdAt: closedAt,
     })
   })
 
-  const session = await db.day_sessions.get(sessionId)
-  if (session) {
-    syncSessionToFirestore(session).catch((err: unknown) =>
+  if (sessionToSync) {
+    syncSessionToFirestore(sessionToSync).catch((err: unknown) =>
       console.warn('[Firestore] session close sync failed (will retry):', err)
     )
   }

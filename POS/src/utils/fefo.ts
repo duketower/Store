@@ -1,4 +1,5 @@
 import type { Batch } from '@/types'
+import { toFiniteNumber } from './numbers'
 
 // FEFO: sort batches by expiryDate ASC (earliest first)
 export function sortBatchesFEFO(batches: Batch[]): Batch[] {
@@ -11,14 +12,14 @@ export function planFEFODeduction(
   batches: Batch[],
   totalQty: number
 ): Array<{ batchId: number; deductQty: number }> {
-  const sorted = sortBatchesFEFO(batches.filter((b) => b.qtyRemaining > 0))
+  const sorted = sortBatchesFEFO(batches.filter((b) => toFiniteNumber(b.qtyRemaining) > 0))
   const plan: Array<{ batchId: number; deductQty: number }> = []
   let remaining = totalQty
 
   for (const batch of sorted) {
     if (remaining <= 0) break
     if (!batch.id) continue
-    const deduct = Math.min(batch.qtyRemaining, remaining)
+    const deduct = Math.min(toFiniteNumber(batch.qtyRemaining), remaining)
     plan.push({ batchId: batch.id, deductQty: deduct })
     remaining -= deduct
   }
