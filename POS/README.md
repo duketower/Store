@@ -58,6 +58,15 @@ cd POS/platform
 npm run client:build -- zero-one
 ```
 
+## Admin Utility
+
+Reset every current Firestore user PIN back to `1234`:
+
+```bash
+cd POS
+node scripts/reset-all-user-pins.mjs 1234
+```
+
 ## Key Docs
 
 - `CLAUDE.md`

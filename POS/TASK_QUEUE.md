@@ -29,3 +29,4 @@
 - Added shared store settings backed by Firestore + Dexie mirror
 - Added retryable multi-device sync for attendance logs, leave requests, external staff, and employee provisioning
 - Added migration coverage for sales history, returns, credit ledger, sessions, cash entries, attendance, leave, and shared settings
+- Added an admin utility script to reset all live user PINs in Firestore back to a known value
