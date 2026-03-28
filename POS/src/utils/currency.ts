@@ -15,6 +15,25 @@ export function formatAmount(amount: number): string {
 
 // Parse a string to number, returning 0 for invalid
 export function parseAmount(value: string): number {
-  const parsed = parseFloat(value.replace(/[^0-9.-]/g, ''))
-  return isNaN(parsed) ? 0 : Math.max(0, parsed)
+  const cleaned = value.replace(/[₹\s]/g, '')
+  if (!cleaned) return 0
+
+  const signless = cleaned.replace(/^[+-]/, '')
+  const [integerPart = '', decimalPart = ''] = signless.split('.')
+  if (signless.split('.').length > 2) return 0
+
+  if (
+    integerPart.includes(',') &&
+    !/^(\d{1,3}(,\d{3})+|\d{1,3}(,\d{2})*,\d{3})$/.test(integerPart)
+  ) {
+    return 0
+  }
+
+  if (decimalPart.includes(',')) return 0
+
+  const normalized = cleaned.replace(/,/g, '')
+  if (!/^[+-]?\d*(\.\d*)?$/.test(normalized)) return 0
+
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
 }

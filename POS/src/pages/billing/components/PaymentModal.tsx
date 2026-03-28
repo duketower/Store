@@ -6,6 +6,7 @@ import { formatCurrency, parseAmount } from '@/utils/currency'
 import { cn } from '@/utils/cn'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import { searchCustomers } from '@/db/queries/customers'
+import { toFiniteNumber } from '@/utils/numbers'
 
 export interface PaymentEntry {
   method: PaymentMethod
@@ -51,7 +52,8 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
 
   const handleCreditComplete = () => {
     if (!selectedCustomer) return
-    const newBalance = selectedCustomer.currentBalance + grandTotal
+    const currentBalance = toFiniteNumber(selectedCustomer.currentBalance)
+    const newBalance = currentBalance + grandTotal
     if (newBalance > selectedCustomer.creditLimit) {
       setCreditError(`Credit limit exceeded. Limit: ${formatCurrency(selectedCustomer.creditLimit)}, Balance would be: ${formatCurrency(newBalance)}`)
       return
@@ -192,7 +194,7 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
                     <p className="text-xs text-gray-500">{c.phone}</p>
                   </div>
                   <div className="text-right text-xs">
-                    <p className="text-red-600 font-medium">Owes {formatCurrency(c.currentBalance)}</p>
+                    <p className="text-red-600 font-medium">Owes {formatCurrency(toFiniteNumber(c.currentBalance))}</p>
                     <p className="text-gray-400">Limit {formatCurrency(c.creditLimit)}</p>
                   </div>
                 </button>
@@ -211,8 +213,8 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
                 <button onClick={() => { setSelectedCustomer(null); setCustomerSearch(''); setCreditError('') }} className="text-gray-400 hover:text-gray-600 text-xs">Change</button>
               </div>
               <div className="mt-2 flex gap-4 text-sm">
-                <span>Current: <strong className="text-red-600">{formatCurrency(selectedCustomer.currentBalance)}</strong></span>
-                <span>After: <strong>{formatCurrency(selectedCustomer.currentBalance + grandTotal)}</strong></span>
+                <span>Current: <strong className="text-red-600">{formatCurrency(toFiniteNumber(selectedCustomer.currentBalance))}</strong></span>
+                <span>After: <strong>{formatCurrency(toFiniteNumber(selectedCustomer.currentBalance) + grandTotal)}</strong></span>
                 <span>Limit: {formatCurrency(selectedCustomer.creditLimit)}</span>
               </div>
             </div>
@@ -277,7 +279,7 @@ export function PaymentModal({ open, onClose, grandTotal, billNo, onComplete }: 
                         className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-gray-50 text-sm border-b border-gray-100 last:border-0"
                       >
                         <span className="font-medium">{c.name}</span>
-                        <span className="text-xs text-red-600">Owes {formatCurrency(c.currentBalance)}</span>
+                        <span className="text-xs text-red-600">Owes {formatCurrency(toFiniteNumber(c.currentBalance))}</span>
                       </button>
                     ))}
                   </div>

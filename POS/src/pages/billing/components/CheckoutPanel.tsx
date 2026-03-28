@@ -8,6 +8,7 @@ import { groupByGstSlab } from '@/utils/gst'
 import { cn } from '@/utils/cn'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import { searchCustomers, getCustomerById, getCustomerByPhone, upsertCustomer } from '@/db/queries/customers'
+import { toFiniteNumber } from '@/utils/numbers'
 
 export interface PaymentEntry {
   method: PaymentMethod
@@ -40,7 +41,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
   } = useCartStore()
 
   const { subtotal, itemDiscount, billDiscountAmount, taxTotal, grandTotal } = totals()
-  const gstSlabs = groupByGstSlab(items)
+  const gstSlabs = groupByGstSlab(items, billDiscountAmount)
 
   // Payment state
   const [activeMethod, setActiveMethod] = useState<ActiveMethod>(null)
@@ -68,13 +69,18 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
 
   // Load customer by ID when store has one selected
   useEffect(() => {
-    if (selectedCustomerId && !selectedCustomer) {
-      getCustomerById(selectedCustomerId).then((c) => {
-        if (c) setSelectedCustomerLocal(c)
+    let active = true
+
+    if (selectedCustomerId) {
+      void getCustomerById(selectedCustomerId).then((c) => {
+        if (active) setSelectedCustomerLocal(c ?? null)
       })
     }
     if (!selectedCustomerId) {
       setSelectedCustomerLocal(null)
+    }
+    return () => {
+      active = false
     }
   }, [selectedCustomerId])
 
@@ -216,7 +222,8 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
       setCreditError(`Credit not enabled for ${selectedCustomer.name}. Go to Customers page to request.`)
       return
     }
-    const newBalance = selectedCustomer.currentBalance + grandTotal
+    const currentBalance = toFiniteNumber(selectedCustomer.currentBalance)
+    const newBalance = currentBalance + grandTotal
     if (newBalance > selectedCustomer.creditLimit) {
       setCreditError(`Limit exceeded. Limit: ${formatCurrency(selectedCustomer.creditLimit)}, Would be: ${formatCurrency(newBalance)}`)
       return
@@ -273,7 +280,9 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
               <p className="text-xs text-gray-500">
                 {selectedCustomer.phone ? `${selectedCustomer.phone} · ` : ''}
                 ⭐ {selectedCustomer.loyaltyPoints} pts
-                {selectedCustomer.currentBalance > 0 ? ` · owes ${formatCurrency(selectedCustomer.currentBalance)}` : ''}
+                {toFiniteNumber(selectedCustomer.currentBalance) > 0
+                  ? ` · owes ${formatCurrency(toFiniteNumber(selectedCustomer.currentBalance))}`
+                  : ''}
               </p>
             </div>
             <button onClick={clearCustomer} className="text-gray-400 hover:text-gray-600 ml-2">
@@ -567,7 +576,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                           <p className="text-xs text-gray-400">{c.phone}</p>
                         </div>
                         <div className="text-right text-xs">
-                          <p className="text-red-500">owes {formatCurrency(c.currentBalance)}</p>
+                          <p className="text-red-500">owes {formatCurrency(toFiniteNumber(c.currentBalance))}</p>
                           <p className="text-gray-400">limit {formatCurrency(c.creditLimit)}</p>
                         </div>
                       </button>
@@ -579,8 +588,8 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
               <div className="rounded-lg bg-brand-50 p-3 text-sm space-y-1">
                 <p className="font-semibold text-gray-900">{selectedCustomer.name}</p>
                 <div className="flex gap-4 text-xs text-gray-600">
-                  <span>Current: <strong className="text-red-600">{formatCurrency(selectedCustomer.currentBalance)}</strong></span>
-                  <span>After: <strong>{formatCurrency(selectedCustomer.currentBalance + grandTotal)}</strong></span>
+                  <span>Current: <strong className="text-red-600">{formatCurrency(toFiniteNumber(selectedCustomer.currentBalance))}</strong></span>
+                  <span>After: <strong>{formatCurrency(toFiniteNumber(selectedCustomer.currentBalance) + grandTotal)}</strong></span>
                 </div>
                 <p className="text-xs text-gray-500">Limit: {formatCurrency(selectedCustomer.creditLimit)}</p>
               </div>
@@ -638,7 +647,7 @@ export function CheckoutPanel({ onComplete, disabled }: CheckoutPanelProps) {
                     <button key={c.id} onClick={() => selectCustomer(c)}
                       className="flex w-full justify-between px-3 py-1.5 text-xs hover:bg-gray-50 border border-gray-100">
                       <span>{c.name}</span>
-                      <span className="text-red-500">{formatCurrency(c.currentBalance)}</span>
+                      <span className="text-red-500">{formatCurrency(toFiniteNumber(c.currentBalance))}</span>
                     </button>
                   ))}
                 </div>

@@ -3,6 +3,7 @@ import type { Customer, CreditLedgerEntry } from '@/types'
 import { syncCustomerToFirestore } from '@/services/firebase/sync'
 import { syncCreditLedgerEntryToFirestore } from '@/services/firebase/sync'
 import { createEntityId, createSyncId } from '@/utils/syncIds'
+import { toFiniteNumber } from '@/utils/numbers'
 import { queueOutboxEntry } from './outbox'
 
 function buildCustomerSyncPayload(customer: Customer, id: number) {
@@ -84,7 +85,7 @@ export async function updateCreditBalance(customerId: number, delta: number): Pr
     .where('id')
     .equals(customerId)
     .modify((c) => {
-      c.currentBalance = c.currentBalance + delta
+      c.currentBalance = toFiniteNumber(c.currentBalance) + delta
       c.updatedAt = new Date()
     })
 }

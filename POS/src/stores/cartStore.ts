@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { devtools, persist, createJSONStorage } from 'zustand/middleware'
 import type { CartItem } from '@/types'
-import { calcGstInclusive } from '@/utils/gst'
+import { calculateInclusiveTaxTotal } from '@/utils/gst'
+import { roundCurrency } from '@/utils/numbers'
 
 export interface BillDiscount {
   mode: 'percent' | 'flat'
@@ -16,7 +17,7 @@ export interface HeldBill {
   label: string
 }
 
-interface CartTotals {
+export interface CartTotals {
   subtotal: number
   itemDiscount: number
   billDiscountAmount: number
@@ -45,6 +46,21 @@ interface CartState {
 
 function calcLineTotal(item: Omit<CartItem, 'lineTotal'>): number {
   return item.unitPrice * item.qty - item.discount
+}
+
+export function calculateCartTotals(items: CartItem[], billDiscount: BillDiscount): CartTotals {
+  const subtotal = roundCurrency(items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0))
+  const itemDiscount = roundCurrency(items.reduce((sum, item) => sum + item.discount, 0))
+  const afterItemDiscount = roundCurrency(subtotal - itemDiscount)
+  const billDiscountAmount = roundCurrency(
+    billDiscount.mode === 'percent'
+      ? afterItemDiscount * (billDiscount.value / 100)
+      : Math.min(billDiscount.value, afterItemDiscount)
+  )
+  const taxTotal = calculateInclusiveTaxTotal(items, billDiscountAmount)
+  const grandTotal = roundCurrency(afterItemDiscount - billDiscountAmount)
+
+  return { subtotal, itemDiscount, billDiscountAmount, taxTotal, grandTotal }
 }
 
 export const useCartStore = create<CartState>()(
@@ -176,25 +192,7 @@ export const useCartStore = create<CartState>()(
 
         totals: () => {
           const { items, billDiscount } = get()
-          let subtotal = 0
-          let itemDiscount = 0
-          let taxTotal = 0
-
-          for (const item of items) {
-            subtotal += item.unitPrice * item.qty
-            itemDiscount += item.discount
-            const { taxTotal: lineTax } = calcGstInclusive(item.lineTotal, item.taxRate)
-            taxTotal += lineTax
-          }
-
-          const afterItemDiscount = subtotal - itemDiscount
-          const billDiscountAmount =
-            billDiscount.mode === 'percent'
-              ? afterItemDiscount * (billDiscount.value / 100)
-              : Math.min(billDiscount.value, afterItemDiscount)
-
-          const grandTotal = afterItemDiscount - billDiscountAmount
-          return { subtotal, itemDiscount, billDiscountAmount, taxTotal, grandTotal }
+          return calculateCartTotals(items, billDiscount)
         },
       }),
       {

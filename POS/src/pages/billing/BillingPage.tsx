@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ScanLine, AlertTriangle } from 'lucide-react'
 import { isPrinterConnected, printReceipt } from '@/services/printer/printer'
 import { groupByGstSlab } from '@/utils/gst'
-import { useCartStore } from '@/stores/cartStore'
+import { calculateCartTotals, useCartStore } from '@/stores/cartStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { getProductByBarcode } from '@/db/queries/products'
@@ -19,7 +19,7 @@ import { Receipt } from './components/Receipt'
 import { cn } from '@/utils/cn'
 
 export function BillingPage() {
-  const { addItem, clearCart, totals, items } = useCartStore()
+  const { addItem, clearCart, items } = useCartStore()
   const { addToast } = useUiStore()
   const { employeeId, name: cashierName } = useAuth()
 
@@ -27,15 +27,17 @@ export function BillingPage() {
   const [receiptData, setReceiptData] = useState<Awaited<ReturnType<typeof getSaleWithItems>> | null>(null)
   const [voidConfirmOpen, setVoidConfirmOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState<'search' | 'cart' | 'pay'>('search')
+  const [saleSubmitting, setSaleSubmitting] = useState(false)
 
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (saleSubmitting) return
       if (e.key === 'F8') { e.preventDefault(); if (items.length > 0) setVoidConfirmOpen(true) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [items.length])
+  }, [items.length, saleSubmitting])
 
   const addProductToCart = async (product: Product) => {
     if (!product.id) return
@@ -70,9 +72,18 @@ export function BillingPage() {
   }
 
   const handlePaymentComplete = async (payments: PaymentEntry[], _change: number, customerId?: number) => {
-    if (!employeeId) return
-    const { grandTotal, subtotal, itemDiscount, billDiscountAmount, taxTotal } = totals()
-    const currentItems = useCartStore.getState().items
+    if (!employeeId || saleSubmitting) return
+
+    const cartSnapshot = useCartStore.getState()
+    const currentItems = cartSnapshot.items.map((item) => ({ ...item }))
+    if (currentItems.length === 0) return
+
+    const { grandTotal, subtotal, itemDiscount, billDiscountAmount, taxTotal } = calculateCartTotals(
+      currentItems,
+      { ...cartSnapshot.billDiscount }
+    )
+
+    setSaleSubmitting(true)
     try {
       const billNo = await generateBillNumber()
       const saleId = await createSaleTransaction({
@@ -99,7 +110,7 @@ export function BillingPage() {
 
       // If ESC/POS thermal printer is connected, send receipt bytes directly
       if (data && isPrinterConnected()) {
-        const gstSlabs = groupByGstSlab(currentItems)
+        const gstSlabs = groupByGstSlab(currentItems, billDiscountAmount)
         printReceipt({
           billNo,
           cashierName: cashierName ?? '',
@@ -125,12 +136,14 @@ export function BillingPage() {
       }
     } catch (err) {
       addToast('error', `Failed to save sale: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setSaleSubmitting(false)
     }
   }
 
   return (
-    <div className="flex flex-col h-full md:flex-row">
-      <BarcodeInput onScan={handleBarcodeScan} enabled={true} />
+    <div className="relative flex flex-col h-full md:flex-row">
+      <BarcodeInput onScan={handleBarcodeScan} enabled={!saleSubmitting} />
 
       {/* Mobile tab bar — hidden on md+ */}
       <div className="flex md:hidden bg-white border-b border-gray-200 px-2 pt-1">
@@ -226,9 +239,18 @@ export function BillingPage() {
       )}>
         <CheckoutPanel
           onComplete={handlePaymentComplete}
-          disabled={items.length === 0}
+          disabled={items.length === 0 || saleSubmitting}
         />
       </div>
+
+      {saleSubmitting && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-center shadow-sm">
+            <p className="text-sm font-semibold text-gray-900">Saving bill…</p>
+            <p className="mt-1 text-xs text-gray-500">Please wait while we lock the cart and finish checkout.</p>
+          </div>
+        </div>
+      )}
 
       {receiptData && (
         <Modal

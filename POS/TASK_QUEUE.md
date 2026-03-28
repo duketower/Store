@@ -33,3 +33,4 @@
 - Added an admin utility script to reset all live user PINs in Firestore back to a known value
 - Replaced stale count-only refresh behavior with live mirrored-state refresh across reports, attendance, customers, users, settings, dashboard alerts, shift/cash-out, login, and receive stock
 - Replaced the old static `Local Mode` badge with a live shared-sync status indicator
+- Hardened checkout and recovery correctness around bill snapshot locking, safe credit balances, GST-after-discount math, return refund math, legacy sale outbox rebuilds, and batch-allocation traceability

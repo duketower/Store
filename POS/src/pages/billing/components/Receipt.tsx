@@ -2,7 +2,7 @@ import { Printer, MessageCircle } from 'lucide-react'
 import type { Sale, SaleItem, Payment } from '@/types'
 import { formatCurrency } from '@/utils/currency'
 import { formatDateTime } from '@/utils/date'
-import { calcGstInclusive, groupByGstSlab } from '@/utils/gst'
+import { buildDiscountedGstLines, groupByGstSlab } from '@/utils/gst'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import { formatReceiptText } from '@/utils/receiptText'
 
@@ -22,13 +22,25 @@ interface ReceiptProps {
 
 export function Receipt({ sale, items, payments, cashierName, change, onPrint }: ReceiptProps) {
   const STORE_CONFIG = loadStoreConfig()
+  const itemDiscountTotal = items.reduce((sum, item) => sum + item.discount, 0)
+  const billDiscountAmount = Math.max(0, sale.discount - itemDiscountTotal)
+  const discountedTaxLines = buildDiscountedGstLines(
+    items.map((i) => ({
+      unitPrice: i.unitPrice,
+      qty: i.qty,
+      discount: i.discount,
+      taxRate: i.taxRate,
+    })),
+    billDiscountAmount
+  )
   const gstSlabs = groupByGstSlab(
     items.map((i) => ({
       unitPrice: i.unitPrice,
       qty: i.qty,
       discount: i.discount,
       taxRate: i.taxRate,
-    }))
+    })),
+    billDiscountAmount
   )
 
   return (
@@ -84,7 +96,7 @@ export function Receipt({ sale, items, payments, cashierName, change, onPrint }:
 
         {/* Items */}
         {items.map((item, i) => {
-          const { taxTotal } = calcGstInclusive(item.lineTotal, item.taxRate)
+          const lineTax = discountedTaxLines[i]?.breakdown.taxTotal ?? 0
           return (
             <div key={i} className="mb-1">
               <div className="flex">
@@ -97,7 +109,7 @@ export function Receipt({ sale, items, payments, cashierName, change, onPrint }:
                 <p className="pl-2 text-gray-500">  Discount: -{formatCurrency(item.discount)}</p>
               )}
               {item.taxRate > 0 && (
-                <p className="pl-2 text-gray-500">  GST {item.taxRate}%: ₹{taxTotal.toFixed(2)}</p>
+                <p className="pl-2 text-gray-500">  GST {item.taxRate}%: ₹{lineTax.toFixed(2)}</p>
               )}
             </div>
           )
