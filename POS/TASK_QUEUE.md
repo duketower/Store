@@ -9,9 +9,10 @@
 
 ## Next
 
-- Run a full two-device live validation pass against billing, receive stock, returns, cash-out, reports, settings, users, attendance, and dashboard refresh behavior
-- Validate migration/backfill on a device with older local-only history before calling the remaining modules production-safe
-- Document any field issues found during the live two-device drill and close them before calling the app perfect for store operations
+- Complete Phase 9A of `MULTI_DEVICE_ROADMAP.md`: finish the code-path audit, queue diagnostics review, and per-module live drill checklist
+- Run Phase 9B live two-device validation against billing, receive stock, returns, cash-out, reports, settings, users, attendance, dashboard refresh, and fresh-device bootstrap
+- Validate migration/backfill on a device or browser profile with older local-only history before calling the remaining modules production-safe
+- Record and close any Phase 9B issues before Phase 9C operational signoff
 
 ## Done
 
