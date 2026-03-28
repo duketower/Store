@@ -62,8 +62,11 @@ export async function closeSession(
       return
     }
 
+    // Ensure legacy sessions (created before syncId system) get a syncId on close
+    const syncId = session.syncId ?? createSyncId('session')
     const nextSession: DaySession = {
       ...session,
+      syncId,
       closedBy,
       closingCash,
       expectedCash,
@@ -71,11 +74,6 @@ export async function closeSession(
       varianceNote,
       status: 'closed',
       closedAt,
-    }
-
-    // Ensure legacy sessions (created before syncId system) get a syncId on close
-    if (!nextSession.syncId) {
-      nextSession = { ...nextSession, syncId: createSyncId('session') }
     }
 
     await db.day_sessions.put(nextSession)
