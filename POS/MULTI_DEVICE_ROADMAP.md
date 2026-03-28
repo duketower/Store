@@ -14,6 +14,7 @@ Current rollout status:
 - Phase 1 is now in progress in code: sale returns have a shared event model, retryable outbox replay, and bill-level remaining-qty protection.
 - Phase 2 is now in progress in code: product edits, stock adjustments, customer edits, and credit approval-state changes use the retryable sync path.
 - Phase 3 has started in code: vendor sync and GRN replay/listener plumbing are now present, but the wider intake module still needs full validation.
+- Phase 4 has started in code: RTV creation now follows the same replay/listener approach, but secondary-device validation is still required.
 - The remaining roadmap phases are still required before the whole app can be called fully multi-device.
 
 ## Definition Of Done

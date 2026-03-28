@@ -5,7 +5,7 @@
  */
 import { deleteDoc, doc, increment, runTransaction, setDoc, Timestamp } from 'firebase/firestore'
 import { firestore } from '.'
-import type { CashEntry, CreditLedgerEntry, SaleReturn, Vendor, Grn, Batch } from '@/types'
+import type { CashEntry, CreditLedgerEntry, SaleReturn, Vendor, Grn, Batch, RtvSession, RtvItem } from '@/types'
 
 function toTimestamp(date: Date): Timestamp {
   return Timestamp.fromDate(date instanceof Date ? date : new Date(date))
@@ -477,6 +477,53 @@ export async function syncGrnToFirestore(payload: GrnSyncPayload): Promise<void>
         doc(firestore, 'products', String(stockDelta.productId)),
         {
           stock: increment(stockDelta.qty),
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true }
+      )
+    }
+  })
+}
+
+// ─── RTVs ───────────────────────────────────────────────────────────────────
+
+export interface RtvSyncPayload {
+  rtv: RtvSession & { id: number; syncId: string }
+  items: Array<RtvItem>
+}
+
+export async function syncRtvToFirestore(payload: RtvSyncPayload): Promise<void> {
+  const rtvRef = doc(firestore, 'rtvs', payload.rtv.syncId)
+
+  await runTransaction(firestore, async (txn) => {
+    const rtvSnapshot = await txn.get(rtvRef)
+    if (rtvSnapshot.exists()) return
+
+    txn.set(rtvRef, {
+      ...payload.rtv,
+      items: payload.items,
+      createdAt: toTimestamp(payload.rtv.createdAt),
+      syncedAt: Timestamp.now(),
+    })
+
+    for (const item of payload.items) {
+      txn.set(
+        doc(firestore, 'products', String(item.productId)),
+        {
+          stock: increment(-item.qty),
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true }
+      )
+
+      const batchRef = doc(firestore, 'batches', String(item.batchId))
+      const batchSnapshot = await txn.get(batchRef)
+      const currentQty = Number(batchSnapshot.data()?.qtyRemaining ?? 0)
+
+      txn.set(
+        batchRef,
+        {
+          qtyRemaining: Math.max(0, currentQty - item.qty),
           updatedAt: Timestamp.now(),
         },
         { merge: true }

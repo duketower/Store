@@ -149,5 +149,24 @@ export async function runMigration(onProgress: ProgressCallback): Promise<void> 
   )
   onProgress({ stage: 'GRNs', done: grns.length, total: grns.length })
 
+  // ── RTVs ──────────────────────────────────────────────────────────────────
+  const rtvs = await db.rtvs.toArray()
+  onProgress({ stage: 'RTVs', done: 0, total: rtvs.length })
+  await batchWrite(
+    'rtvs',
+    await Promise.all(
+      rtvs.map(async (rtv) => ({
+        id: rtv.syncId ?? `legacy-rtv-${rtv.id!}`,
+        data: {
+          ...rtv,
+          syncId: rtv.syncId ?? `legacy-rtv-${rtv.id!}`,
+          createdAt: toTs(rtv.createdAt),
+          items: await db.rtv_items.where('rtvId').equals(rtv.id!).toArray(),
+        },
+      }))
+    )
+  )
+  onProgress({ stage: 'RTVs', done: rtvs.length, total: rtvs.length })
+
   onProgress({ stage: 'Done', done: 0, total: 0 })
 }

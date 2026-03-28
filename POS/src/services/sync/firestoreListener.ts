@@ -33,6 +33,7 @@ export function startFirestoreListeners(): () => void {
   const unsubCustomers = startCustomerListener()
   const unsubVendors = startVendorListener()
   const unsubGrns = startGrnListener()
+  const unsubRtvs = startRtvListener()
   const unsubSales = startSalesListener()
   const unsubSaleReturns = startSaleReturnListener()
   const unsubCreditLedger = startCreditLedgerListener()
@@ -47,6 +48,7 @@ export function startFirestoreListeners(): () => void {
     unsubCustomers()
     unsubVendors()
     unsubGrns()
+    unsubRtvs()
     unsubSales()
     unsubSaleReturns()
     unsubCreditLedger()
@@ -257,6 +259,73 @@ function startGrnListener(): () => void {
       }
     },
     (err) => console.warn('[Listener] grns snapshot error:', err)
+  )
+}
+
+function startRtvListener(): () => void {
+  return onSnapshot(
+    collection(firestore, 'rtvs'),
+    { includeMetadataChanges: false },
+    (snapshot) => {
+      for (const change of snapshot.docChanges()) {
+        const syncId = change.doc.id
+        if (!syncId) continue
+
+        if (change.type === 'removed') {
+          db.rtvs
+            .where('syncId')
+            .equals(syncId)
+            .first()
+            .then(async (existing) => {
+              if (!existing?.id) return
+              await db.transaction('rw', [db.rtvs, db.rtv_items], async () => {
+                await db.rtv_items.where('rtvId').equals(existing.id!).delete()
+                await db.rtvs.delete(existing.id!)
+              })
+            })
+            .catch((err: unknown) => console.warn('[Listener] rtv delete failed:', err))
+          continue
+        }
+
+        const data = change.doc.data()
+        void db
+          .transaction('rw', [db.rtvs, db.rtv_items], async () => {
+            const existing = await db.rtvs.where('syncId').equals(syncId).first()
+            const rtvPayload = {
+              ...(data.id !== undefined ? { id: Number(data.id) } : {}),
+              syncId,
+              ...(data.vendorName !== undefined && { vendorName: String(data.vendorName) }),
+              ...(data.invoiceNo !== undefined && { invoiceNo: String(data.invoiceNo) }),
+              reason: String(data.reason ?? existing?.reason ?? ''),
+              createdBy: Number(data.createdBy ?? existing?.createdBy ?? 0),
+              totalValue: Number(data.totalValue ?? existing?.totalValue ?? 0),
+              lineCount: Number(data.lineCount ?? existing?.lineCount ?? 0),
+              createdAt: tsToDate(data.createdAt ?? existing?.createdAt ?? new Date()),
+            }
+
+            const rtvId = existing?.id
+              ? (await db.rtvs.update(existing.id, rtvPayload), existing.id)
+              : await db.rtvs.add(rtvPayload)
+
+            await db.rtv_items.where('rtvId').equals(rtvId).delete()
+
+            if (Array.isArray(data.items) && data.items.length > 0) {
+              await db.rtv_items.bulkAdd(
+                data.items.map((item: Record<string, unknown>) => ({
+                  rtvId,
+                  productId: Number(item.productId ?? 0),
+                  batchId: Number(item.batchId ?? 0),
+                  batchNo: String(item.batchNo ?? ''),
+                  qty: Number(item.qty ?? 0),
+                  purchasePrice: Number(item.purchasePrice ?? 0),
+                }))
+              )
+            }
+          })
+          .catch((err: unknown) => console.warn('[Listener] rtv upsert failed:', err))
+      }
+    },
+    (err) => console.warn('[Listener] rtvs snapshot error:', err)
   )
 }
 

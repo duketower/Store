@@ -320,5 +320,38 @@ export class PosDatabase extends Dexie {
           }
         })
       })
+
+    this.version(12)
+      .stores({
+        employees:           '++id, role, isActive',
+        products:            '++id, barcode, sku, category, stock, reorderLevel',
+        batches:             '++id, productId, expiryDate, batchNo, grnId',
+        customers:           '++id, phone, name',
+        sales:               '++id, billNo, customerId, cashierId, status, createdAt',
+        sale_returns:        '++id, &syncId, saleId, billNo, createdAt',
+        sale_items:          '++id, saleId, productId, batchId',
+        payments:            '++id, saleId, method, createdAt',
+        credit_ledger:       '++id, &syncId, customerId, saleId, entryType, createdAt',
+        day_sessions:        '++id, &syncId, openedBy, status, openedAt',
+        outbox:              '++id, status, action, entityType, createdAt, updatedAt',
+        audit_log:           '++id, action, entityType, createdAt, userId',
+        vendors:             '++id, &syncId, name, isActive',
+        grns:                '++id, &syncId, createdAt, createdBy',
+        rtvs:                '++id, &syncId, createdAt, createdBy',
+        rtv_items:           '++id, rtvId, productId, batchId',
+        staff_external:      '++id, name, isActive',
+        attendance_logs:     '++id, staffId, date, [staffType+date], status, loggedBy',
+        leave_requests:      '++id, employeeId, status, startDate, [employeeId+status]',
+        cash_entries:        '++id, &syncId, sessionId, createdAt, authorizedBy',
+        expenses:            '++id, &syncId, date, category, createdAt, updatedAt',
+        performance_targets: '&key, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('rtvs').toCollection().modify((rtv: RtvSession) => {
+          if (!rtv.syncId) {
+            rtv.syncId = rtv.id ? `legacy-rtv-${rtv.id}` : createSyncId('rtv')
+          }
+        })
+      })
   }
 }

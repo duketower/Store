@@ -65,6 +65,7 @@ export interface Grn {
 
 export interface RtvSession {
   id?: number
+  syncId?: string
   vendorName?: string
   invoiceNo?: string  // reference back to vendor's invoice
   reason: string

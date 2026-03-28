@@ -6,6 +6,7 @@ import {
   syncExpenseToFirestore,
   syncPerformanceTargetsToFirestore,
   syncGrnToFirestore,
+  syncRtvToFirestore,
   syncReturnToFirestore,
   syncSaleToFirestore,
   syncProductToFirestore,
@@ -94,6 +95,24 @@ export async function flushOutbox(): Promise<void> {
             createdAt: new Date(String(batch.createdAt)),
           })),
           productStockDeltas: data.productStockDeltas ?? [],
+        })
+        await db.outbox.delete(entry.id!)
+      } catch (error) {
+        await markOutboxFailed(entry.id, error)
+      }
+      continue
+    }
+
+    if (entry.action === 'create_rtv') {
+      try {
+        await markOutboxSyncing(entry.id)
+        const data = JSON.parse(entry.payload)
+        await syncRtvToFirestore({
+          rtv: {
+            ...data.rtv,
+            createdAt: new Date(data.rtv.createdAt),
+          },
+          items: data.items ?? [],
         })
         await db.outbox.delete(entry.id!)
       } catch (error) {
