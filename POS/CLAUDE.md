@@ -1,8 +1,11 @@
 # POS — Claude Code Project Instructions
 
-This is an offline-first Grocery Store POS web app.
+This is a Grocery Store POS web app with queued outage handling for store-critical sync.
 Stack: React + TypeScript + Vite + Tailwind + Dexie.js + Zustand + React Router.
-Phase 1: Pure frontend MVP — no backend. All data lives in IndexedDB.
+Original Phase 1 started as a pure frontend MVP, but the live store target is now:
+- online-first shared store state across devices
+- billing must continue on one billing device during outages
+- pending updates must replay cleanly when internet returns
 
 Reference docs:
 - `README.md`
@@ -28,6 +31,11 @@ Documentation sync rule:
 - `DECISIONS.md` = durable technical choices
 - `docs/*` = product behavior, integrations, workflows
 - If no docs changed, say so explicitly in the final summary
+
+Deployment rule:
+- After changing live POS app behavior, deploy the affected client by default unless the user explicitly says not to deploy
+- For the main Binary Ventures store, use `cd POS/platform && npm run client:build -- zero-one`
+- Include deployment verification in the final summary when a deploy was run
 
 ---
 
@@ -195,12 +203,14 @@ Auth sessions are **not** stored in IndexedDB — they live in Zustand memory on
 
 ---
 
-## Offline-First Rules
+## Sync Rules
 
 - Service Worker registered via `vite-plugin-pwa` (Workbox)
 - Every sale: write to IndexedDB first → deduct stock → add outbox entry → UI completes
-- Outbox table stores pending mutations for Phase 2 backend sync
-- App must work 100% offline after first load
+- Outbox table stores pending business events for replay to Firestore
+- Core multi-device screens must read from Firestore-hydrated Dexie data, not device-only local history
+- If the internet is down, only one billing device should continue checkout until connectivity returns
+- Sync queue visibility matters: keep pending/failed updates inspectable in the UI for store operators
 
 ---
 

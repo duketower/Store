@@ -1,6 +1,55 @@
 import { db } from '@/db'
 import type { Customer, CreditLedgerEntry } from '@/types'
 import { syncCustomerToFirestore } from '@/services/firebase/sync'
+import { syncCreditLedgerEntryToFirestore } from '@/services/firebase/sync'
+import { createSyncId } from '@/utils/syncIds'
+import { queueOutboxEntry } from './outbox'
+
+function buildCustomerSyncPayload(customer: Customer, id: number) {
+  return {
+    id,
+    name: customer.name,
+    phone: customer.phone,
+    currentBalance: customer.currentBalance,
+    creditLimit: customer.creditLimit,
+    loyaltyPoints: customer.loyaltyPoints,
+    creditApproved: customer.creditApproved,
+    creditRequested: customer.creditRequested,
+    createdAt: customer.createdAt,
+    updatedAt: customer.updatedAt,
+  }
+}
+
+async function queueCustomerSync(customer: Customer, id: number, createdAt: Date): Promise<void> {
+  const payload = buildCustomerSyncPayload(customer, id)
+  await queueOutboxEntry({
+    action: 'upsert_customer',
+    entityType: 'customer',
+    entityKey: String(id),
+    payload: JSON.stringify({
+      ...payload,
+      createdAt: payload.createdAt.toISOString(),
+      updatedAt: payload.updatedAt.toISOString(),
+    }),
+    createdAt,
+  })
+}
+
+async function syncCustomerSnapshot(customerId: number, mutate: (customer: Customer, now: Date) => Customer): Promise<void> {
+  const existing = await db.customers.get(customerId)
+  if (!existing) throw new Error('Customer not found')
+  const now = new Date()
+  const nextCustomer = mutate(existing, now)
+
+  await db.transaction('rw', [db.customers, db.outbox], async () => {
+    await db.customers.put(nextCustomer)
+    await queueCustomerSync(nextCustomer, customerId, now)
+  })
+
+  syncCustomerToFirestore(buildCustomerSyncPayload(nextCustomer, customerId)).catch((err: unknown) =>
+    console.warn('[Firestore] customer sync failed (will retry):', err)
+  )
+}
 
 export async function getPendingCreditRequestCount(): Promise<number> {
   return db.customers.filter((c) => c.creditRequested === true).count()
@@ -49,35 +98,93 @@ export async function getCreditHistory(customerId: number): Promise<CreditLedger
 }
 
 export async function addCreditLedgerEntry(entry: Omit<CreditLedgerEntry, 'id'>): Promise<number> {
-  return db.credit_ledger.add(entry)
+  const now = new Date()
+  const ledgerEntry: CreditLedgerEntry = {
+    ...entry,
+    syncId: entry.syncId ?? createSyncId('credit'),
+  }
+
+  const id = await db.transaction('rw', [db.credit_ledger, db.outbox], async () => {
+    const ledgerId = await db.credit_ledger.add(ledgerEntry)
+    await queueOutboxEntry({
+      action: 'upsert_credit_ledger',
+      entityType: 'credit_ledger',
+      entityKey: ledgerEntry.syncId,
+      payload: JSON.stringify({
+        ...ledgerEntry,
+        createdAt: ledgerEntry.createdAt.toISOString(),
+      }),
+      createdAt: now,
+    })
+    return ledgerId
+  })
+
+  syncCreditLedgerEntryToFirestore(ledgerEntry).catch((err: unknown) =>
+    console.warn('[Firestore] credit ledger sync failed (will retry):', err)
+  )
+
+  return id
 }
 
 export async function requestCreditLine(customerId: number): Promise<void> {
-  await db.customers.where('id').equals(customerId).modify({ creditRequested: true, updatedAt: new Date() })
+  await syncCustomerSnapshot(customerId, (customer, now) => ({
+    ...customer,
+    creditRequested: true,
+    updatedAt: now,
+  }))
 }
 
 export async function approveCreditLine(customerId: number, limit: number): Promise<void> {
-  await db.customers.where('id').equals(customerId).modify({ creditApproved: true, creditRequested: false, creditLimit: limit, updatedAt: new Date() })
+  await syncCustomerSnapshot(customerId, (customer, now) => ({
+    ...customer,
+    creditApproved: true,
+    creditRequested: false,
+    creditLimit: limit,
+    updatedAt: now,
+  }))
 }
 
 export async function declineCreditRequest(customerId: number): Promise<void> {
-  await db.customers.where('id').equals(customerId).modify({ creditRequested: false, updatedAt: new Date() })
+  await syncCustomerSnapshot(customerId, (customer, now) => ({
+    ...customer,
+    creditRequested: false,
+    updatedAt: now,
+  }))
 }
 
 export async function revokeCreditLine(customerId: number): Promise<void> {
-  await db.customers.where('id').equals(customerId).modify({ creditApproved: false, creditRequested: false, creditLimit: 0, updatedAt: new Date() })
+  await syncCustomerSnapshot(customerId, (customer, now) => ({
+    ...customer,
+    creditApproved: false,
+    creditRequested: false,
+    creditLimit: 0,
+    updatedAt: now,
+  }))
 }
 
 export async function upsertCustomer(
   customer: Omit<Customer, 'id'> & { id?: number }
 ): Promise<number> {
+  const now = new Date()
   let id: number
+  let saved: Customer
   if (customer.id) {
-    await db.customers.update(customer.id, { ...customer, updatedAt: new Date() })
+    saved = { ...customer, updatedAt: now }
+    await db.transaction('rw', [db.customers, db.outbox], async () => {
+      await db.customers.update(customer.id!, saved)
+      await queueCustomerSync(saved, customer.id!, now)
+    })
     id = customer.id
   } else {
-    id = await db.customers.add({ ...customer, createdAt: new Date(), updatedAt: new Date() })
+    saved = { ...customer, createdAt: now, updatedAt: now }
+    id = await db.transaction('rw', [db.customers, db.outbox], async () => {
+      const customerId = await db.customers.add(saved)
+      await queueCustomerSync(saved, customerId, now)
+      return customerId
+    })
   }
-  syncCustomerToFirestore({ id, name: customer.name, phone: customer.phone, currentBalance: customer.currentBalance, creditLimit: customer.creditLimit })
+  syncCustomerToFirestore(buildCustomerSyncPayload(saved, id)).catch((err: unknown) =>
+    console.warn('[Firestore] customer sync failed (will retry):', err)
+  )
   return id
 }

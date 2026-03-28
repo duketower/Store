@@ -10,6 +10,11 @@ export interface Sale {
   discount: number
   taxTotal: number
   grandTotal: number
+  cogsTotal?: number
+  grossProfitTotal?: number
+  profitEstimated?: boolean
+  returnTotal?: number
+  lastReturnAt?: Date
   status: SaleStatus
   createdAt: Date
 }
@@ -32,6 +37,29 @@ export interface Payment {
   method: PaymentMethod
   amount: number
   referenceNo?: string
+  createdAt: Date
+}
+
+export interface SaleReturnItem {
+  saleItemId: number
+  productId: number
+  batchId?: number
+  qty: number
+  unitPrice: number
+  lineTotal: number
+}
+
+export interface SaleReturn {
+  id?: number
+  syncId: string
+  saleId: number
+  billNo: string
+  customerId?: number
+  totalRefund: number
+  reason: string
+  userId: number
+  creditLedgerSyncId?: string
+  items: SaleReturnItem[]
   createdAt: Date
 }
 

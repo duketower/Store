@@ -30,3 +30,39 @@ Keep hardware logic in service modules, not utilities.
 
 Reason:
 - WebUSB and WebSerial integrations are side-effectful and deserve clear boundaries
+
+## Decision 005
+
+Store performance targets as shared Firestore-backed settings and save sale-level profit snapshots for new sales.
+
+Reason:
+- Dashboard targets must stay consistent across multiple devices
+- New sales need stable cost/profit values at the time of checkout
+- Older sales can still fall back to best-effort estimation without breaking the dashboard
+
+## Decision 006
+
+Deploy the affected live client after app changes by default.
+
+Reason:
+- Prevents local-only fixes from drifting away from the live store
+- Keeps `pos.binaryventures.in` aligned with the latest verified behavior
+- Makes task completion status clearer for operational store changes
+
+## Decision 007
+
+Treat shared store data as online-first with queued replay, not pure offline-first local state.
+
+Reason:
+- The real store requirement is that billing must continue when the internet drops, but shared state should converge once connectivity returns
+- A visible sync queue is safer for store operations than silent per-device divergence
+- Core sales, cash, credit, and shift events need idempotent replay semantics to avoid double-sync or missed-sync errors
+
+## Decision 008
+
+Define “fully multi-device” at the module level and finish the rollout in tracked phases.
+
+Reason:
+- The app now has mixed sync maturity: some modules are shared, some are partial, and some are still local-only
+- Store operations need a precise roadmap, not a vague “multi-device” label
+- `MULTI_DEVICE_ROADMAP.md` is the canonical checklist for taking every operational module to shared-state readiness

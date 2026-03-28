@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Receipt, Plus, Trash2, X } from 'lucide-react'
-import { db } from '@/db'
+import { createExpense, deleteExpenseById, listExpensesBetween } from '@/db/queries/expenses'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate } from '@/utils/date'
 import { StatCard } from './SalesTab'
@@ -76,19 +76,7 @@ export function ExpenseTab() {
     setLoading(true)
     try {
       const { start, end } = getDateRange(range, customFrom, customTo)
-      const all = await db.expenses
-        .filter((e) => {
-          const d = e.date instanceof Date ? e.date : new Date(e.date)
-          return d >= start && d <= end
-        })
-        .toArray()
-      // Sort newest first
-      all.sort((a, b) => {
-        const da = a.date instanceof Date ? a.date : new Date(a.date)
-        const db_ = b.date instanceof Date ? b.date : new Date(b.date)
-        return db_.getTime() - da.getTime()
-      })
-      setExpenses(all)
+      setExpenses(await listExpensesBetween(start, end))
     } finally {
       setLoading(false)
     }
@@ -99,13 +87,11 @@ export function ExpenseTab() {
     if (!formAmount || isNaN(amount) || amount <= 0) return
     setFormSaving(true)
     try {
-      const now = new Date()
-      await db.expenses.add({
+      await createExpense({
         category: formCategory,
         amount,
         note: formNote.trim() || undefined,
         date: new Date(formDate),
-        createdAt: now,
       })
       setShowForm(false)
       setFormAmount('')
@@ -119,7 +105,7 @@ export function ExpenseTab() {
   }
 
   const handleDelete = async (id: number) => {
-    await db.expenses.delete(id)
+    await deleteExpenseById(id)
     setDeleteId(null)
     await loadExpenses()
   }

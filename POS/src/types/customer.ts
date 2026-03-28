@@ -15,6 +15,7 @@ export type CreditEntryType = 'debit' | 'credit'
 
 export interface CreditLedgerEntry {
   id?: number
+  syncId?: string
   customerId: number
   saleId?: number
   entryType: CreditEntryType  // debit = charge, credit = payment received

@@ -1,5 +1,6 @@
 export interface Vendor {
   id?: number
+  syncId?: string
   name: string
   phone?: string
   gstin?: string
@@ -13,6 +14,7 @@ export type SessionStatus = 'open' | 'closed'
 
 export interface DaySession {
   id?: number
+  syncId?: string
   openedBy: number      // employeeId
   openingFloat: number
   closedBy?: number
@@ -28,8 +30,16 @@ export interface DaySession {
 export interface OutboxEntry {
   id?: number
   action: string
+  entityType: string
+  entityKey?: string
   payload: string  // JSON serialized
+  status: 'pending' | 'syncing' | 'failed'
+  retryCount: number
+  lastAttemptAt?: Date
+  lastError?: string
+  syncedAt?: Date
   createdAt: Date
+  updatedAt: Date
 }
 
 export interface AuditLogEntry {
@@ -44,6 +54,7 @@ export interface AuditLogEntry {
 
 export interface Grn {
   id?: number
+  syncId?: string
   vendorName?: string
   invoiceNo?: string
   createdAt: Date
@@ -83,6 +94,7 @@ export type CashEntryCategory =
 
 export interface CashEntry {
   id?: number
+  syncId?: string
   sessionId?: number       // day_session id at time of entry
   amount: number
   category: CashEntryCategory
@@ -93,9 +105,11 @@ export interface CashEntry {
 
 export interface Expense {
   id?: number
+  syncId: string
   category: string       // e.g. "Electricity", "Rent", "Staff", "Maintenance", "Other"
   amount: number
   note?: string
   date: Date
   createdAt: Date
+  updatedAt: Date
 }

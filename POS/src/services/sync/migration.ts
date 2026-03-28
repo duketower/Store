@@ -99,5 +99,55 @@ export async function runMigration(onProgress: ProgressCallback): Promise<void> 
   )
   onProgress({ stage: 'Employees', done: employees.length, total: employees.length })
 
+  // ── Expenses ───────────────────────────────────────────────────────────────
+  const expenses = await db.expenses.toArray()
+  onProgress({ stage: 'Expenses', done: 0, total: expenses.length })
+  await batchWrite(
+    'expenses',
+    expenses.map((expense) => ({
+      id: expense.syncId,
+      data: {
+        ...expense,
+        date: toTs(expense.date),
+        createdAt: toTs(expense.createdAt),
+        updatedAt: toTs(expense.updatedAt),
+      },
+    }))
+  )
+  onProgress({ stage: 'Expenses', done: expenses.length, total: expenses.length })
+
+  // ── Vendors ───────────────────────────────────────────────────────────────
+  const vendors = await db.vendors.toArray()
+  onProgress({ stage: 'Vendors', done: 0, total: vendors.length })
+  await batchWrite(
+    'vendors',
+    vendors.map((vendor) => ({
+      id: vendor.syncId ?? `legacy-vendor-${vendor.id!}`,
+      data: {
+        ...vendor,
+        syncId: vendor.syncId ?? `legacy-vendor-${vendor.id!}`,
+        createdAt: toTs(vendor.createdAt),
+        updatedAt: toTs(vendor.updatedAt),
+      },
+    }))
+  )
+  onProgress({ stage: 'Vendors', done: vendors.length, total: vendors.length })
+
+  // ── GRNs ──────────────────────────────────────────────────────────────────
+  const grns = await db.grns.toArray()
+  onProgress({ stage: 'GRNs', done: 0, total: grns.length })
+  await batchWrite(
+    'grns',
+    grns.map((grn) => ({
+      id: grn.syncId ?? `legacy-grn-${grn.id!}`,
+      data: {
+        ...grn,
+        syncId: grn.syncId ?? `legacy-grn-${grn.id!}`,
+        createdAt: toTs(grn.createdAt),
+      },
+    }))
+  )
+  onProgress({ stage: 'GRNs', done: grns.length, total: grns.length })
+
   onProgress({ stage: 'Done', done: 0, total: 0 })
 }

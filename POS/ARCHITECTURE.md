@@ -20,6 +20,10 @@
 
 - IndexedDB via Dexie under `src/db/`
 - Query logic split into domain-specific modules under `src/db/queries/`
+- Sales now persist profit snapshot fields for new sales so dashboard profit does not depend only on reconstructed inventory state
+- Performance targets and synced expenses are mirrored locally for multi-device dashboard accuracy
+- Core live-store sync now uses an outbox of business events plus Firestore listeners that rehydrate shared sales, batches, credit ledger, cash entries, and day sessions back into Dexie
+- Full-store multi-device completion is tracked module-by-module in `MULTI_DEVICE_ROADMAP.md`
 
 ### Service Layer
 
@@ -27,6 +31,8 @@
 - Printer integration under `src/services/printer/`
 - Scale integration under `src/services/scale/`
 - Sync/export helpers under `src/services/sync/`
+- Dashboard metrics combine shared Firestore sales, shared expenses, and shared targets with local fallback estimation for older sales
+- Sync is now online-first for shared store data, with queued replay when the internet returns rather than treating every feature as permanently local-first
 
 ## Build Model
 
@@ -36,7 +42,9 @@
 
 ## Key Constraints
 
-- Offline-first after first load
+- Billing must continue during outages on one active billing device, then replay pending sync safely when the connection returns
 - Single-store operation within the app itself
 - Multi-client distribution handled at build time, not runtime tenancy
 - Hardware support must stay isolated in services
+- Live client changes should be deployed through `POS/platform` after implementation, not left local-only by default
+- “Fully multi-device” means every operational module must either be shared live or intentionally remain device-local with explicit documentation

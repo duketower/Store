@@ -10,9 +10,11 @@ import { db } from '@/db'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
-import { syncProductToFirestore, syncBatchToFirestore } from '@/services/firebase/sync'
+import { syncGrnToFirestore } from '@/services/firebase/sync'
 import { formatCurrency } from '@/utils/currency'
-import type { Product, Vendor } from '@/types'
+import type { Batch, Grn, Product, Vendor } from '@/types'
+import { createSyncId } from '@/utils/syncIds'
+import { queueOutboxEntry } from '@/db/queries/outbox'
 
 interface GrnLine {
   product: Product
@@ -90,25 +92,34 @@ export function ReceiveStockPage() {
 
     setSaving(true)
     try {
-      const synced: Array<{ batchId: number; productId: number }> = []
+      const createdAt = new Date()
       const vendorName =
         vendorId === 'other' || vendorId === ''
           ? vendorFreeText.trim() || undefined
           : vendors.find((v) => v.id === vendorId)?.name
 
       let savedGrnId = 0
-      await db.transaction('rw', [db.batches, db.products, db.grns], async () => {
-        const grnId = await createGrn({
+      const grnSyncId = createSyncId('grn')
+      const syncedBatches: Array<Batch & { id: number }> = []
+      const productStockDeltas: Array<{ productId: number; qty: number }> = []
+      let savedGrn: (Grn & { id: number; syncId: string }) | null = null
+
+      await db.transaction('rw', [db.batches, db.products, db.grns, db.outbox], async () => {
+        const grnPayload: Grn = {
+          syncId: grnSyncId,
           vendorName,
           invoiceNo: invoiceNo.trim() || undefined,
-          createdAt: new Date(),
+          createdAt,
           createdBy: employeeId ?? 0,
           totalValue: lines.reduce((s, l) => s + l.purchasePrice * l.qty, 0),
           lineCount: lines.length,
-        })
+        }
+        const grnId = await createGrn(grnPayload)
         savedGrnId = grnId
+        savedGrn = { ...grnPayload, id: grnId, syncId: grnSyncId }
         for (const line of lines) {
           const productId = line.product.id!
+          const batchCreatedAt = new Date()
           const batchId = await addBatch({
             productId,
             batchNo: line.batchNo,
@@ -116,7 +127,7 @@ export function ReceiveStockPage() {
             expiryDate: new Date(line.expiryDate),
             purchasePrice: line.purchasePrice,
             qtyRemaining: line.qty,
-            createdAt: new Date(),
+            createdAt: batchCreatedAt,
             vendor: vendorName,
             invoiceNo: invoiceNo.trim() || undefined,
             grnId,
@@ -127,21 +138,54 @@ export function ReceiveStockPage() {
             .equals(productId)
             .modify((p) => {
               p.stock += line.qty
-              p.updatedAt = new Date()
+              p.updatedAt = createdAt
             })
-          synced.push({ batchId, productId })
+          syncedBatches.push({
+            id: batchId,
+            productId,
+            batchNo: line.batchNo,
+            ...(line.mfgDate ? { mfgDate: new Date(line.mfgDate) } : {}),
+            expiryDate: new Date(line.expiryDate),
+            purchasePrice: line.purchasePrice,
+            qtyRemaining: line.qty,
+            createdAt: batchCreatedAt,
+            ...(vendorName ? { vendor: vendorName } : {}),
+            ...(invoiceNo.trim() ? { invoiceNo: invoiceNo.trim() } : {}),
+            grnId,
+          })
+          productStockDeltas.push({ productId, qty: line.qty })
         }
+
+        await queueOutboxEntry({
+          action: 'create_grn',
+          entityType: 'grn',
+          entityKey: grnSyncId,
+          payload: JSON.stringify({
+            grn: {
+              ...savedGrn,
+              createdAt: createdAt.toISOString(),
+            },
+            batches: syncedBatches.map((batch) => ({
+              ...batch,
+              ...(batch.mfgDate ? { mfgDate: batch.mfgDate.toISOString() } : {}),
+              expiryDate: batch.expiryDate.toISOString(),
+              createdAt: batch.createdAt.toISOString(),
+            })),
+            productStockDeltas,
+          }),
+          createdAt,
+        })
       })
 
-      // Fire-and-forget: sync new batches + updated product stock to Firestore
-      for (const { batchId, productId } of synced) {
-        db.batches.get(batchId).then((b) => { if (b) syncBatchToFirestore({ ...b, id: batchId }) })
-        db.products.get(productId).then((p) => {
-          if (p) syncProductToFirestore({ id: p.id!, name: p.name, stock: p.stock, reorderLevel: p.reorderLevel, unit: p.unit, sellingPrice: p.sellingPrice, category: p.category })
-        })
+      if (savedGrn) {
+        syncGrnToFirestore({
+          grn: savedGrn,
+          batches: syncedBatches,
+          productStockDeltas,
+        }).catch((err: unknown) => console.warn('[Firestore] GRN sync failed (will retry):', err))
       }
 
-addToast('success', `GRN #${savedGrnId} saved — ${lines.length} item(s) received`)
+      addToast('success', `GRN #${savedGrnId} saved — ${lines.length} item(s) received`)
       setLines([])
       setVendorId('')
       setVendorFreeText('')

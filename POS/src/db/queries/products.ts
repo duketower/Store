@@ -1,6 +1,46 @@
 import { db } from '@/db'
 import type { Product } from '@/types'
 import { syncProductToFirestore } from '@/services/firebase/sync'
+import { queueOutboxEntry } from './outbox'
+
+function buildProductSyncPayload(product: Product, id: number) {
+  return {
+    id,
+    name: product.name,
+    barcode: product.barcode,
+    sku: product.sku,
+    stock: product.stock,
+    reorderLevel: product.reorderLevel,
+    unit: product.unit,
+    soldByWeight: product.soldByWeight,
+    sellingPrice: product.sellingPrice,
+    costPrice: product.costPrice,
+    mrp: product.mrp,
+    taxRate: product.taxRate,
+    hsnCode: product.hsnCode,
+    category: product.category,
+    baseUnit: product.baseUnit,
+    baseQty: product.baseQty,
+    isActive: product.isActive,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+  }
+}
+
+async function queueProductSync(product: Product, id: number, createdAt: Date): Promise<void> {
+  const payload = buildProductSyncPayload(product, id)
+  await queueOutboxEntry({
+    action: 'upsert_product',
+    entityType: 'product',
+    entityKey: String(id),
+    payload: JSON.stringify({
+      ...payload,
+      createdAt: payload.createdAt.toISOString(),
+      updatedAt: payload.updatedAt.toISOString(),
+    }),
+    createdAt,
+  })
+}
 
 export async function getProductByBarcode(barcode: string): Promise<Product | undefined> {
   return db.products.where('barcode').equals(barcode).first()
@@ -44,23 +84,27 @@ export async function getLowStockProducts(): Promise<Product[]> {
 }
 
 export async function upsertProduct(product: Omit<Product, 'id'> & { id?: number }): Promise<number> {
+  const now = new Date()
   let id: number
+  let saved: Product
+
   if (product.id) {
-    await db.products.update(product.id, { ...product, updatedAt: new Date() })
+    saved = { ...product, updatedAt: now }
+    await db.transaction('rw', [db.products, db.outbox], async () => {
+      await db.products.update(product.id!, saved)
+      await queueProductSync(saved, product.id!, now)
+    })
     id = product.id
   } else {
-    id = await db.products.add({ ...product, createdAt: new Date(), updatedAt: new Date() })
+    saved = { ...product, createdAt: now, updatedAt: now }
+    id = await db.transaction('rw', [db.products, db.outbox], async () => {
+      const productId = await db.products.add(saved)
+      await queueProductSync(saved, productId, now)
+      return productId
+    })
   }
-  // Fire-and-forget sync to Firestore
-  syncProductToFirestore({
-    id,
-    name: product.name,
-    stock: product.stock,
-    reorderLevel: product.reorderLevel,
-    unit: product.unit,
-    sellingPrice: product.sellingPrice,
-    category: product.category,
-  })
+
+  syncProductToFirestore(buildProductSyncPayload(saved, id))
   return id
 }
 
@@ -74,16 +118,25 @@ export async function adjustStock(
   if (!product) throw new Error('Product not found')
   const before = product.stock
   const after = Math.max(0, before + delta)
-  await db.products.where('id').equals(productId).modify((p) => {
-    p.stock = after
-    p.updatedAt = new Date()
+  const now = new Date()
+  const saved: Product = {
+    ...product,
+    stock: after,
+    updatedAt: now,
+  }
+
+  await db.transaction('rw', [db.products, db.audit_log, db.outbox], async () => {
+    await db.products.put(saved)
+    await db.audit_log.add({
+      action: 'stock_adjust',
+      entityType: 'product',
+      entityId: productId,
+      detail: JSON.stringify({ productName: product.name, before, after, delta, reason }),
+      userId,
+      createdAt: now,
+    })
+    await queueProductSync(saved, productId, now)
   })
-  await db.audit_log.add({
-    action: 'stock_adjust',
-    entityType: 'product',
-    entityId: productId,
-    detail: JSON.stringify({ productName: product.name, before, after, delta, reason }),
-    userId,
-    createdAt: new Date(),
-  })
+
+  syncProductToFirestore(buildProductSyncPayload(saved, productId))
 }

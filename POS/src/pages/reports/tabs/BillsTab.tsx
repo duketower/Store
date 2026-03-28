@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Download, Receipt, Search, X } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
 import { Receipt as ReceiptView } from '@/pages/billing/components/Receipt'
-import { getSaleWithItems, processReturn, type ReturnItem } from '@/db/queries/sales'
+import { getSaleReturns, getSaleWithItems, processReturn, type ReturnItem } from '@/db/queries/sales'
 import { db } from '@/db'
 import { formatCurrency } from '@/utils/currency'
 import { formatDateTime } from '@/utils/date'
@@ -22,7 +22,13 @@ export function BillsTab() {
   const [billsData, setBillsData] = useState<BillRow[] | null>(null)
   const [returnModalOpen, setReturnModalOpen] = useState(false)
   const [returnBill, setReturnBill] = useState<BillRow | null>(null)
-  const [returnItems, setReturnItems] = useState<Array<{ item: ReturnItem & { productName: string }; selected: boolean; returnQty: number }>>([])
+  const [returnItems, setReturnItems] = useState<Array<{
+    item: ReturnItem & { productName: string }
+    selected: boolean
+    returnQty: number
+    remainingQty: number
+    returnedQty: number
+  }>>([])
   const [returnReason, setReturnReason] = useState('')
   const [returnSaving, setReturnSaving] = useState(false)
   const [viewReceiptData, setViewReceiptData] = useState<{
@@ -102,13 +108,37 @@ export function BillsTab() {
   }
 
   const openReturn = async (row: BillRow) => {
-    const data = await getSaleWithItems(row.sale.id!)
+    const [data, priorReturns] = await Promise.all([
+      getSaleWithItems(row.sale.id!),
+      getSaleReturns(row.sale.id!),
+    ])
     if (!data) return
+
+    const returnedQtyBySaleItem = new Map<number, number>()
+    for (const returnEntry of priorReturns) {
+      for (const item of returnEntry.items) {
+        returnedQtyBySaleItem.set(
+          item.saleItemId,
+          (returnedQtyBySaleItem.get(item.saleItemId) ?? 0) + item.qty
+        )
+      }
+    }
+
     setReturnBill(row)
     setReturnItems(data.items.map((item) => ({
-      item: { saleItemId: item.id!, productId: item.productId, qty: item.qty, unitPrice: item.unitPrice, lineTotal: item.lineTotal, productName: item.productName },
+      item: {
+        saleItemId: item.id!,
+        productId: item.productId,
+        batchId: item.batchId,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+        productName: item.productName,
+      },
       selected: false,
-      returnQty: item.qty,
+      returnQty: Math.max(0, item.qty - (returnedQtyBySaleItem.get(item.id!) ?? 0)),
+      remainingQty: Math.max(0, item.qty - (returnedQtyBySaleItem.get(item.id!) ?? 0)),
+      returnedQty: returnedQtyBySaleItem.get(item.id!) ?? 0,
     })))
     setReturnReason('')
     setReturnModalOpen(true)
@@ -279,10 +309,21 @@ export function BillsTab() {
                       <span className="text-xs text-gray-400">Walk-in</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(row.sale.grandTotal)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <p className="font-semibold text-gray-900">{formatCurrency(row.sale.grandTotal)}</p>
+                    {(row.sale.returnTotal ?? 0) > 0 && (
+                      <p className="text-[11px] text-amber-600">Returned {formatCurrency(row.sale.returnTotal ?? 0)}</p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{row.paymentSummary}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => openReturn(row)} className="text-xs text-brand-600 hover:underline">Return</button>
+                    <button
+                      onClick={() => openReturn(row)}
+                      disabled={(row.sale.returnTotal ?? 0) >= row.sale.grandTotal}
+                      className="text-xs text-brand-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+                    >
+                      {(row.sale.returnTotal ?? 0) >= row.sale.grandTotal ? 'Returned' : 'Return'}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -315,24 +356,30 @@ export function BillsTab() {
                   <input
                     type="checkbox"
                     checked={r.selected}
+                    disabled={r.remainingQty <= 0}
                     onChange={(e) => setReturnItems((prev) => prev.map((x, i) => i === idx ? { ...x, selected: e.target.checked } : x))}
                     className="rounded"
                   />
                   <span className="flex-1 text-sm text-gray-800">{r.item.productName}</span>
-                  <span className="text-xs text-gray-400">max {r.item.qty}</span>
+                  <span className="text-xs text-gray-400">max {r.remainingQty}</span>
                   <input
                     type="number"
                     value={r.returnQty}
                     min={0.001}
-                    max={r.item.qty}
+                    max={r.remainingQty}
                     step={0.001}
-                    disabled={!r.selected}
-                    onChange={(e) => setReturnItems((prev) => prev.map((x, i) => i === idx ? { ...x, returnQty: Math.min(parseFloat(e.target.value) || 0, r.item.qty) } : x))}
+                    disabled={!r.selected || r.remainingQty <= 0}
+                    onChange={(e) => setReturnItems((prev) => prev.map((x, i) => i === idx ? { ...x, returnQty: Math.min(parseFloat(e.target.value) || 0, r.remainingQty) } : x))}
                     className="w-20 rounded border border-gray-200 px-2 py-1 text-xs text-right focus:outline-none disabled:opacity-40"
                   />
                 </div>
               ))}
             </div>
+            {returnItems.some((item) => item.returnedQty > 0) && (
+              <p className="text-xs text-amber-600">
+                Previously returned quantities are excluded automatically so the same line item is not returned twice.
+              </p>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Return Reason *</label>
               <input

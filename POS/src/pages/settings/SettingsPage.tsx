@@ -1,22 +1,99 @@
-import { useState } from 'react'
-import { Save, RotateCcw, DatabaseZap, AlertTriangle, Info } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Save, RotateCcw, DatabaseZap, AlertTriangle, Info, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { CLIENT_CONFIG, APP_BUILD } from '@/constants/clientConfig'
 import { isLicenseExpired } from '@/constants/features'
 import { useUiStore } from '@/stores/uiStore'
+import { useAuth } from '@/hooks/useAuth'
+import { getPerformanceTargets, putPerformanceTargets } from '@/db/queries/performanceTargets'
+import { getOutboxSummary, listPendingOutboxEntries } from '@/db/queries/outbox'
+import { flushOutbox } from '@/services/sync/outbox'
 import { type StoreConfig, loadStoreConfig, saveStoreConfig } from '@/utils/storeConfig'
 import { ROUTES } from '@/constants/routes'
 import { formatDate } from '@/utils/date'
+import type { OutboxEntry } from '@/types'
 
 export function SettingsPage() {
   const { addToast } = useUiStore()
+  const { employeeId } = useAuth()
   const [form, setForm] = useState<StoreConfig>(loadStoreConfig)
   const [saved, setSaved] = useState(false)
+  const [targetForm, setTargetForm] = useState({
+    monthlySalesTarget: '0',
+    monthlyBreakEvenTarget: '0',
+  })
+  const [targetsLoading, setTargetsLoading] = useState(true)
+  const [targetsSaving, setTargetsSaving] = useState(false)
+  const [targetsSaved, setTargetsSaved] = useState(false)
+  const [syncEntries, setSyncEntries] = useState<OutboxEntry[]>([])
+  const [syncSummary, setSyncSummary] = useState({ pending: 0, failed: 0, syncing: 0 })
+  const [syncRefreshing, setSyncRefreshing] = useState(false)
+  const [isOnline, setIsOnline] = useState(() => window.navigator.onLine)
+
+  useEffect(() => {
+    let active = true
+
+    getPerformanceTargets()
+      .then((targets) => {
+        if (!active) return
+        setTargetForm({
+          monthlySalesTarget: String(targets.monthlySalesTarget || 0),
+          monthlyBreakEvenTarget: String(targets.monthlyBreakEvenTarget || 0),
+        })
+      })
+      .finally(() => {
+        if (active) setTargetsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const refreshSyncState = async () => {
+      const [entries, summary] = await Promise.all([listPendingOutboxEntries(), getOutboxSummary()])
+      if (!active) return
+      setSyncEntries(entries)
+      setSyncSummary(summary)
+    }
+
+    void refreshSyncState()
+    const interval = window.setInterval(() => {
+      void refreshSyncState()
+    }, 4000)
+
+    const handleOnline = () => {
+      setIsOnline(true)
+      void refreshSyncState()
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+      void refreshSyncState()
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      active = false
+      window.clearInterval(interval)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   const set = (key: keyof StoreConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }))
     setSaved(false)
+  }
+
+  const setTarget = (key: keyof typeof targetForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTargetForm((prev) => ({ ...prev, [key]: e.target.value }))
+    setTargetsSaved(false)
   }
 
   const handleSave = () => {
@@ -31,6 +108,35 @@ export function SettingsPage() {
     saveStoreConfig({ ...CLIENT_CONFIG.store })
     setSaved(false)
     addToast('success', 'Reset to defaults')
+  }
+
+  const handleSaveTargets = async () => {
+    setTargetsSaving(true)
+    try {
+      await putPerformanceTargets({
+        monthlySalesTarget: Math.max(0, Number(targetForm.monthlySalesTarget || 0)),
+        monthlyBreakEvenTarget: Math.max(0, Number(targetForm.monthlyBreakEvenTarget || 0)),
+        updatedAt: new Date(),
+        updatedBy: employeeId ?? undefined,
+      })
+      setTargetsSaved(true)
+      addToast('success', 'Performance targets saved')
+    } finally {
+      setTargetsSaving(false)
+    }
+  }
+
+  const handleRetrySync = async () => {
+    setSyncRefreshing(true)
+    try {
+      await flushOutbox()
+      const [entries, summary] = await Promise.all([listPendingOutboxEntries(), getOutboxSummary()])
+      setSyncEntries(entries)
+      setSyncSummary(summary)
+      addToast('success', summary.pending === 0 && summary.failed === 0 ? 'All pending updates synced' : 'Sync retry completed')
+    } finally {
+      setSyncRefreshing(false)
+    }
   }
 
   const fields: Array<{ key: keyof StoreConfig; label: string; placeholder: string }> = [
@@ -79,6 +185,63 @@ export function SettingsPage() {
           Changes take effect immediately on new receipts.
         </p>
 
+        <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+            <TrendingUp size={14} />
+            Performance Targets
+          </h3>
+          <p className="text-sm text-gray-500">
+            Shared across devices. Daily sales target is calculated automatically from the monthly sales target.
+          </p>
+
+          {targetsLoading ? (
+            <p className="text-sm text-gray-400">Loading shared targets…</p>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Sales Target (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={targetForm.monthlySalesTarget}
+                    onChange={setTarget('monthlySalesTarget')}
+                    placeholder="0.00"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Break-even Target (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={targetForm.monthlyBreakEvenTarget}
+                    onChange={setTarget('monthlyBreakEvenTarget')}
+                    placeholder="0.00"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleSaveTargets}
+                  disabled={targetsSaving}
+                  className="btn-primary flex items-center gap-2 disabled:opacity-60"
+                >
+                  <Save size={15} />
+                  {targetsSaving ? 'Saving…' : targetsSaved ? 'Saved!' : 'Save Targets'}
+                </button>
+                <p className="text-xs text-gray-400">
+                  Dashboard compares today&apos;s sales and month-to-date net profit against these shared targets.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Data Sync */}
         <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Data Sync</h3>
@@ -87,7 +250,7 @@ export function SettingsPage() {
               <DatabaseZap size={15} />
               Firestore Migration
             </Link>
-            <p className="text-xs text-gray-400 mt-2">One-time sync of local data to Firestore for multi-device support.</p>
+            <p className="text-xs text-gray-400 mt-2">One-time sync of local data, including shared expenses, to Firestore for multi-device support.</p>
           </div>
           <div>
             <Link to={ROUTES.ERROR_LOG} className="btn-secondary inline-flex items-center gap-2 text-sm">
@@ -95,6 +258,60 @@ export function SettingsPage() {
               Error Log
             </Link>
             <p className="text-xs text-gray-400 mt-2">View uncaught errors and crashes logged from all devices.</p>
+          </div>
+
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Pending Sync Queue</p>
+                <p className="text-xs text-gray-500">
+                  {isOnline ? 'Online' : 'Offline'} · Pending {syncSummary.pending} · Failed {syncSummary.failed} · Syncing {syncSummary.syncing}
+                </p>
+              </div>
+              <button
+                onClick={handleRetrySync}
+                disabled={syncRefreshing || !isOnline}
+                className="btn-secondary text-sm disabled:opacity-50"
+              >
+                {syncRefreshing ? 'Retrying…' : 'Retry Sync Now'}
+              </button>
+            </div>
+
+            {syncEntries.length === 0 ? (
+              <p className="text-xs text-gray-500">No pending updates. Shared data is currently in sync.</p>
+            ) : (
+              <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                <div className="divide-y divide-gray-100">
+                  {syncEntries.slice(0, 20).map((entry) => (
+                    <div key={entry.id} className="px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-gray-800">
+                          {entry.entityType.replace(/_/g, ' ')} · {entry.action.replace(/_/g, ' ')}
+                        </p>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            entry.status === 'failed'
+                              ? 'bg-red-100 text-red-700'
+                              : entry.status === 'syncing'
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {entry.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        {entry.entityKey ?? 'No key'} · queued {formatDate(new Date(entry.createdAt))}
+                        {entry.retryCount > 0 ? ` · retries ${entry.retryCount}` : ''}
+                      </p>
+                      {entry.lastError && (
+                        <p className="mt-1 text-[11px] text-red-600">{entry.lastError}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
