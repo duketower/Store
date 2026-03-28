@@ -29,9 +29,9 @@ export async function generateBillNumber(): Promise<string> {
 
     return `INV-${year}-${String(seq).padStart(5, '0')}`
   } catch {
-    // Offline fallback — unblocks the cashier; may collide if two devices are both offline
-    console.warn('[BillNumber] Firestore unavailable — using local fallback')
-    const localCount = await db.sales.count()
-    return `INV-${year}-L${String(localCount + 1).padStart(4, '0')}`
+    // Offline fallback — UUID suffix prevents collision when multiple devices are offline simultaneously
+    console.warn('[BillNumber] Firestore unavailable — using UUID offline fallback')
+    const suffix = crypto.randomUUID().slice(0, 8).toUpperCase()
+    return `INV-${year}-OFF-${suffix}`
   }
 }
