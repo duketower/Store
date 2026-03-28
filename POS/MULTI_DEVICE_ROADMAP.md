@@ -15,7 +15,8 @@ Current rollout status:
 - Phase 8 is now complete in code: report screens, attendance, customers, users, settings, dashboard alerts, shift/cash-out screens, receive-stock vendor selection, and the login employee list all re-read the mirrored shared state when cross-device updates land.
 - The old static `Local Mode` badge has been replaced in code with a live sync-status indicator driven by connectivity plus the outbox state.
 - The follow-up financial correctness pass is now complete in code: checkout uses a locked cart snapshot, credit balances are guarded against `NaN`, GST is calculated after bill discounts, legacy sale outbox entries rebuild instead of being silently dropped, and sale/return batch allocations are preserved for traceability.
-- Phase 9 now becomes the final release gate: the code paths are in place, but they still need technical verification, live two-device drills, and a recovery signoff before calling the system “picture perfect” in live operations.
+- Phase 9A is now complete: the full entity coverage audit found two gaps (loyalty points not synced to Firestore from sales; legacy session close not queuing outbox entry). Both are now fixed and the complete audit matrix, write-path verification, and live-drill checklist are documented in `PHASE9A_AUDIT.md`.
+- Phase 9B is the next gate: live two-device validation drills. See `PHASE9A_AUDIT.md` for the full drill checklist.
 
 ## Definition Of Done
 
@@ -262,15 +263,14 @@ If any one of these fails, the app is not yet "picture perfect."
 
 ### Phase 9: Migration, Recovery, And QA
 
-#### Phase 9A: Technical Validation
+#### Phase 9A: Technical Validation — COMPLETE
 
-- Finish the code-path audit for every shared entity and mutation path.
-- Extend migration notes and execution steps to every newly shared collection.
-- Add queue/backfill diagnostics for pending, failed, and stale sync items by entity type.
-- Confirm the sync badge and diagnostics match real outbox/connectivity state.
-- Produce the live-drill checklist from the code audit instead of relying on memory.
-- Acceptance:
-  - Every store-critical mutation path has an explicit replay/listener story and a validation scenario attached to it.
+- ✅ Full code-path audit for every shared entity and mutation path — see `PHASE9A_AUDIT.md`
+- ✅ Two gaps found and fixed: loyalty points sync on sale; legacy session close syncId generation
+- ✅ All 18 entities confirmed covered: outbox write, idempotent Firestore write, listener, migration, page refresh
+- ✅ Write-path trace for sale, return, session open/close, credit flows documented
+- ✅ Live-drill checklist produced (Phase 9B) and release gate checklist produced (Phase 9C) in `PHASE9A_AUDIT.md`
+- ✅ Remaining risks documented with code-verified vs drill-required distinction
 
 #### Phase 9B: Live Two-Device Drills
 

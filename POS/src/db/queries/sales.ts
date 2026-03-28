@@ -69,6 +69,8 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
     lineTotal: number
   }> = []
 
+  const loyaltyPointsDelta = input.customerId ? Math.floor(input.grandTotal / 100) : 0
+
   const { saleId, cogsTotal, grossProfitTotal, profitEstimated } = await db.transaction(
     'rw',
     [db.sales, db.sale_items, db.payments, db.products, db.batches, db.credit_ledger, db.customers, db.outbox],
@@ -208,6 +210,7 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
           profitEstimated: saleProfitEstimated,
           returnTotal: 0,
           creditLedgerSyncId,
+          ...(loyaltyPointsDelta > 0 ? { loyaltyPointsDelta } : {}),
           payments: input.payments.map((p) => ({
             method: p.method,
             amount: p.amount,
@@ -246,6 +249,7 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
     profitEstimated,
     returnTotal: 0,
     creditLedgerSyncId,
+    ...(loyaltyPointsDelta > 0 ? { loyaltyPointsDelta } : {}),
     payments: input.payments.map((p) => ({
       method: p.method,
       amount: p.amount,

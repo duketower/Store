@@ -62,6 +62,7 @@ export interface SaleSyncPayload {
     qty: number
     batchAllocations: Array<{ batchId: number; qty: number }>
   }>
+  loyaltyPointsDelta?: number
   createdAt: Date
 }
 
@@ -132,6 +133,14 @@ export async function syncSaleToFirestore(payload: SaleSyncPayload): Promise<voi
           currentBalance: increment(creditAmount),
           updatedAt: Timestamp.now(),
         },
+        { merge: true }
+      )
+    }
+
+    if (payload.customerId && payload.loyaltyPointsDelta && payload.loyaltyPointsDelta > 0) {
+      txn.set(
+        doc(firestore, 'customers', String(payload.customerId)),
+        { loyaltyPoints: increment(payload.loyaltyPointsDelta), updatedAt: Timestamp.now() },
         { merge: true }
       )
     }

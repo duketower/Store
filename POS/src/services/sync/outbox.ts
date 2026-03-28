@@ -460,6 +460,9 @@ export async function flushOutbox(): Promise<void> {
             profitEstimated: Boolean(rawData.profitEstimated ?? false),
             returnTotal: toFiniteNumber(rawData.returnTotal),
             creditLedgerSyncId: rawData.creditLedgerSyncId ? String(rawData.creditLedgerSyncId) : undefined,
+            ...(rawData.loyaltyPointsDelta !== undefined && Number(rawData.loyaltyPointsDelta) > 0
+              ? { loyaltyPointsDelta: Number(rawData.loyaltyPointsDelta) }
+              : {}),
             payments: Array.isArray(rawData.payments) ? rawData.payments as SaleSyncPayload['payments'] : [],
             items: Array.isArray(rawData.items) ? rawData.items as SaleSyncPayload['items'] : [],
             stockDeltas: Array.isArray(rawData.stockDeltas) ? rawData.stockDeltas as SaleSyncPayload['stockDeltas'] : [],

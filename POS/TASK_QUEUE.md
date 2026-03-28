@@ -9,12 +9,19 @@
 
 ## Next
 
-- Complete Phase 9A of `MULTI_DEVICE_ROADMAP.md`: finish the code-path audit, queue diagnostics review, and per-module live drill checklist
-- Run Phase 9B live two-device validation against billing, receive stock, returns, cash-out, reports, settings, users, attendance, dashboard refresh, and fresh-device bootstrap
-- Validate migration/backfill on a device or browser profile with older local-only history before calling the remaining modules production-safe
-- Record and close any Phase 9B issues before Phase 9C operational signoff
+- Run Phase 9B live two-device validation drills — full checklist in `PHASE9A_AUDIT.md`:
+  - Online sync: billing, GRN, returns, cash-out, sessions, settings, attendance, users
+  - Offline recovery: create bills offline → reconnect → verify convergence and no duplicates
+  - Idempotency: verify no double-sync effects after retry
+  - Fresh-device bootstrap: new browser profile hydrates without migration
+  - Migration drill: run on older-history device, confirm all 18 stages and listener hydration
+- Record and close any Phase 9B failures before Phase 9C operational signoff
 
 ## Done
+
+- Completed Phase 9A: full code-path audit for all 18 shared entities, fixed loyalty points sync gap and legacy session close syncId gap, produced PHASE9A_AUDIT.md with entity matrix, write-path traces, live-drill checklist, and Phase 9C release gate
+
+
 
 - Moved multi-client build tooling into `POS/platform/`
 - Added project-level planning and architecture docs

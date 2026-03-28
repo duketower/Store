@@ -73,9 +73,13 @@ export async function closeSession(
       closedAt,
     }
 
+    // Ensure legacy sessions (created before syncId system) get a syncId on close
+    if (!nextSession.syncId) {
+      nextSession = { ...nextSession, syncId: createSyncId('session') }
+    }
+
     await db.day_sessions.put(nextSession)
     sessionToSync = nextSession
-    if (!nextSession.syncId) return
 
     await queueOutboxEntry({
       action: 'upsert_day_session',
