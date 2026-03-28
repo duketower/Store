@@ -1,23 +1,24 @@
 import { db } from '@/db'
 import type { RtvSession, RtvItem } from '@/types'
-import { createSyncId } from '@/utils/syncIds'
+import { createEntityId, createSyncId } from '@/utils/syncIds'
 import { queueOutboxEntry } from './outbox'
 import { syncRtvToFirestore } from '@/services/firebase/sync'
 
 export async function createRtvTransaction(
-  rtv: Omit<RtvSession, 'id'>,
+  rtv: Omit<RtvSession, 'id'> & { id?: number },
   items: Array<Omit<RtvItem, 'id' | 'rtvId'>>
 ): Promise<number> {
   const createdAt = rtv.createdAt ?? new Date()
   const syncId = rtv.syncId ?? createSyncId('rtv')
   const rtvItems: RtvItem[] = []
+  const rtvId = rtv.id ?? createEntityId()
 
-  const rtvId = await db.transaction('rw', [db.rtvs, db.rtv_items, db.batches, db.products, db.outbox], async () => {
-    const rtvPayload: RtvSession = { ...rtv, syncId, createdAt }
-    const createdRtvId = await db.rtvs.add(rtvPayload)
+  await db.transaction('rw', [db.rtvs, db.rtv_items, db.batches, db.products, db.outbox], async () => {
+    const rtvPayload: RtvSession = { ...rtv, id: rtvId, syncId, createdAt }
+    await db.rtvs.put(rtvPayload)
 
     for (const item of items) {
-      const rtvItem: RtvItem = { ...item, rtvId: createdRtvId }
+      const rtvItem: RtvItem = { ...item, rtvId }
       await db.rtv_items.add(rtvItem)
       rtvItems.push(rtvItem)
 
@@ -37,7 +38,7 @@ export async function createRtvTransaction(
       payload: JSON.stringify({
         rtv: {
           ...rtvPayload,
-          id: createdRtvId,
+          id: rtvId,
           syncId,
           createdAt: createdAt.toISOString(),
         },
@@ -45,8 +46,6 @@ export async function createRtvTransaction(
       }),
       createdAt,
     })
-
-    return createdRtvId
   })
 
   syncRtvToFirestore({

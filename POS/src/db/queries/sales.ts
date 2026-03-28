@@ -5,7 +5,7 @@ import { updateStock } from './products'
 import { updateCreditBalance, addCreditLedgerEntry } from './customers'
 import { syncReturnToFirestore, syncSaleToFirestore } from '@/services/firebase/sync'
 import { queueOutboxEntry } from './outbox'
-import { createSyncId } from '@/utils/syncIds'
+import { createEntityId, createSyncId } from '@/utils/syncIds'
 
 export interface CreateSaleInput {
   billNo: string
@@ -38,8 +38,10 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
     async () => {
       let saleCogsTotal = 0
       let saleProfitEstimated = false
+      const saleId = createEntityId()
 
-      const saleId = await db.sales.add({
+      await db.sales.put({
+        id: saleId,
         billNo: input.billNo,
         customerId: input.customerId ?? undefined,
         cashierId: input.cashierId,

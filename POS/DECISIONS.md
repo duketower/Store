@@ -66,3 +66,21 @@ Reason:
 - The app now has mixed sync maturity: some modules are shared, some are partial, and some are still local-only
 - Store operations need a precise roadmap, not a vague “multi-device” label
 - `MULTI_DEVICE_ROADMAP.md` is the canonical checklist for taking every operational module to shared-state readiness
+
+## Decision 009
+
+Use explicit shared IDs for new cross-device records instead of relying only on local auto-increment keys.
+
+Reason:
+- Cross-device joins such as sale ↔ return, GRN ↔ batch, and attendance ↔ staff become fragile when each device invents its own local primary keys
+- Carrying an explicit ID in the shared payload makes Dexie mirrors converge on the same business record identity
+- This reduces hidden “looks synced but joins wrong locally” failures
+
+## Decision 010
+
+Keep employee PIN hashes in the shared employee record so staff provisioning stays multi-device.
+
+Reason:
+- New or edited staff accounts must be usable on every device without per-device manual setup
+- The current live app already authenticates devices into Firebase with build-scoped credentials, so shared employee records are part of the trusted store app surface
+- Migration and live writes need to follow one consistent employee-auth model instead of stripping hashes in one path and syncing them in another

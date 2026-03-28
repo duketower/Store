@@ -2,7 +2,7 @@ import { db } from '@/db'
 import type { Customer, CreditLedgerEntry } from '@/types'
 import { syncCustomerToFirestore } from '@/services/firebase/sync'
 import { syncCreditLedgerEntryToFirestore } from '@/services/firebase/sync'
-import { createSyncId } from '@/utils/syncIds'
+import { createEntityId, createSyncId } from '@/utils/syncIds'
 import { queueOutboxEntry } from './outbox'
 
 function buildCustomerSyncPayload(customer: Customer, id: number) {
@@ -176,11 +176,12 @@ export async function upsertCustomer(
     })
     id = customer.id
   } else {
-    saved = { ...customer, createdAt: now, updatedAt: now }
+    id = createEntityId()
+    saved = { ...customer, id, createdAt: now, updatedAt: now }
     id = await db.transaction('rw', [db.customers, db.outbox], async () => {
-      const customerId = await db.customers.add(saved)
-      await queueCustomerSync(saved, customerId, now)
-      return customerId
+      await db.customers.put(saved)
+      await queueCustomerSync(saved, id, now)
+      return id
     })
   }
   syncCustomerToFirestore(buildCustomerSyncPayload(saved, id)).catch((err: unknown) =>

@@ -9,9 +9,9 @@
 
 ## Next
 
-- Finish validating Phase 1, Phase 2, and the started Phase 3 work from `MULTI_DEVICE_ROADMAP.md`
-- Then complete RTVs, shared settings, attendance, and auth in roadmap order
-- Re-test every report tab on a second device after each phase, not only at the end
+- Re-test every report tab on a second device after the new shared settings, attendance, and employee-auth rollout
+- Validate migration/backfill on a device with older local-only history before calling the remaining modules production-safe
+- Continue the roadmap with any remaining report-parity and QA hardening gaps found during live validation
 
 ## Done
 
@@ -25,3 +25,7 @@
 - Added a clear default rule to deploy the main-store client after app changes
 - Added a visible pending-sync queue and idempotent replay path for core live-store sync events
 - Added a dedicated roadmap for full multi-device coverage across every POS module
+- Synced RTV creation across devices
+- Added shared store settings backed by Firestore + Dexie mirror
+- Added retryable multi-device sync for attendance logs, leave requests, external staff, and employee provisioning
+- Added migration coverage for sales history, returns, credit ledger, sessions, cash entries, attendance, leave, and shared settings

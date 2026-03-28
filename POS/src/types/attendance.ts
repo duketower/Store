@@ -3,10 +3,12 @@
 
 export interface ExternalStaff {
   id?: number
+  syncId?: string
   name: string
   designation: string   // e.g. 'Cleaning Staff', 'Water Refill', 'Security'
   isActive: boolean
   createdAt: Date
+  updatedAt?: Date
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'half_day' | 'leave'
@@ -14,6 +16,7 @@ export type StaffType = 'employee' | 'external'
 
 export interface AttendanceLog {
   id?: number
+  syncId?: string
   staffId: number       // employees.id or staff_external.id depending on staffType
   staffType: StaffType
   date: string          // YYYY-MM-DD
@@ -30,6 +33,7 @@ export type LeaveStatus = 'pending' | 'approved' | 'rejected'
 
 export interface LeaveRequest {
   id?: number
+  syncId?: string
   employeeId: number
   startDate: string     // YYYY-MM-DD
   endDate: string       // YYYY-MM-DD (same as startDate for single-day requests)

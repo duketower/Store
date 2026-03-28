@@ -15,6 +15,9 @@ Current rollout status:
 - Phase 2 is now in progress in code: product edits, stock adjustments, customer edits, and credit approval-state changes use the retryable sync path.
 - Phase 3 has started in code: vendor sync and GRN replay/listener plumbing are now present, but the wider intake module still needs full validation.
 - Phase 4 has started in code: RTV creation now follows the same replay/listener approach, but secondary-device validation is still required.
+- Phase 5 is now in progress in code: attendance logs, leave requests, and external staff use sync-backed writes/listeners, but live secondary-device validation is still required.
+- Phase 6 is now in progress in code: store settings are shared through `app_settings/store_details` with a Dexie mirror and local cache bridge for receipt code.
+- Phase 7 is now in progress in code: employee provisioning now replays through the outbox and migration keeps PIN hashes in sync, but the live auth path still needs multi-device validation.
 - The remaining roadmap phases are still required before the whole app can be called fully multi-device.
 
 ## Definition Of Done

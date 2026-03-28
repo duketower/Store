@@ -5,7 +5,21 @@
  */
 import { deleteDoc, doc, increment, runTransaction, setDoc, Timestamp } from 'firebase/firestore'
 import { firestore } from '.'
-import type { CashEntry, CreditLedgerEntry, SaleReturn, Vendor, Grn, Batch, RtvSession, RtvItem } from '@/types'
+import type {
+  CashEntry,
+  CreditLedgerEntry,
+  SaleReturn,
+  Vendor,
+  Grn,
+  Batch,
+  RtvSession,
+  RtvItem,
+  StoreConfig,
+  ExternalStaff,
+  AttendanceLog,
+  LeaveRequest,
+  Employee,
+} from '@/types'
 
 function toTimestamp(date: Date): Timestamp {
   return Timestamp.fromDate(date instanceof Date ? date : new Date(date))
@@ -297,6 +311,28 @@ export async function syncPerformanceTargetsToFirestore(
   )
 }
 
+// ─── Store Settings ─────────────────────────────────────────────────────────
+
+export interface StoreSettingsSyncPayload {
+  config: StoreConfig
+  updatedAt: Date
+  updatedBy?: number
+}
+
+export async function syncStoreSettingsToFirestore(
+  payload: StoreSettingsSyncPayload
+): Promise<void> {
+  await setDoc(
+    doc(firestore, 'app_settings', 'store_details'),
+    {
+      config: payload.config,
+      updatedAt: toTimestamp(payload.updatedAt),
+      ...(payload.updatedBy !== undefined ? { updatedBy: payload.updatedBy } : {}),
+    },
+    { merge: true }
+  )
+}
+
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 export async function syncProductToFirestore(product: {
@@ -384,28 +420,67 @@ export async function syncVendorToFirestore(vendor: Vendor & { id: number; syncI
 
 // ─── Employees ────────────────────────────────────────────────────────────────
 
-export async function syncEmployeeToFirestore(employee: {
-  id: number
-  name: string
-  role: string
-  pinHash?: string
-  passwordHash?: string
-  isActive: boolean
-  createdAt: Date
-}): Promise<void> {
+export async function syncEmployeeToFirestore(employee: Employee & { id: number }): Promise<void> {
   try {
     await setDoc(
       doc(firestore, 'employees', String(employee.id)),
       {
         ...employee,
         createdAt: toTimestamp(employee.createdAt),
-        updatedAt: Timestamp.now(),
+        ...(employee.updatedAt ? { updatedAt: toTimestamp(employee.updatedAt) } : { updatedAt: Timestamp.now() }),
       },
       { merge: true }
     )
   } catch (err) {
     console.warn('[Firestore] syncEmployee failed (offline?):', err)
   }
+}
+
+// ─── External Staff / Attendance / Leave ───────────────────────────────────
+
+export async function syncExternalStaffToFirestore(
+  staff: ExternalStaff & { id: number; syncId: string }
+): Promise<void> {
+  await setDoc(
+    doc(firestore, 'staff_external', staff.syncId),
+    {
+      ...staff,
+      createdAt: toTimestamp(staff.createdAt),
+      ...(staff.updatedAt ? { updatedAt: toTimestamp(staff.updatedAt) } : { updatedAt: Timestamp.now() }),
+    },
+    { merge: true }
+  )
+}
+
+export async function syncAttendanceLogToFirestore(
+  log: AttendanceLog & { syncId: string }
+): Promise<void> {
+  await setDoc(
+    doc(firestore, 'attendance_logs', log.syncId),
+    {
+      ...log,
+      ...(log.checkIn ? { checkIn: toTimestamp(log.checkIn) } : { checkIn: null }),
+      ...(log.checkOut ? { checkOut: toTimestamp(log.checkOut) } : { checkOut: null }),
+      createdAt: toTimestamp(log.createdAt),
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  )
+}
+
+export async function syncLeaveRequestToFirestore(
+  request: LeaveRequest & { syncId: string }
+): Promise<void> {
+  await setDoc(
+    doc(firestore, 'leave_requests', request.syncId),
+    {
+      ...request,
+      createdAt: toTimestamp(request.createdAt),
+      ...(request.approvedAt ? { approvedAt: toTimestamp(request.approvedAt) } : { approvedAt: null }),
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  )
 }
 
 // ─── Batches ──────────────────────────────────────────────────────────────────

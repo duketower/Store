@@ -11,7 +11,12 @@ import {
   syncSaleToFirestore,
   syncProductToFirestore,
   syncCustomerToFirestore,
+  syncEmployeeToFirestore,
   syncSessionToFirestore,
+  syncAttendanceLogToFirestore,
+  syncExternalStaffToFirestore,
+  syncLeaveRequestToFirestore,
+  syncStoreSettingsToFirestore,
   syncVendorToFirestore,
 } from '@/services/firebase/sync'
 import { markOutboxFailed, markOutboxSyncing } from '@/db/queries/outbox'
@@ -63,6 +68,22 @@ export async function flushOutbox(): Promise<void> {
       continue
     }
 
+    if (entry.action === 'upsert_employee') {
+      try {
+        await markOutboxSyncing(entry.id)
+        const data = JSON.parse(entry.payload)
+        await syncEmployeeToFirestore({
+          ...data,
+          createdAt: new Date(data.createdAt),
+          ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
+        })
+        await db.outbox.delete(entry.id!)
+      } catch (error) {
+        await markOutboxFailed(entry.id, error)
+      }
+      continue
+    }
+
     if (entry.action === 'upsert_vendor') {
       try {
         await markOutboxSyncing(entry.id)
@@ -71,6 +92,55 @@ export async function flushOutbox(): Promise<void> {
           ...data,
           createdAt: new Date(data.createdAt),
           updatedAt: new Date(data.updatedAt),
+        })
+        await db.outbox.delete(entry.id!)
+      } catch (error) {
+        await markOutboxFailed(entry.id, error)
+      }
+      continue
+    }
+
+    if (entry.action === 'upsert_external_staff') {
+      try {
+        await markOutboxSyncing(entry.id)
+        const data = JSON.parse(entry.payload)
+        await syncExternalStaffToFirestore({
+          ...data,
+          createdAt: new Date(data.createdAt),
+          ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
+        })
+        await db.outbox.delete(entry.id!)
+      } catch (error) {
+        await markOutboxFailed(entry.id, error)
+      }
+      continue
+    }
+
+    if (entry.action === 'upsert_attendance_log') {
+      try {
+        await markOutboxSyncing(entry.id)
+        const data = JSON.parse(entry.payload)
+        await syncAttendanceLogToFirestore({
+          ...data,
+          ...(data.checkIn ? { checkIn: new Date(data.checkIn) } : {}),
+          ...(data.checkOut ? { checkOut: new Date(data.checkOut) } : {}),
+          createdAt: new Date(data.createdAt),
+        })
+        await db.outbox.delete(entry.id!)
+      } catch (error) {
+        await markOutboxFailed(entry.id, error)
+      }
+      continue
+    }
+
+    if (entry.action === 'upsert_leave_request') {
+      try {
+        await markOutboxSyncing(entry.id)
+        const data = JSON.parse(entry.payload)
+        await syncLeaveRequestToFirestore({
+          ...data,
+          createdAt: new Date(data.createdAt),
+          ...(data.approvedAt ? { approvedAt: new Date(data.approvedAt) } : {}),
         })
         await db.outbox.delete(entry.id!)
       } catch (error) {
@@ -126,6 +196,22 @@ export async function flushOutbox(): Promise<void> {
         await markOutboxSyncing(entry.id)
         const data = JSON.parse(entry.payload)
         await syncCustomerToFirestore(data)
+        await db.outbox.delete(entry.id!)
+      } catch (error) {
+        await markOutboxFailed(entry.id, error)
+      }
+      continue
+    }
+
+    if (entry.action === 'set_store_settings') {
+      try {
+        await markOutboxSyncing(entry.id)
+        const data = JSON.parse(entry.payload)
+        await syncStoreSettingsToFirestore({
+          config: data.config,
+          updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(entry.createdAt),
+          updatedBy: data.updatedBy ?? undefined,
+        })
         await db.outbox.delete(entry.id!)
       } catch (error) {
         await markOutboxFailed(entry.id, error)

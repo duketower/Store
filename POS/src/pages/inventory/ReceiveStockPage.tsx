@@ -13,7 +13,7 @@ import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { syncGrnToFirestore } from '@/services/firebase/sync'
 import { formatCurrency } from '@/utils/currency'
 import type { Batch, Grn, Product, Vendor } from '@/types'
-import { createSyncId } from '@/utils/syncIds'
+import { createEntityId, createSyncId } from '@/utils/syncIds'
 import { queueOutboxEntry } from '@/db/queries/outbox'
 
 interface GrnLine {
@@ -105,7 +105,9 @@ export function ReceiveStockPage() {
       let savedGrn: (Grn & { id: number; syncId: string }) | null = null
 
       await db.transaction('rw', [db.batches, db.products, db.grns, db.outbox], async () => {
+        const grnId = createEntityId()
         const grnPayload: Grn = {
+          id: grnId,
           syncId: grnSyncId,
           vendorName,
           invoiceNo: invoiceNo.trim() || undefined,
@@ -114,13 +116,14 @@ export function ReceiveStockPage() {
           totalValue: lines.reduce((s, l) => s + l.purchasePrice * l.qty, 0),
           lineCount: lines.length,
         }
-        const grnId = await createGrn(grnPayload)
-        savedGrnId = grnId
+        savedGrnId = await createGrn(grnPayload)
         savedGrn = { ...grnPayload, id: grnId, syncId: grnSyncId }
         for (const line of lines) {
           const productId = line.product.id!
           const batchCreatedAt = new Date()
+          const newBatchId = createEntityId()
           const batchId = await addBatch({
+            id: newBatchId,
             productId,
             batchNo: line.batchNo,
             mfgDate: line.mfgDate ? new Date(line.mfgDate) : undefined,

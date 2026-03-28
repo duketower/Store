@@ -1,6 +1,6 @@
 import { db } from '@/db'
 import type { DaySession } from '@/types'
-import { createSyncId } from '@/utils/syncIds'
+import { createEntityId, createSyncId } from '@/utils/syncIds'
 import { queueOutboxEntry } from './outbox'
 import { syncSessionToFirestore } from '@/services/firebase/sync'
 
@@ -10,6 +10,7 @@ export async function getOpenSession(): Promise<DaySession | undefined> {
 
 export async function openSession(employeeId: number, openingFloat: number): Promise<number> {
   const session: DaySession = {
+    id: createEntityId(),
     syncId: createSyncId('session'),
     openedBy: employeeId,
     openingFloat,
@@ -18,7 +19,8 @@ export async function openSession(employeeId: number, openingFloat: number): Pro
   }
 
   const id = await db.transaction('rw', [db.day_sessions, db.outbox], async () => {
-    const sessionId = await db.day_sessions.add(session)
+    const sessionId = session.id!
+    await db.day_sessions.put(session)
     await queueOutboxEntry({
       action: 'upsert_day_session',
       entityType: 'day_session',

@@ -1,11 +1,9 @@
-// Store config with localStorage override layer.
-// The base defaults come from CLIENT_CONFIG (baked in at build time per client).
-// Admins can override any field via Settings → Store Details — saved to localStorage.
-// On reset-to-defaults, reverts to the build-time CLIENT_CONFIG values.
+// Store config cache for synchronous consumers (receipts, print flows, exports).
+// The source of truth is the shared Firestore/Dexie store_settings document.
+// localStorage is kept as a fast local mirror so non-React code can read it synchronously.
 
 import { CLIENT_CONFIG } from '@/constants/clientConfig'
-
-export type StoreConfig = typeof CLIENT_CONFIG.store
+import type { StoreConfig } from '@/types'
 
 const SETTINGS_KEY = 'pos_store_config'
 
@@ -17,6 +15,10 @@ export function loadStoreConfig(): StoreConfig {
   return { ...CLIENT_CONFIG.store }
 }
 
-export function saveStoreConfig(config: StoreConfig) {
+export function persistStoreConfigCache(config: StoreConfig) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(config))
+}
+
+export function clearStoreConfigCache() {
+  localStorage.removeItem(SETTINGS_KEY)
 }

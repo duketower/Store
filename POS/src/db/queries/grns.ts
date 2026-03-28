@@ -1,8 +1,11 @@
 import { db } from '@/db'
 import type { Grn, Batch } from '@/types'
+import { createEntityId } from '@/utils/syncIds'
 
-export async function createGrn(grn: Omit<Grn, 'id'>): Promise<number> {
-  return db.grns.add(grn)
+export async function createGrn(grn: Omit<Grn, 'id'> & { id?: number }): Promise<number> {
+  const id = grn.id ?? createEntityId()
+  await db.grns.put({ ...grn, id })
+  return id
 }
 
 export async function getAllGrns(): Promise<Grn[]> {

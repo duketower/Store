@@ -8,17 +8,19 @@ import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { getPerformanceTargets, putPerformanceTargets } from '@/db/queries/performanceTargets'
 import { getOutboxSummary, listPendingOutboxEntries } from '@/db/queries/outbox'
+import { getStoreSettings, putStoreSettings } from '@/db/queries/storeSettings'
 import { flushOutbox } from '@/services/sync/outbox'
-import { type StoreConfig, loadStoreConfig, saveStoreConfig } from '@/utils/storeConfig'
+import { loadStoreConfig } from '@/utils/storeConfig'
 import { ROUTES } from '@/constants/routes'
 import { formatDate } from '@/utils/date'
-import type { OutboxEntry } from '@/types'
+import type { OutboxEntry, StoreConfig } from '@/types'
 
 export function SettingsPage() {
   const { addToast } = useUiStore()
-  const { employeeId } = useAuth()
+  const { employeeId, role } = useAuth()
   const [form, setForm] = useState<StoreConfig>(loadStoreConfig)
   const [saved, setSaved] = useState(false)
+  const [storeLoading, setStoreLoading] = useState(true)
   const [targetForm, setTargetForm] = useState({
     monthlySalesTarget: '0',
     monthlyBreakEvenTarget: '0',
@@ -33,6 +35,15 @@ export function SettingsPage() {
 
   useEffect(() => {
     let active = true
+
+    getStoreSettings()
+      .then((settings) => {
+        if (!active) return
+        setForm(settings.config)
+      })
+      .finally(() => {
+        if (active) setStoreLoading(false)
+      })
 
     getPerformanceTargets()
       .then((targets) => {
@@ -96,16 +107,27 @@ export function SettingsPage() {
     setTargetsSaved(false)
   }
 
-  const handleSave = () => {
-    saveStoreConfig(form)
+  const canEditSharedSettings = role === 'admin'
+
+  const handleSave = async () => {
+    await putStoreSettings({
+      config: form,
+      updatedAt: new Date(),
+      updatedBy: employeeId ?? undefined,
+    })
     setSaved(true)
     addToast('success', 'Settings saved')
   }
 
   // Reset reverts to the build-time CLIENT_CONFIG defaults, not hardcoded fallbacks
-  const handleReset = () => {
-    setForm({ ...CLIENT_CONFIG.store })
-    saveStoreConfig({ ...CLIENT_CONFIG.store })
+  const handleReset = async () => {
+    const resetConfig = { ...CLIENT_CONFIG.store }
+    setForm(resetConfig)
+    await putStoreSettings({
+      config: resetConfig,
+      updatedAt: new Date(),
+      updatedBy: employeeId ?? undefined,
+    })
     setSaved(false)
     addToast('success', 'Reset to defaults')
   }
@@ -156,33 +178,41 @@ export function SettingsPage() {
         {/* Store Details */}
         <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Store Details</h3>
-          {fields.map(({ key, label, placeholder }) => (
-            <div key={key}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-              <input
-                type="text"
-                value={form[key]}
-                onChange={set(key)}
-                placeholder={placeholder}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-              />
-            </div>
-          ))}
+          <p className="text-sm text-gray-500">
+            Shared across devices. Receipts, payment QR, and export links all read from these details.
+          </p>
+          {storeLoading ? (
+            <p className="text-sm text-gray-400">Loading shared store details…</p>
+          ) : (
+            fields.map(({ key, label, placeholder }) => (
+              <div key={key}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <input
+                  type="text"
+                  value={form[key]}
+                  onChange={set(key)}
+                  placeholder={placeholder}
+                  disabled={!canEditSharedSettings}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
+                />
+              </div>
+            ))
+          )}
         </div>
 
         <div className="flex gap-3">
-          <button onClick={handleSave} className="btn-primary flex items-center gap-2">
+          <button onClick={() => void handleSave()} disabled={!canEditSharedSettings || storeLoading} className="btn-primary flex items-center gap-2 disabled:opacity-60">
             <Save size={15} />
             {saved ? 'Saved!' : 'Save Settings'}
           </button>
-          <button onClick={handleReset} className="btn-secondary flex items-center gap-2">
+          <button onClick={() => void handleReset()} disabled={!canEditSharedSettings || storeLoading} className="btn-secondary flex items-center gap-2 disabled:opacity-60">
             <RotateCcw size={15} />
             Reset to Defaults
           </button>
         </div>
 
         <p className="text-xs text-gray-400">
-          Changes take effect immediately on new receipts.
+          {canEditSharedSettings ? 'Changes take effect immediately on new receipts.' : 'Only admins can edit shared store details.'}
         </p>
 
         <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
@@ -207,8 +237,9 @@ export function SettingsPage() {
                     step="0.01"
                     value={targetForm.monthlySalesTarget}
                     onChange={setTarget('monthlySalesTarget')}
+                    disabled={!canEditSharedSettings}
                     placeholder="0.00"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
                 <div>
@@ -219,23 +250,26 @@ export function SettingsPage() {
                     step="0.01"
                     value={targetForm.monthlyBreakEvenTarget}
                     onChange={setTarget('monthlyBreakEvenTarget')}
+                    disabled={!canEditSharedSettings}
                     placeholder="0.00"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
-                  onClick={handleSaveTargets}
-                  disabled={targetsSaving}
+                  onClick={() => void handleSaveTargets()}
+                  disabled={targetsSaving || !canEditSharedSettings}
                   className="btn-primary flex items-center gap-2 disabled:opacity-60"
                 >
                   <Save size={15} />
                   {targetsSaving ? 'Saving…' : targetsSaved ? 'Saved!' : 'Save Targets'}
                 </button>
                 <p className="text-xs text-gray-400">
-                  Dashboard compares today&apos;s sales and month-to-date net profit against these shared targets.
+                  {canEditSharedSettings
+                    ? 'Dashboard compares today\'s sales and month-to-date net profit against these shared targets.'
+                    : 'Only admins can edit shared targets.'}
                 </p>
               </div>
             </>

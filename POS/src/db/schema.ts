@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Employee, Product, Batch, Customer, CreditLedgerEntry, Sale, SaleItem, Payment, DaySession, OutboxEntry, AuditLogEntry, Vendor, Grn, RtvSession, RtvItem, ExternalStaff, AttendanceLog, LeaveRequest, CashEntry, Expense, PerformanceTargets, SaleReturn } from '@/types'
+import type { Employee, Product, Batch, Customer, CreditLedgerEntry, Sale, SaleItem, Payment, DaySession, OutboxEntry, AuditLogEntry, Vendor, Grn, RtvSession, RtvItem, ExternalStaff, AttendanceLog, LeaveRequest, CashEntry, Expense, PerformanceTargets, SaleReturn, SharedStoreSettings } from '@/types'
 import { DB_NAME } from '@/constants/app'
 import { createSyncId } from '@/utils/syncIds'
 
@@ -26,6 +26,7 @@ export class PosDatabase extends Dexie {
   cash_entries!: Table<CashEntry>
   expenses!: Table<Expense>
   performance_targets!: Table<PerformanceTargets, string>
+  store_settings!: Table<SharedStoreSettings, string>
 
   constructor() {
     super(DB_NAME)
@@ -350,6 +351,55 @@ export class PosDatabase extends Dexie {
         await tx.table('rtvs').toCollection().modify((rtv: RtvSession) => {
           if (!rtv.syncId) {
             rtv.syncId = rtv.id ? `legacy-rtv-${rtv.id}` : createSyncId('rtv')
+          }
+        })
+      })
+
+    this.version(13)
+      .stores({
+        employees:           '++id, role, isActive',
+        products:            '++id, barcode, sku, category, stock, reorderLevel',
+        batches:             '++id, productId, expiryDate, batchNo, grnId',
+        customers:           '++id, phone, name',
+        sales:               '++id, billNo, customerId, cashierId, status, createdAt',
+        sale_returns:        '++id, &syncId, saleId, billNo, createdAt',
+        sale_items:          '++id, saleId, productId, batchId',
+        payments:            '++id, saleId, method, createdAt',
+        credit_ledger:       '++id, &syncId, customerId, saleId, entryType, createdAt',
+        day_sessions:        '++id, &syncId, openedBy, status, openedAt',
+        outbox:              '++id, status, action, entityType, createdAt, updatedAt',
+        audit_log:           '++id, action, entityType, createdAt, userId',
+        vendors:             '++id, &syncId, name, isActive',
+        grns:                '++id, &syncId, createdAt, createdBy',
+        rtvs:                '++id, &syncId, createdAt, createdBy',
+        rtv_items:           '++id, rtvId, productId, batchId',
+        staff_external:      '++id, &syncId, name, isActive',
+        attendance_logs:     '++id, &syncId, staffId, date, [staffType+date], status, loggedBy',
+        leave_requests:      '++id, &syncId, employeeId, status, startDate, [employeeId+status]',
+        cash_entries:        '++id, &syncId, sessionId, createdAt, authorizedBy',
+        expenses:            '++id, &syncId, date, category, createdAt, updatedAt',
+        performance_targets: '&key, updatedAt',
+        store_settings:      '&key, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('staff_external').toCollection().modify((staff: ExternalStaff) => {
+          if (!staff.syncId) {
+            staff.syncId = staff.id ? `legacy-external-staff-${staff.id}` : createSyncId('external-staff')
+          }
+          if (!staff.updatedAt) {
+            staff.updatedAt = staff.createdAt ?? new Date()
+          }
+        })
+
+        await tx.table('attendance_logs').toCollection().modify((log: AttendanceLog) => {
+          if (!log.syncId) {
+            log.syncId = log.id ? `legacy-attendance-${log.id}` : createSyncId('attendance')
+          }
+        })
+
+        await tx.table('leave_requests').toCollection().modify((request: LeaveRequest) => {
+          if (!request.syncId) {
+            request.syncId = request.id ? `legacy-leave-${request.id}` : createSyncId('leave')
           }
         })
       })

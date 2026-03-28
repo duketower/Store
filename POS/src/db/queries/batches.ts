@@ -1,6 +1,7 @@
 import { db } from '@/db'
 import type { Batch } from '@/types'
 import { planFEFODeduction } from '@/utils/fefo'
+import { createEntityId } from '@/utils/syncIds'
 
 export async function getBatchesForProduct(productId: number): Promise<Batch[]> {
   return db.batches.where('productId').equals(productId).toArray()
@@ -32,16 +33,21 @@ export async function deductBatch(batchId: number, qty: number): Promise<void> {
 export async function deductStockFEFO(
   productId: number,
   totalQty: number
-): Promise<Array<{ batchId: number; deductQty: number }>> {
+): Promise<Array<{ batchId: number; deductQty: number; purchasePrice: number }>> {
   const batches = await getBatchesFEFO(productId)
   const plan = planFEFODeduction(batches, totalQty)
+  const batchPriceMap = new Map(batches.map((batch) => [batch.id!, batch.purchasePrice]))
 
   // Execute whatever the plan covers — no throw on shortfall
   for (const { batchId, deductQty } of plan) {
     await deductBatch(batchId, deductQty)
   }
 
-  return plan
+  return plan.map(({ batchId, deductQty }) => ({
+    batchId,
+    deductQty,
+    purchasePrice: batchPriceMap.get(batchId) ?? 0,
+  }))
 }
 
 // Get near-expiry batches (within days threshold)
@@ -61,6 +67,8 @@ export async function getNearExpiryBatches(withinDays: number): Promise<
   )
 }
 
-export async function addBatch(batch: Omit<Batch, 'id'>): Promise<number> {
-  return db.batches.add(batch)
+export async function addBatch(batch: Omit<Batch, 'id'> & { id?: number }): Promise<number> {
+  const id = batch.id ?? createEntityId()
+  await db.batches.put({ ...batch, id })
+  return id
 }

@@ -1,5 +1,67 @@
 import { db } from '@/db'
 import type { AttendanceLog, AttendanceStatus, ExternalStaff, LeaveBalance, LeaveRequest, LeaveStatus, StaffType } from '@/types'
+import { createEntityId, createSyncId } from '@/utils/syncIds'
+import { queueOutboxEntry } from './outbox'
+import {
+  syncAttendanceLogToFirestore,
+  syncExternalStaffToFirestore,
+  syncLeaveRequestToFirestore,
+} from '@/services/firebase/sync'
+
+function serialiseExternalStaff(staff: ExternalStaff & { id: number; syncId: string }) {
+  return {
+    ...staff,
+    createdAt: staff.createdAt.toISOString(),
+    updatedAt: (staff.updatedAt ?? staff.createdAt).toISOString(),
+  }
+}
+
+async function queueExternalStaffSync(staff: ExternalStaff & { id: number; syncId: string }, queuedAt: Date): Promise<void> {
+  await queueOutboxEntry({
+    action: 'upsert_external_staff',
+    entityType: 'external_staff',
+    entityKey: staff.syncId,
+    payload: JSON.stringify(serialiseExternalStaff(staff)),
+    createdAt: queuedAt,
+  })
+}
+
+function serialiseAttendanceLog(log: AttendanceLog & { syncId: string }) {
+  return {
+    ...log,
+    ...(log.checkIn ? { checkIn: log.checkIn.toISOString() } : { checkIn: null }),
+    ...(log.checkOut ? { checkOut: log.checkOut.toISOString() } : { checkOut: null }),
+    createdAt: log.createdAt.toISOString(),
+  }
+}
+
+async function queueAttendanceLogSync(log: AttendanceLog & { syncId: string }, queuedAt: Date): Promise<void> {
+  await queueOutboxEntry({
+    action: 'upsert_attendance_log',
+    entityType: 'attendance_log',
+    entityKey: log.syncId,
+    payload: JSON.stringify(serialiseAttendanceLog(log)),
+    createdAt: queuedAt,
+  })
+}
+
+function serialiseLeaveRequest(request: LeaveRequest & { syncId: string }) {
+  return {
+    ...request,
+    createdAt: request.createdAt.toISOString(),
+    ...(request.approvedAt ? { approvedAt: request.approvedAt.toISOString() } : { approvedAt: null }),
+  }
+}
+
+async function queueLeaveRequestSync(request: LeaveRequest & { syncId: string }, queuedAt: Date): Promise<void> {
+  await queueOutboxEntry({
+    action: 'upsert_leave_request',
+    entityType: 'leave_request',
+    entityKey: request.syncId,
+    payload: JSON.stringify(serialiseLeaveRequest(request)),
+    createdAt: queuedAt,
+  })
+}
 
 // ── External Staff ──────────────────────────────────────────────────────────
 
@@ -12,16 +74,38 @@ export async function getActiveExternalStaff(): Promise<ExternalStaff[]> {
 }
 
 export async function upsertExternalStaff(staff: ExternalStaff): Promise<void> {
-  if (staff.id) {
-    await db.staff_external.update(staff.id, { name: staff.name, designation: staff.designation, isActive: staff.isActive })
-  } else {
-    await db.staff_external.add({ ...staff, createdAt: new Date() })
-  }
+  const now = new Date()
+  const id = staff.id ?? createEntityId()
+  const syncId = staff.syncId ?? `external-staff-${id}`
+  const saved: ExternalStaff & { id: number; syncId: string } = staff.id
+    ? {
+        ...staff,
+        id,
+        syncId,
+        updatedAt: now,
+      }
+    : {
+        ...staff,
+        id,
+        syncId,
+        createdAt: staff.createdAt ?? now,
+        updatedAt: now,
+      }
+
+  await db.transaction('rw', [db.staff_external, db.outbox], async () => {
+    await db.staff_external.put(saved)
+    await queueExternalStaffSync(saved, now)
+  })
+
+  syncExternalStaffToFirestore(saved).catch((err: unknown) =>
+    console.warn('[Firestore] external staff sync failed (will retry):', err)
+  )
 }
 
 export async function toggleExternalStaffActive(id: number): Promise<void> {
   const staff = await db.staff_external.get(id)
-  if (staff) await db.staff_external.update(id, { isActive: !staff.isActive })
+  if (!staff) return
+  await upsertExternalStaff({ ...staff, isActive: !staff.isActive })
 }
 
 // ── Attendance Logs ─────────────────────────────────────────────────────────
@@ -54,6 +138,17 @@ export async function getMyAttendance(employeeId: number, yearMonth: string): Pr
     .sortBy('date')
 }
 
+async function saveAttendanceLog(log: AttendanceLog & { syncId: string }, queuedAt: Date): Promise<void> {
+  await db.transaction('rw', [db.attendance_logs, db.outbox], async () => {
+    await db.attendance_logs.put(log)
+    await queueAttendanceLogSync(log, queuedAt)
+  })
+
+  syncAttendanceLogToFirestore(log).catch((err: unknown) =>
+    console.warn('[Firestore] attendance log sync failed (will retry):', err)
+  )
+}
+
 /** Create or update the attendance log for a given staff member on a given date. */
 export async function upsertAttendanceLog(
   staffId: number,
@@ -63,21 +158,35 @@ export async function upsertAttendanceLog(
   loggedBy: number,
   extra?: { checkIn?: Date; checkOut?: Date; notes?: string }
 ): Promise<void> {
+  const now = new Date()
   const existing = await db.attendance_logs
     .filter(l => l.staffId === staffId && l.staffType === staffType && l.date === date)
     .first()
 
-  if (existing?.id) {
-    await db.attendance_logs.update(existing.id, { status, ...extra })
-  } else {
-    await db.attendance_logs.add({
-      staffId, staffType, date, status, loggedBy,
-      checkIn: extra?.checkIn,
-      checkOut: extra?.checkOut,
-      notes: extra?.notes,
-      createdAt: new Date(),
-    })
-  }
+  const saved: AttendanceLog & { syncId: string } = existing?.id
+    ? {
+        ...existing,
+        syncId: existing.syncId ?? createSyncId('attendance'),
+        status,
+        loggedBy,
+        ...(extra?.checkIn !== undefined ? { checkIn: extra.checkIn } : {}),
+        ...(extra?.checkOut !== undefined ? { checkOut: extra.checkOut } : {}),
+        ...(extra?.notes !== undefined ? { notes: extra.notes } : {}),
+      }
+    : {
+        syncId: createSyncId('attendance'),
+        staffId,
+        staffType,
+        date,
+        status,
+        loggedBy,
+        ...(extra?.checkIn !== undefined ? { checkIn: extra.checkIn } : {}),
+        ...(extra?.checkOut !== undefined ? { checkOut: extra.checkOut } : {}),
+        ...(extra?.notes !== undefined ? { notes: extra.notes } : {}),
+        createdAt: now,
+      }
+
+  await saveAttendanceLog(saved, now)
 }
 
 /** Clock in: set checkIn time + status = present for today. */
@@ -88,32 +197,55 @@ export async function clockIn(staffId: number, staffType: StaffType, loggedBy: n
     .filter(l => l.staffId === staffId && l.staffType === staffType && l.date === today)
     .first()
 
-  if (existing?.id) {
-    await db.attendance_logs.update(existing.id, { checkIn: now, status: 'present' })
-  } else {
-    await db.attendance_logs.add({
-      staffId, staffType, date: today, status: 'present',
-      checkIn: now, loggedBy, createdAt: now,
-    })
-  }
+  const saved: AttendanceLog & { syncId: string } = existing?.id
+    ? {
+        ...existing,
+        syncId: existing.syncId ?? createSyncId('attendance'),
+        checkIn: now,
+        status: 'present',
+        loggedBy,
+      }
+    : {
+        syncId: createSyncId('attendance'),
+        staffId,
+        staffType,
+        date: today,
+        status: 'present',
+        checkIn: now,
+        loggedBy,
+        createdAt: now,
+      }
+
+  await saveAttendanceLog(saved, now)
 }
 
 /** Clock out: update checkOut time on today's existing log. */
 export async function clockOut(staffId: number, staffType: StaffType, loggedBy: number): Promise<void> {
   const today = new Date().toISOString().slice(0, 10)
+  const now = new Date()
   const existing = await db.attendance_logs
     .filter(l => l.staffId === staffId && l.staffType === staffType && l.date === today)
     .first()
 
-  if (existing?.id) {
-    await db.attendance_logs.update(existing.id, { checkOut: new Date() })
-  } else {
-    // Edge case: clocking out without clocking in — still record it
-    await db.attendance_logs.add({
-      staffId, staffType, date: today, status: 'present',
-      checkOut: new Date(), loggedBy, createdAt: new Date(),
-    })
-  }
+  const saved: AttendanceLog & { syncId: string } = existing?.id
+    ? {
+        ...existing,
+        syncId: existing.syncId ?? createSyncId('attendance'),
+        checkOut: now,
+        loggedBy,
+      }
+    : {
+        syncId: createSyncId('attendance'),
+        staffId,
+        staffType,
+        date: today,
+        status: 'present',
+        checkOut: now,
+        loggedBy,
+        createdAt: now,
+      }
+
+  await saveAttendanceLog(saved, now)
 }
 
 /** Get today's attendance log for a specific employee (or undefined if none). */
@@ -164,7 +296,7 @@ export async function getLeaveBalance(
  * Throws if the employee has insufficient balance for this month.
  */
 export async function submitLeaveRequest(
-  request: Omit<LeaveRequest, 'id' | 'status' | 'createdAt'>
+  request: Omit<LeaveRequest, 'id' | 'syncId' | 'status' | 'createdAt'>
 ): Promise<void> {
   const now = new Date()
   const [year, month] = request.startDate.split('-').map(Number)
@@ -177,11 +309,21 @@ export async function submitLeaveRequest(
     )
   }
 
-  await db.leave_requests.add({
+  const leaveRequest: LeaveRequest & { syncId: string } = {
     ...request,
+    syncId: createSyncId('leave'),
     status: 'pending',
     createdAt: now,
+  }
+
+  await db.transaction('rw', [db.leave_requests, db.outbox], async () => {
+    await db.leave_requests.put(leaveRequest)
+    await queueLeaveRequestSync(leaveRequest, now)
   })
+
+  syncLeaveRequestToFirestore(leaveRequest).catch((err: unknown) =>
+    console.warn('[Firestore] leave request sync failed (will retry):', err)
+  )
 }
 
 /** Approve a leave request and auto-create attendance_log rows for each leave date. */
@@ -189,33 +331,90 @@ export async function approveLeave(id: number, approvedBy: number): Promise<void
   const req = await db.leave_requests.get(id)
   if (!req) return
 
-  await db.leave_requests.update(id, {
+  const now = new Date()
+  const savedRequest: LeaveRequest & { syncId: string } = {
+    ...req,
+    syncId: req.syncId ?? createSyncId('leave'),
     status: 'approved',
     approvedBy,
-    approvedAt: new Date(),
+    approvedAt: now,
+  }
+
+  const logsToSync: Array<AttendanceLog & { syncId: string }> = []
+
+  await db.transaction('rw', [db.leave_requests, db.attendance_logs, db.outbox], async () => {
+    await db.leave_requests.put(savedRequest)
+    await queueLeaveRequestSync(savedRequest, now)
+
+    const start = new Date(req.startDate)
+    const end = new Date(req.endDate)
+    const status: AttendanceStatus = req.leaveType === 'full' ? 'leave' : 'half_day'
+    const note = `Leave: ${req.leaveType === 'full' ? 'Full Day' : req.leaveType === 'half_am' ? 'Half Day AM' : 'Half Day PM'}`
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().slice(0, 10)
+      const existingLog = await db.attendance_logs
+        .filter((log) => log.staffId === req.employeeId && log.staffType === 'employee' && log.date === dateStr)
+        .first()
+
+      const savedLog: AttendanceLog & { syncId: string } = existingLog?.id
+        ? {
+            ...existingLog,
+            syncId: existingLog.syncId ?? createSyncId('attendance'),
+            status,
+            notes: note,
+            loggedBy: approvedBy,
+          }
+        : {
+            syncId: createSyncId('attendance'),
+            staffId: req.employeeId,
+            staffType: 'employee',
+            date: dateStr,
+            status,
+            notes: note,
+            loggedBy: approvedBy,
+            createdAt: now,
+          }
+
+      await db.attendance_logs.put(savedLog)
+      await queueAttendanceLogSync(savedLog, now)
+      logsToSync.push(savedLog)
+    }
   })
 
-  // Write an attendance_log row for each date in the range
-  const start = new Date(req.startDate)
-  const end = new Date(req.endDate)
-  const status: AttendanceStatus = req.leaveType === 'full' ? 'leave' : 'half_day'
-
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().slice(0, 10)
-    await upsertAttendanceLog(req.employeeId, 'employee', dateStr, status, approvedBy, {
-      notes: `Leave: ${req.leaveType === 'full' ? 'Full Day' : req.leaveType === 'half_am' ? 'Half Day AM' : 'Half Day PM'}`,
-    })
+  syncLeaveRequestToFirestore(savedRequest).catch((err: unknown) =>
+    console.warn('[Firestore] leave request sync failed (will retry):', err)
+  )
+  for (const log of logsToSync) {
+    syncAttendanceLogToFirestore(log).catch((err: unknown) =>
+      console.warn('[Firestore] attendance log sync failed (will retry):', err)
+    )
   }
 }
 
 /** Reject a leave request with a reason. */
 export async function rejectLeave(id: number, approvedBy: number, reason: string): Promise<void> {
-  await db.leave_requests.update(id, {
+  const req = await db.leave_requests.get(id)
+  if (!req) return
+
+  const now = new Date()
+  const savedRequest: LeaveRequest & { syncId: string } = {
+    ...req,
+    syncId: req.syncId ?? createSyncId('leave'),
     status: 'rejected',
     approvedBy,
-    approvedAt: new Date(),
+    approvedAt: now,
     rejectionReason: reason,
+  }
+
+  await db.transaction('rw', [db.leave_requests, db.outbox], async () => {
+    await db.leave_requests.put(savedRequest)
+    await queueLeaveRequestSync(savedRequest, now)
   })
+
+  syncLeaveRequestToFirestore(savedRequest).catch((err: unknown) =>
+    console.warn('[Firestore] leave request sync failed (will retry):', err)
+  )
 }
 
 /** Get all leave requests, optionally filtered by status. Newest first. */

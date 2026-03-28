@@ -27,7 +27,7 @@ export function MigrationPage() {
       <div className="max-w-md space-y-5">
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <p className="font-semibold mb-1">Run this once per device</p>
-          <p>Copies products, batches, customers, employees, expenses, vendors, GRNs, and RTVs from IndexedDB to Firestore. Safe to re-run — existing records are overwritten with current values.</p>
+          <p>Copies products, batches, customers, employees, store settings, sales history, expenses, vendors, GRNs, RTVs, attendance logs, leave requests, sessions, and cash entries from IndexedDB to Firestore. Safe to re-run — existing records are overwritten with current values.</p>
         </div>
 
         {status === 'idle' && (

@@ -5,3 +5,4 @@ export type { Sale, SaleItem, Payment, CartItem, SaleStatus, PaymentMethod, Sale
 export type { DaySession, OutboxEntry, SessionStatus, AuditLogEntry, Vendor, Grn, RtvSession, RtvItem, CashEntry, CashEntryCategory, Expense } from './inventory'
 export type { ExternalStaff, AttendanceLog, AttendanceStatus, StaffType, LeaveRequest, LeaveType, LeaveStatus, LeaveBalance } from './attendance'
 export type { PerformanceTargets } from './performance'
+export type { StoreConfig, SharedStoreSettings } from './settings'

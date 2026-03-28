@@ -6,6 +6,7 @@ Original Phase 1 started as a pure frontend MVP, but the live store target is no
 - online-first shared store state across devices
 - billing must continue on one billing device during outages
 - pending updates must replay cleanly when internet returns
+- staff login, store settings, and attendance must converge across devices too
 
 Reference docs:
 - `README.md`
@@ -123,11 +124,15 @@ src/
 
 ## Database Rules
 
-### 10 IndexedDB stores (defined in `db/schema.ts`):
+### IndexedDB stores (defined in `db/schema.ts`):
 ```
 employees, products, batches, customers,
 sales, sale_items, payments, credit_ledger,
-day_sessions, outbox
+day_sessions, outbox, audit_log, vendors,
+grns, rtvs, rtv_items, staff_external,
+attendance_logs, leave_requests, cash_entries,
+expenses, performance_targets, store_settings,
+sale_returns
 ```
 Auth sessions are **not** stored in IndexedDB — they live in Zustand memory only.
 
@@ -149,8 +154,9 @@ Auth sessions are **not** stored in IndexedDB — they live in Zustand memory on
 
 ## Auth & RBAC
 
-- **Cashier**: Tap name on card grid → 4-digit PIN pad. Session in Zustand memory.
-- **Admin/Manager**: Username + password form. Session in Zustand memory.
+- All staff roles currently log in through the card grid + 4-digit PIN pad.
+- Employee PIN hashes are shared so staff provisioning works across devices.
+- Session in Zustand memory only.
 - Auto-logout: 8h for cashier, 12h for admin/manager.
 - `ProtectedRoute.tsx` guards all routes — unauthenticated → `/login`; wrong role → `/billing`.
 - `permissions.ts` exports `canAccess(role: Role, feature: Feature): boolean`.
@@ -208,6 +214,7 @@ Auth sessions are **not** stored in IndexedDB — they live in Zustand memory on
 - Service Worker registered via `vite-plugin-pwa` (Workbox)
 - Every sale: write to IndexedDB first → deduct stock → add outbox entry → UI completes
 - Outbox table stores pending business events for replay to Firestore
+- Shared settings, attendance, leave, external staff, employees, sessions, cash entries, vendors, GRNs, and RTVs follow the same replay model
 - Core multi-device screens must read from Firestore-hydrated Dexie data, not device-only local history
 - If the internet is down, only one billing device should continue checkout until connectivity returns
 - Sync queue visibility matters: keep pending/failed updates inspectable in the UI for store operators

@@ -1,7 +1,7 @@
 import { db } from '@/db'
 import type { Vendor } from '@/types'
 import { syncVendorToFirestore } from '@/services/firebase/sync'
-import { createSyncId } from '@/utils/syncIds'
+import { createEntityId, createSyncId } from '@/utils/syncIds'
 import { queueOutboxEntry } from './outbox'
 
 function buildVendorSyncPayload(vendor: Vendor, id: number, syncId: string) {
@@ -56,9 +56,10 @@ export async function upsertVendor(vendor: Vendor): Promise<number> {
     return vendor.id
   }
   const syncId = vendor.syncId ?? createSyncId('vendor')
-  const saved: Vendor = { ...vendor, syncId, createdAt: now, updatedAt: now }
+  const vendorId = createEntityId()
+  const saved: Vendor = { ...vendor, id: vendorId, syncId, createdAt: now, updatedAt: now }
   const id = await db.transaction('rw', [db.vendors, db.outbox], async () => {
-    const vendorId = await db.vendors.add(saved)
+    await db.vendors.put(saved)
     await queueVendorSync(saved, vendorId, syncId, now)
     return vendorId
   })

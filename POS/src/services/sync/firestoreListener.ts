@@ -3,6 +3,8 @@ import { firestore } from '@/services/firebase'
 import { db } from '@/db'
 import { useSessionStore } from '@/stores/sessionStore'
 import type { PaymentMethod } from '@/types'
+import { CLIENT_CONFIG } from '@/constants/clientConfig'
+import { persistStoreConfigCache } from '@/utils/storeConfig'
 
 function tsToDate(val: unknown): Date {
   if (val instanceof Timestamp) return val.toDate()
@@ -40,8 +42,12 @@ export function startFirestoreListeners(): () => void {
   const unsubCashEntries = startCashEntryListener()
   const unsubDaySessions = startDaySessionListener()
   const unsubEmployees = startEmployeeListener()
+  const unsubExternalStaff = startExternalStaffListener()
+  const unsubAttendanceLogs = startAttendanceLogListener()
+  const unsubLeaveRequests = startLeaveRequestListener()
   const unsubExpenses = startExpenseListener()
   const unsubPerformanceTargets = startPerformanceTargetsListener()
+  const unsubStoreSettings = startStoreSettingsListener()
   return () => {
     unsubProducts()
     unsubBatches()
@@ -55,8 +61,12 @@ export function startFirestoreListeners(): () => void {
     unsubCashEntries()
     unsubDaySessions()
     unsubEmployees()
+    unsubExternalStaff()
+    unsubAttendanceLogs()
+    unsubLeaveRequests()
     unsubExpenses()
     unsubPerformanceTargets()
+    unsubStoreSettings()
   }
 }
 
@@ -357,9 +367,11 @@ function startSalesListener(): () => void {
         }
 
         void db
-          .transaction('rw', [db.sales, db.sale_items, db.payments], async () => {
+          .transaction('rw', [db.sales, db.sale_items, db.payments, db.sale_returns, db.credit_ledger], async () => {
             const existing = await db.sales.where('billNo').equals(billNo).first()
+            const syncedSaleId = Number(data.saleId ?? existing?.id ?? 0)
             const salePayload = {
+              ...(syncedSaleId ? { id: syncedSaleId } : {}),
               billNo,
               ...(data.customerId !== undefined && { customerId: data.customerId ?? undefined }),
               cashierId: Number(data.cashierId ?? 0),
@@ -376,9 +388,23 @@ function startSalesListener(): () => void {
               createdAt: tsToDate(data.createdAt ?? new Date()),
             }
 
-            const saleId = existing?.id
-              ? (await db.sales.update(existing.id, salePayload), existing.id)
-              : await db.sales.add(salePayload)
+            let saleId = syncedSaleId || existing?.id || 0
+
+            if (existing?.id && syncedSaleId && existing.id !== syncedSaleId) {
+              await db.sale_items.where('saleId').equals(existing.id).modify({ saleId: syncedSaleId })
+              await db.payments.where('saleId').equals(existing.id).modify({ saleId: syncedSaleId })
+              await db.sale_returns.where('saleId').equals(existing.id).modify({ saleId: syncedSaleId })
+              await db.credit_ledger
+                .filter((entry) => entry.saleId === existing.id)
+                .modify({ saleId: syncedSaleId })
+              await db.sales.delete(existing.id)
+            }
+
+            if (!saleId) {
+              saleId = await db.sales.add(salePayload)
+            } else {
+              await db.sales.put({ ...salePayload, id: saleId })
+            }
 
             await db.sale_items.where('saleId').equals(saleId).delete()
             await db.payments.where('saleId').equals(saleId).delete()
@@ -638,6 +664,7 @@ function startEmployeeListener(): () => void {
             ...(data.passwordHash !== undefined && { passwordHash: data.passwordHash }),
             isActive: Boolean(data.isActive),
             createdAt: tsToDate(data.createdAt ?? new Date()),
+            ...(data.updatedAt ? { updatedAt: tsToDate(data.updatedAt) } : {}),
             ...(data.monthlyLeaveAllotment !== undefined && {
               monthlyLeaveAllotment: Number(data.monthlyLeaveAllotment ?? 3),
             }),
@@ -646,6 +673,143 @@ function startEmployeeListener(): () => void {
       }
     },
     (err) => console.warn('[Listener] employees snapshot error:', err)
+  )
+}
+
+function startExternalStaffListener(): () => void {
+  return onSnapshot(
+    collection(firestore, 'staff_external'),
+    { includeMetadataChanges: false },
+    (snapshot) => {
+      for (const change of snapshot.docChanges()) {
+        const syncId = change.doc.id
+        if (!syncId) continue
+
+        if (change.type === 'removed') {
+          db.staff_external
+            .where('syncId')
+            .equals(syncId)
+            .delete()
+            .catch((err: unknown) => console.warn('[Listener] external staff delete failed:', err))
+          continue
+        }
+
+        const data = change.doc.data()
+        db.staff_external
+          .where('syncId')
+          .equals(syncId)
+          .first()
+          .then((existing) =>
+            db.staff_external.put({
+              ...(existing ?? {}),
+              ...(data.id !== undefined ? { id: Number(data.id) } : {}),
+              syncId,
+              name: String(data.name ?? existing?.name ?? 'Staff'),
+              designation: String(data.designation ?? existing?.designation ?? ''),
+              isActive: Boolean(data.isActive ?? existing?.isActive ?? true),
+              createdAt: tsToDate(data.createdAt ?? existing?.createdAt ?? new Date()),
+              ...(data.updatedAt ? { updatedAt: tsToDate(data.updatedAt) } : {}),
+            })
+          )
+          .catch((err: unknown) => console.warn('[Listener] external staff upsert failed:', err))
+      }
+    },
+    (err) => console.warn('[Listener] external staff snapshot error:', err)
+  )
+}
+
+function startAttendanceLogListener(): () => void {
+  return onSnapshot(
+    collection(firestore, 'attendance_logs'),
+    { includeMetadataChanges: false },
+    (snapshot) => {
+      for (const change of snapshot.docChanges()) {
+        const syncId = change.doc.id
+        if (!syncId) continue
+
+        if (change.type === 'removed') {
+          db.attendance_logs
+            .where('syncId')
+            .equals(syncId)
+            .delete()
+            .catch((err: unknown) => console.warn('[Listener] attendance log delete failed:', err))
+          continue
+        }
+
+        const data = change.doc.data()
+        const logPatch = {
+          syncId,
+          staffId: Number(data.staffId ?? 0),
+          staffType: String(data.staffType ?? 'employee') as 'employee' | 'external',
+          date: String(data.date ?? ''),
+          status: String(data.status ?? 'present') as 'present' | 'absent' | 'half_day' | 'leave',
+          ...(data.checkIn ? { checkIn: tsToDate(data.checkIn) } : {}),
+          ...(data.checkOut ? { checkOut: tsToDate(data.checkOut) } : {}),
+          ...(data.notes !== undefined ? { notes: String(data.notes) } : {}),
+          loggedBy: Number(data.loggedBy ?? 0),
+          createdAt: tsToDate(data.createdAt ?? new Date()),
+        }
+
+        db.attendance_logs
+          .where('syncId')
+          .equals(syncId)
+          .first()
+          .then((existing) => {
+            if (existing?.id) return db.attendance_logs.update(existing.id, logPatch)
+            return db.attendance_logs.add(logPatch)
+          })
+          .catch((err: unknown) => console.warn('[Listener] attendance log upsert failed:', err))
+      }
+    },
+    (err) => console.warn('[Listener] attendance logs snapshot error:', err)
+  )
+}
+
+function startLeaveRequestListener(): () => void {
+  return onSnapshot(
+    collection(firestore, 'leave_requests'),
+    { includeMetadataChanges: false },
+    (snapshot) => {
+      for (const change of snapshot.docChanges()) {
+        const syncId = change.doc.id
+        if (!syncId) continue
+
+        if (change.type === 'removed') {
+          db.leave_requests
+            .where('syncId')
+            .equals(syncId)
+            .delete()
+            .catch((err: unknown) => console.warn('[Listener] leave request delete failed:', err))
+          continue
+        }
+
+        const data = change.doc.data()
+        const leavePatch = {
+          syncId,
+          employeeId: Number(data.employeeId ?? 0),
+          startDate: String(data.startDate ?? ''),
+          endDate: String(data.endDate ?? ''),
+          leaveType: String(data.leaveType ?? 'full') as 'full' | 'half_am' | 'half_pm',
+          reason: String(data.reason ?? ''),
+          status: String(data.status ?? 'pending') as 'pending' | 'approved' | 'rejected',
+          ...(data.approvedBy !== undefined && data.approvedBy !== null ? { approvedBy: Number(data.approvedBy) } : {}),
+          ...(data.approvedAt ? { approvedAt: tsToDate(data.approvedAt) } : {}),
+          ...(data.rejectionReason !== undefined ? { rejectionReason: String(data.rejectionReason) } : {}),
+          createdAt: tsToDate(data.createdAt ?? new Date()),
+        }
+
+        db.leave_requests
+          .where('syncId')
+          .equals(syncId)
+          .first()
+          .then((existing) => {
+            if (existing?.id) return db.leave_requests.update(existing.id, leavePatch)
+            return db.leave_requests.add(leavePatch)
+          })
+          .catch((err: unknown) => console.warn('[Listener] leave request upsert failed:', err))
+      }
+    },
+    (err) => console.warn('[Listener] leave requests snapshot error:', err)
   )
 }
 
@@ -714,6 +878,45 @@ function startPerformanceTargetsListener(): () => void {
         .catch((err: unknown) => console.warn('[Listener] performance targets update failed:', err))
     },
     (err) => console.warn('[Listener] performance targets snapshot error:', err)
+  )
+}
+
+function startStoreSettingsListener(): () => void {
+  return onSnapshot(
+    doc(firestore, 'app_settings', 'store_details'),
+    { includeMetadataChanges: false },
+    (snapshot) => {
+      if (!snapshot.exists()) return
+      const data = snapshot.data()
+      const configPayload =
+        data.config && typeof data.config === 'object'
+          ? data.config
+          : {
+              name: data.name,
+              address: data.address,
+              city: data.city,
+              phone: data.phone,
+              gstin: data.gstin,
+              upiVpa: data.upiVpa,
+              sheetsWebAppUrl: data.sheetsWebAppUrl,
+            }
+      const config = {
+        ...CLIENT_CONFIG.store,
+        ...configPayload,
+      }
+
+      persistStoreConfigCache(config)
+
+      db.store_settings
+        .put({
+          key: 'store_details',
+          config,
+          updatedAt: tsToDate(data.updatedAt ?? new Date()),
+          ...(data.updatedBy !== undefined && data.updatedBy !== null ? { updatedBy: Number(data.updatedBy) } : {}),
+        })
+        .catch((err: unknown) => console.warn('[Listener] store settings update failed:', err))
+    },
+    (err) => console.warn('[Listener] store settings snapshot error:', err)
   )
 }
 

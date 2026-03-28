@@ -3,10 +3,9 @@ import { Plus, Edit2, UserCheck, UserX, ShieldCheck } from 'lucide-react'
 import bcrypt from 'bcryptjs'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
-import { db } from '@/db'
 import { useUiStore } from '@/stores/uiStore'
 import type { Employee, Role } from '@/types'
-import { syncEmployeeToFirestore } from '@/services/firebase/sync'
+import { getAllEmployees, setEmployeeActive, upsertEmployee } from '@/db/queries/employees'
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
@@ -27,7 +26,7 @@ export function UsersPage() {
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
 
   const load = async () => {
-    const all = await db.employees.toArray()
+    const all = await getAllEmployees()
     setEmployees(all.sort((a, b) => a.name.localeCompare(b.name)))
   }
 
@@ -35,8 +34,7 @@ export function UsersPage() {
 
   const toggleActive = async (emp: Employee) => {
     const newActive = !emp.isActive
-    await db.employees.update(emp.id!, { isActive: newActive })
-    syncEmployeeToFirestore({ ...emp, id: emp.id!, isActive: newActive })
+    await setEmployeeActive(emp.id!, newActive)
     addToast('success', `${emp.name} ${emp.isActive ? 'deactivated' : 'reactivated'}`)
     await load()
   }
@@ -167,15 +165,10 @@ function EmployeeFormModal({
         patch.pinHash = hash
         // passwordHash no longer used for login
       }
-      let empId: number
-      if (editEmployee) {
-        await db.employees.update(editEmployee.id!, patch)
-        empId = editEmployee.id!
-      } else {
-        empId = await db.employees.add({ ...patch, createdAt: new Date() } as Employee)
-      }
-      const saved = await db.employees.get(empId)
-      if (saved) syncEmployeeToFirestore({ ...saved, id: empId })
+      const savedEmployee: Employee = editEmployee
+        ? { ...editEmployee, ...patch, updatedAt: new Date() }
+        : { ...patch, createdAt: new Date(), updatedAt: new Date() } as Employee
+      await upsertEmployee(savedEmployee)
       addToast('success', editEmployee ? 'Staff updated' : `${form.name} added`)
       onSaved()
     } catch {

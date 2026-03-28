@@ -1,6 +1,6 @@
 # Grocery Store POS
 
-Offline-first grocery store point-of-sale application built for browser-based operation and white-label client deployments.
+Browser-based grocery store point-of-sale application built for online shared-store operation, queued outage recovery, and white-label client deployments.
 
 ## Current Main-Store Setup
 
@@ -16,6 +16,8 @@ Offline-first grocery store point-of-sale application built for browser-based op
 - Shared expense sync for multi-device profit visibility
 - Pending sync queue in Settings for outage recovery visibility
 - Sales, cash-out, credit-ledger, and shift-session data now replay through the sync outbox and hydrate back into local Dexie from Firestore
+- Shared store settings now keep receipts, QR details, and Sheets export URLs aligned across devices
+- Attendance, leave requests, external staff, and employee PIN provisioning now sync through the same Firestore-backed replay path
 
 ## Stack
 
@@ -26,7 +28,7 @@ Offline-first grocery store point-of-sale application built for browser-based op
 - Dexie.js
 - Zustand
 - React Router
-- Firebase for selected sync/auth flows
+- Firebase for shared sync/auth flows
 
 ## Run Locally
 

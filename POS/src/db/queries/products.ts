@@ -2,6 +2,7 @@ import { db } from '@/db'
 import type { Product } from '@/types'
 import { syncProductToFirestore } from '@/services/firebase/sync'
 import { queueOutboxEntry } from './outbox'
+import { createEntityId } from '@/utils/syncIds'
 
 function buildProductSyncPayload(product: Product, id: number) {
   return {
@@ -96,11 +97,12 @@ export async function upsertProduct(product: Omit<Product, 'id'> & { id?: number
     })
     id = product.id
   } else {
-    saved = { ...product, createdAt: now, updatedAt: now }
+    id = createEntityId()
+    saved = { ...product, id, createdAt: now, updatedAt: now }
     id = await db.transaction('rw', [db.products, db.outbox], async () => {
-      const productId = await db.products.add(saved)
-      await queueProductSync(saved, productId, now)
-      return productId
+      await db.products.put(saved)
+      await queueProductSync(saved, id, now)
+      return id
     })
   }
 
