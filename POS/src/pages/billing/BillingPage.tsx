@@ -92,7 +92,6 @@ export function BillingPage() {
         })),
       })
       clearCart()
-      await refreshLowStock()
       const data = await getSaleWithItems(saleId)
       setReceiptData(data)
       setReceiptSaleId(saleId)

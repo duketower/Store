@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency } from '@/utils/currency'
 import { GST_SLABS } from '@/constants/gst'
 import { CATEGORIES, UNITS, NEAR_EXPIRY_DAYS } from '@/constants/app'
-import type { Product, Batch } from '@/types'
+import type { Product } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

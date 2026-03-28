@@ -61,6 +61,22 @@
   .card {
     @apply rounded-xl border border-gray-200 bg-white shadow-sm;
   }
+
+  .loading-bottle {
+    --pathlength: 1384;
+    stroke-dasharray: 0 var(--pathlength);
+    stroke-dashoffset: var(--pathlength);
+    animation: loading-bottle-draw 1.8s cubic-bezier(0.5, 0.1, 0.5, 1) infinite both;
+    will-change: stroke-dasharray, stroke-dashoffset;
+  }
+}
+
+@keyframes loading-bottle-draw {
+  90%,
+  100% {
+    stroke-dasharray: var(--pathlength) 0;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Print styles for 80mm thermal receipt */
