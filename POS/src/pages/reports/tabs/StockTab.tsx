@@ -414,7 +414,7 @@ function ProductsTab({
     return matchQuery && matchCat
   })
 
-  const categories = ['All', ...Array.from(new Set(products.map((p) => p.category))).sort()]
+  const categories = ['All', ...Array.from(new Set(products.map((p) => p.category))).sort((a, b) => a.localeCompare(b))]
 
   const openAdd = () => {
     setEditProduct(null)
