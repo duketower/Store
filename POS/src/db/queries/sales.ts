@@ -258,7 +258,9 @@ export async function createSaleTransaction(input: CreateSaleInput): Promise<num
     items: syncedItems,
     stockDeltas,
     createdAt,
-  }).catch((err: unknown) => console.warn('[Firestore] fire-and-forget sync failed (will retry):', err))
+  })
+    .then(() => db.sales.update(saleId, { status: 'completed' }))
+    .catch((err: unknown) => console.warn('[Firestore] fire-and-forget sync failed (will retry):', err))
 
   return saleId
 }
@@ -401,7 +403,7 @@ export async function processReturn(
         createdAt,
       })
       await db.customers.where('id').equals(customerId).modify((c) => {
-        c.currentBalance = Math.max(0, toFiniteNumber(c.currentBalance) - totalRefund)
+        c.currentBalance = toFiniteNumber(c.currentBalance) - totalRefund
         c.updatedAt = createdAt
       })
     }

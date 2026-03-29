@@ -225,6 +225,10 @@ export function ShiftClosePage() {
         <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
           <h3 className="text-base font-semibold text-gray-900">Cash Reconciliation</h3>
 
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            This shift-close report currently reflects the local device’s sales, payments, and cash entries. Use the same billing device for Z-report and final cash reconciliation.
+          </div>
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <InfoCard label="Opening Float" value={formatCurrency(currentSession.openingFloat)} />
             <InfoCard label="Cash Sales Today" value={formatCurrency(report?.cashTotal ?? 0)} />

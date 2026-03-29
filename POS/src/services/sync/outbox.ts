@@ -30,6 +30,10 @@ const STALE_SYNC_WINDOW_MS = 30_000
 
 let flushInFlight: Promise<void> | null = null
 
+async function markLocalSaleCompleted(billNo: string): Promise<void> {
+  await db.sales.where('billNo').equals(billNo).modify({ status: 'completed' })
+}
+
 function getRetryDelayMs(retryCount: number): number {
   if (retryCount <= 0) return 0
   return Math.min(OUTBOX_MAX_BACKOFF_MS, OUTBOX_BASE_BACKOFF_MS * 2 ** Math.max(0, retryCount - 1))
@@ -506,6 +510,7 @@ export async function flushOutbox(): Promise<void> {
         : await rebuildLegacySalePayload(rawData, new Date(entry.createdAt))
 
       await syncSaleToFirestore(salePayload)
+      await markLocalSaleCompleted(salePayload.billNo)
 
       await db.outbox.delete(entry.id!)
       console.log(`[Outbox] Synced and cleared: ${salePayload.billNo}`)
@@ -521,5 +526,7 @@ export async function flushOutbox(): Promise<void> {
 }
 
 export async function getPendingCount(): Promise<number> {
-  return db.outbox.count()
+  return db.outbox
+    .filter((entry) => entry.status === 'pending' || entry.status === 'failed' || entry.status === 'syncing')
+    .count()
 }

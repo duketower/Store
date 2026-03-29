@@ -222,8 +222,6 @@ export async function syncReturnToFirestore(payload: ReturnSyncPayload): Promise
 
     if (payload.customerId && payload.creditLedgerSyncId) {
       const customerRef = doc(firestore, 'customers', String(payload.customerId))
-      const customerSnapshot = await txn.get(customerRef)
-      const currentBalance = toFiniteNumber(customerSnapshot.data()?.currentBalance)
 
       txn.set(
         doc(firestore, 'credit_ledger', payload.creditLedgerSyncId),
@@ -242,7 +240,7 @@ export async function syncReturnToFirestore(payload: ReturnSyncPayload): Promise
       txn.set(
         customerRef,
         {
-          currentBalance: Math.max(0, currentBalance - payload.totalRefund),
+          currentBalance: increment(-payload.totalRefund),
           updatedAt: Timestamp.now(),
         },
         { merge: true }

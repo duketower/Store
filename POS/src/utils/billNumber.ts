@@ -6,8 +6,8 @@ const COUNTER_DOC = doc(firestore, 'counters', 'billNumber')
 
 /**
  * Returns the next globally unique bill number via Firestore atomic counter.
- * Falls back to a locally-generated sequence (prefixed 'L') when offline.
- * The 'L' prefix makes offline-generated numbers easy to identify in reports.
+ * Falls back to a UUID-tagged offline number when Firestore is unavailable.
+ * The OFF suffix keeps offline-generated numbers easy to identify in reports.
  */
 export async function generateBillNumber(): Promise<string> {
   const year = new Date().getFullYear()
