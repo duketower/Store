@@ -13,6 +13,9 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
+const SafeCliTokenSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9._-]+$/, 'must contain only letters, numbers, dot, underscore, or hyphen')
 
 // ---- Zod schema --------------------------------------------------------
 
@@ -51,8 +54,8 @@ const ClientConfigSchema = z.object({
 })
 
 const DeployConfigSchema = z.object({
-  firebaseProjectId: z.string().min(1, 'Firebase project ID is required'),
-  hostingTarget:     z.string().min(1),
+  firebaseProjectId: SafeCliTokenSchema.min(1, 'Firebase project ID is required'),
+  hostingTarget:     SafeCliTokenSchema.min(1, 'hostingTarget is required'),
   dedicatedGmail:    z.string().email('dedicatedGmail must be a valid email'),
   status:            z.enum(['active', 'inactive', 'trial']),
 })

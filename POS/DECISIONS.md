@@ -85,3 +85,12 @@ Reason:
 - Mirroring `pinHash` through every employee listener payload made every synced device a passive copy of all staff verifiers.
 - A separate `employee_credentials` collection plus device-local cache keeps online provisioning simple while reducing routine credential exposure.
 - The accepted tradeoff is that a device may need one online credential refresh after a PIN change before that employee can log in there offline.
+
+## Decision 011
+
+Use argument-based child-process execution for platform build and deploy scripts, and validate deploy CLI tokens before running external commands.
+
+Reason:
+- `POS/platform/` handles deployment and should not rely on shell-parsed command strings.
+- `clientId`, `hostingTarget`, and `firebaseProjectId` should be treated as data, not shell syntax.
+- This reduces command-injection risk and makes build failures easier to reason about.

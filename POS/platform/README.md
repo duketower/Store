@@ -38,6 +38,8 @@ npm run client:build -- <client-id>
 npm run client:build-all
 ```
 
+The platform scripts now execute `npm` and `firebase` with argument arrays instead of shell-built command strings, and `deploy.config.json` rejects unsafe CLI token characters for `firebaseProjectId` and `hostingTarget`.
+
 ## Important Paths
 
 - Client config: `POS/platform/clients/client-<id>/client.config.json`

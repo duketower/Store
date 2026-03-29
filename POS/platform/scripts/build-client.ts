@@ -10,7 +10,7 @@
  * 4. Deploy to Firebase Hosting using the project ID from deploy.config.json
  */
 
-import { execSync } from 'child_process'
+import { spawnSync } from 'child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -18,6 +18,8 @@ import { validateClient } from './validate-client.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+const firebaseCommand = process.platform === 'win32' ? 'firebase.cmd' : 'firebase'
 
 const clientId = process.argv[2]
 
@@ -50,11 +52,14 @@ console.log(`🔨 Building client: ${clientId}`)
 mkdirSync(outputDir, { recursive: true })
 
 try {
-  execSync(`npm run build -- --outDir "${outputDir}" --emptyOutDir`, {
+  const buildResult = spawnSync(npmCommand, ['run', 'build', '--', '--outDir', outputDir, '--emptyOutDir'], {
     cwd: posDir,
     env: { ...process.env, CLIENT: clientId },
     stdio: 'inherit',
   })
+  if (buildResult.status !== 0) {
+    throw new Error(`build exited with code ${buildResult.status ?? 'unknown'}`)
+  }
 } catch {
   console.error(`\n❌ Build failed for "${clientId}"`)
   process.exit(1)
@@ -90,10 +95,14 @@ writeFileSync(resolve(deployDir, '.firebaserc'), JSON.stringify(firebaseRc, null
 console.log(`🚀 Deploying to Firebase project: ${firebaseProjectId} (target: ${target})`)
 
 try {
-  execSync(
-    `firebase deploy --only hosting:${target} --project ${firebaseProjectId}`,
+  const deployResult = spawnSync(
+    firebaseCommand,
+    ['deploy', '--only', `hosting:${target}`, '--project', firebaseProjectId],
     { cwd: deployDir, stdio: 'inherit' }
   )
+  if (deployResult.status !== 0) {
+    throw new Error(`deploy exited with code ${deployResult.status ?? 'unknown'}`)
+  }
 } catch {
   console.error(`\n❌ Deploy failed for "${clientId}"`)
   console.error('   Ensure firebase-tools is installed: npm install -g firebase-tools')

@@ -43,3 +43,4 @@
 - Hardened checkout and recovery correctness around bill snapshot locking, safe credit balances, GST-after-discount math, return refund math, legacy sale outbox rebuilds, and batch-allocation traceability
 - Hardened final credit-limit checks, outbox concurrency/backoff, negative-stock visibility, GRN batch sync ordering, and employee password-hash stripping
 - Removed return refund flooring, made return balance sync incremental, tightened pending-sync counts, replaced shift close with a shared Firestore-backed shift report, and moved employee PIN hashes into a device-cached credential flow
+- Hardened `POS/platform/` build and deploy scripts to avoid shell-string execution and reject unsafe Firebase CLI token values in client deploy config

@@ -11,11 +11,12 @@
 import { readdirSync, existsSync, readFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { execSync } from 'child_process'
+import { spawnSync } from 'child_process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
 const clientsDir = resolve(ROOT, 'clients')
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 // ---- Collect all client folders (client-* prefix) ----------------------
 
@@ -68,10 +69,13 @@ for (const clientId of allDirs) {
 
   const start = Date.now()
   try {
-    execSync(`npm run client:build -- ${clientId}`, {
+    const result = spawnSync(npmCommand, ['run', 'client:build', '--', clientId], {
       cwd: ROOT,
       stdio: 'inherit',
     })
+    if (result.status !== 0) {
+      throw new Error(`client build exited with code ${result.status ?? 'unknown'}`)
+    }
     results.push({ clientId, status: 'ok', durationMs: Date.now() - start })
   } catch {
     results.push({ clientId, status: 'failed', durationMs: Date.now() - start })
