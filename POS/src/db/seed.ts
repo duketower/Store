@@ -6,6 +6,25 @@ import { createSyncId } from '@/utils/syncIds'
 // Default staff PIN communicated on handover.
 const DEFAULT_CASHIER_PIN      = '1234'
 
+function createSeededRandom(seed: number) {
+  let state = seed >>> 0
+  return () => {
+    state = (state + 0x6D2B79F5) >>> 0
+    let t = state
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function shuffleInPlace<T>(items: T[], random: () => number): T[] {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[items[i], items[j]] = [items[j], items[i]]
+  }
+  return items
+}
+
 // Idempotent seed — each section has its own guard
 export async function seedDatabase(): Promise<void> {
   const employeeCount = await db.employees.count()
@@ -1037,12 +1056,10 @@ async function seedSalesHistory(): Promise<void> {
   const peakHours = [9, 10, 17, 18, 19, 20]
   const offHours  = [8, 11, 12, 13, 14, 15, 16, 21]
 
-  const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
-
-  // Simple seeded-style deterministic "random" to keep numbers consistent
-  // (we still use Math.random — the guard ensures this runs only once)
-  const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
-  const randFloat = (min: number, max: number) => Math.round((Math.random() * (max - min) + min) * 10) / 10
+  const random = createSeededRandom(0x5f3759df)
+  const pick = <T>(arr: T[]): T => arr[Math.floor(random() * arr.length)]
+  const randInt = (min: number, max: number) => Math.floor(random() * (max - min + 1)) + min
+  const randFloat = (min: number, max: number) => Math.round((random() * (max - min) + min) * 10) / 10
 
   const TODAY = new Date()
   TODAY.setHours(0, 0, 0, 0)
@@ -1063,8 +1080,7 @@ async function seedSalesHistory(): Promise<void> {
     const hourPool: number[] = []
     for (let i = 0; i < Math.ceil(billCount * 0.6); i++) hourPool.push(pick(peakHours))
     for (let i = 0; i < Math.ceil(billCount * 0.4); i++) hourPool.push(pick(offHours))
-    // shuffle
-    hourPool.sort(() => Math.random() - 0.5)
+    shuffleInPlace(hourPool, random)
 
     // day_session: opened at 8:30 AM, closed at 10 PM
     const openedAt  = new Date(day); openedAt.setHours(8, 30, 0, 0)
@@ -1096,7 +1112,7 @@ async function seedSalesHistory(): Promise<void> {
         const billNo = `ZO-${yyyy}${mm}${dd}-${String(billIdx + 1).padStart(3, '0')}`
 
         // Payment method: 55% cash, 35% UPI, 10% credit
-        const methodRoll = Math.random()
+        const methodRoll = random()
         const method: 'cash' | 'upi' | 'credit' =
           methodRoll < 0.55 ? 'cash' : methodRoll < 0.90 ? 'upi' : 'credit'
 
@@ -1104,7 +1120,7 @@ async function seedSalesHistory(): Promise<void> {
         let customerId: number | undefined
         if (method === 'credit' && customerIds.length > 0) {
           customerId = pick(customerIds)
-        } else if (Math.random() < 0.30 && customerIds.length > 0) {
+        } else if (random() < 0.30 && customerIds.length > 0) {
           customerId = pick(customerIds)
         }
 
@@ -1112,7 +1128,7 @@ async function seedSalesHistory(): Promise<void> {
 
         // 1-4 items per bill
         const itemCount = randInt(1, 4)
-        const chosenProducts = [...allProducts].sort(() => Math.random() - 0.5).slice(0, itemCount)
+        const chosenProducts = shuffleInPlace([...allProducts], random).slice(0, itemCount)
 
         let subtotal = 0
         let taxTotal = 0

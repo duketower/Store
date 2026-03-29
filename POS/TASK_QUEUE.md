@@ -44,3 +44,4 @@
 - Hardened final credit-limit checks, outbox concurrency/backoff, negative-stock visibility, GRN batch sync ordering, and employee password-hash stripping
 - Removed return refund flooring, made return balance sync incremental, tightened pending-sync counts, replaced shift close with a shared Firestore-backed shift report, and moved employee PIN hashes into a device-cached credential flow
 - Hardened `POS/platform/` build and deploy scripts to avoid shell-string execution and reject unsafe Firebase CLI token values in client deploy config
+- Replaced low-value Sonar hotspot patterns in seeded POS randomness, sync ID fallbacks, external font loading, and git commit lookup without changing store workflows

@@ -3,8 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { readFileSync, existsSync } from 'fs'
-import { execSync } from 'child_process'
+import { readFileSync, existsSync, statSync } from 'fs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
@@ -44,9 +43,62 @@ function loadClientConfig(clientId: string): object | null {
   return JSON.parse(readFileSync(configPath, 'utf-8'))
 }
 
+function findGitDir(startDir: string): string | null {
+  let currentDir = startDir
+
+  while (true) {
+    const dotGitPath = resolve(currentDir, '.git')
+    if (existsSync(dotGitPath)) {
+      if (statSync(dotGitPath).isDirectory()) {
+        return dotGitPath
+      }
+
+      const gitPointer = readFileSync(dotGitPath, 'utf-8')
+      if (gitPointer.startsWith('gitdir:')) {
+        const gitDir = gitPointer.slice('gitdir:'.length).trim()
+        return resolve(currentDir, gitDir)
+      }
+      return null
+    }
+
+    const parentDir = resolve(currentDir, '..')
+    if (parentDir === currentDir) return null
+    currentDir = parentDir
+  }
+}
+
+function readPackedRef(gitDir: string, refName: string): string | null {
+  const packedRefsPath = resolve(gitDir, 'packed-refs')
+  if (!existsSync(packedRefsPath)) return null
+
+  const packedRefs = readFileSync(packedRefsPath, 'utf-8').split('\n')
+  for (const line of packedRefs) {
+    if (!line || line.startsWith('#') || line.startsWith('^')) continue
+    const [hash, name] = line.trim().split(' ')
+    if (name === refName && hash) return hash
+  }
+  return null
+}
+
 function getGitCommit(): string {
   try {
-    return execSync('git rev-parse --short HEAD', { cwd: __dirname }).toString().trim()
+    const gitDir = findGitDir(__dirname)
+    if (!gitDir) return 'unknown'
+
+    const headPath = resolve(gitDir, 'HEAD')
+    if (!existsSync(headPath)) return 'unknown'
+
+    const head = readFileSync(headPath, 'utf-8').trim()
+    if (!head) return 'unknown'
+    if (!head.startsWith('ref:')) return head.slice(0, 7)
+
+    const refName = head.slice('ref:'.length).trim()
+    const refPath = resolve(gitDir, refName)
+    if (existsSync(refPath)) {
+      return readFileSync(refPath, 'utf-8').trim().slice(0, 7)
+    }
+
+    return readPackedRef(gitDir, refName)?.slice(0, 7) ?? 'unknown'
   } catch {
     return 'unknown'
   }
