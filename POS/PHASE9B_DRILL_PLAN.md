@@ -253,7 +253,7 @@ Everything below. These are the actual drills.
 |-------|--------|
 | **Scenario** | Force a double-flush and verify no duplicate effects |
 | **Preconditions** | Device A has pending outbox entries (go offline, create a bill, come back online). |
-| **Steps** | While outbox is flushing, open the browser console and manually call `window.__posFlushOutbox?.()` (or equivalent). Or close and reopen the tab immediately after reconnecting (triggering startup flush + online event flush simultaneously). |
+| **Steps** | While outbox is flushing, use **Settings → Retry Sync Now** on Device A, or close and reopen the tab immediately after reconnecting (triggering startup flush + online event flush simultaneously). |
 | **Checks** | (1) Bill appears exactly once in Firestore. (2) Stock decremented exactly once. (3) Customer balance updated exactly once if credit. (4) Outbox empties cleanly. |
 | **Expected** | No duplicates. Idempotency guards (sale doc exists check) absorb the retry. |
 | **Failure signal** | Duplicate bill in Firestore. Stock double-decremented. Balance double-charged. |
@@ -307,7 +307,7 @@ These are **intentional architectural compromises**, not unresolved bugs. Docume
 | **Z-report is device-local** | ShiftClosePage aggregates sales from local Dexie only. A visible warning is now shown. | Always run shift close from the primary billing device. If multiple devices billed in one shift, Device A's Z-report will only show Device A's sales. Reconcile cash manually against the full Firestore report if needed. |
 | **PIN hash shared via Firestore** | Employee `pinHash` is synced to Firestore so staff can log into any device. Any device with anonymous Firebase auth can read it. Firestore rules restrict to `request.auth != null`. `passwordHash` was stripped. | Acceptable tradeoff for offline PIN login support. Tighten Firestore rules to role-based auth if risk tolerance changes. |
 | **Concurrent returns on same bill from two devices** | Two devices processing returns on the same bill simultaneously can race on `returnTotal` accumulation in Firestore. | In practice: one device handles returns. If this ever produces a wrong total, re-check the Firestore `returnTotal` field manually. |
-| **Sale status `pending_sync` on originating device until listener echo** | Sale status transitions to `completed` after outbox flush OR after the Firestore listener echo returns. During offline operation, status stays `pending_sync` until reconnect. | Cosmetic only — does not affect billing or stock. No operator action needed. |
+| **Sale status `pending_sync` while still offline** | Sale status transitions to `completed` after successful fire-and-forget sync or outbox replay. During offline operation, status stays `pending_sync` until reconnect. | Cosmetic only — does not affect billing or stock. No operator action needed. |
 | **Employee PIN latency on new device** | After creating an employee on Device A, there is a listener propagation window (typically 3–10 seconds) before the new PIN works on Device B. | Normal. Tell new staff to wait 15 seconds before trying to log in on a second device. |
 
 ---
