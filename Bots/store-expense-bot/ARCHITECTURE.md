@@ -13,6 +13,7 @@ Capture store expense messages from Telegram and write them to a Google Sheet qu
 ### Config
 
 - `src/config.py` loads environment variables and runtime configuration
+- `src/constants.py` is the single source of truth for expense-sheet headers, dropdown values, and shared business labels
 
 ### Parsing
 
@@ -20,11 +21,11 @@ Capture store expense messages from Telegram and write them to a Google Sheet qu
 
 ### Handlers
 
-- `src/handlers.py` manages commands, guided flows, and message handling
+- `src/handlers.py` manages commands, guided flows, and message handling using the shared constants module for field names and options
 
 ### Sheets Integration
 
-- `src/sheets.py` reads and writes Google Sheets data using service-account credentials
+- `src/sheets.py` reads and writes Google Sheets data using service-account credentials and reuses the shared schema constants to avoid drift
 
 ## External Dependencies
 

@@ -3,6 +3,21 @@ from telegram.ext import ContextTypes, ConversationHandler
 from datetime import datetime, timedelta
 import pytz
 
+from .constants import (
+    AMOUNT_FIELD,
+    CATEGORY_FIELD,
+    CATEGORIES,
+    DATE_FIELD,
+    DESCRIPTION_FIELD,
+    PAID_BY_FIELD,
+    PAYER_ALI,
+    PAYER_ANURAG,
+    PAYERS,
+    PAYMENT_MODE_BINARY,
+    PAYMENT_MODE_FIELD,
+    PAYMENT_MODES,
+    TIME_FIELD,
+)
 from .parser import parse_expense
 from .sheets import (append_expense, get_today_expenses, get_recent_expenses,
                      get_balance_summary, delete_expense_row, update_expense_field,
@@ -13,7 +28,7 @@ from .config import MAX_LIST_ENTRIES, USER_MAP, TIMEZONE
 def _amt(r: dict) -> float:
     """Safe float conversion for Amount — handles empty string from Sheets."""
     try:
-        return float(r.get("Amount") or 0)
+        return float(r.get(AMOUNT_FIELD) or 0)
     except (ValueError, TypeError):
         return 0.0
 
@@ -56,15 +71,11 @@ async def _broadcast_budget_alert(context, alert: dict):
 # ConversationHandler states
 WAITING_DESCRIPTION, WAITING_AMOUNT, WAITING_CATEGORY, WAITING_PAID_BY, WAITING_PAYMENT_MODE, WAITING_DATE, EDITING_TEXT = range(7)
 
-CATEGORIES = ["Raw Materials", "Labour", "Salary", "Maintenance", "Equipment", "Utilities", "Rent", "Transport", "Packaging", "Miscellaneous"]
-PAYERS = ["Ali", "Anurag"]
-PAYMENT_MODES = ["Cash", "UPI", "Binary"]
-
 
 # --- Auth helpers ---
 
 def _get_sender_name(user_id: int) -> str | None:
-    """Returns 'Ali' or 'Anurag', or None if the user is not authorized."""
+    """Returns the configured payer name, or None if the user is not authorized."""
     return USER_MAP.get(user_id)
 
 
@@ -135,7 +146,7 @@ async def _do_save(context: ContextTypes.DEFAULT_TYPE, added_by: str) -> dict | 
 
 
 def _expense_summary(d: dict) -> str:
-    source = "Company account" if d["payment_mode"] == "Binary" else f"{d['paid_by']}'s personal"
+    source = "Company account" if d["payment_mode"] == PAYMENT_MODE_BINARY else f"{d['paid_by']}'s personal"
     return (
         f"{d['description']} — {d['amount']:.2f}\n"
         f"Category: {d['category']}\n"
@@ -275,7 +286,7 @@ async def handle_date_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             return EDITING_TEXT
         sheet_row = context.user_data.get("edit_row")
         try:
-            update_expense_field(sheet_row, "Date", value)
+            update_expense_field(sheet_row, DATE_FIELD, value)
             await query.edit_message_text(f"Updated Date to: {value}")
         except Exception as e:
             await query.edit_message_text(f"Update failed.\n({e})")
@@ -318,7 +329,7 @@ async def handle_date_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("edit_date_mode"):
         sheet_row = context.user_data.get("edit_row")
         try:
-            update_expense_field(sheet_row, "Date", date_value)
+            update_expense_field(sheet_row, DATE_FIELD, date_value)
             await update.message.reply_text(f"Updated Date to: {date_value}")
         except Exception as e:
             await update.message.reply_text(f"Update failed.\n({e})")
@@ -360,11 +371,11 @@ async def summary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         total = sum(_amt(r) for r in rows)
-        binary = sum(_amt(r) for r in rows if r.get("Payment Mode") == "Binary")
+        binary = sum(_amt(r) for r in rows if r.get(PAYMENT_MODE_FIELD) == PAYMENT_MODE_BINARY)
         ali_personal = sum(_amt(r) for r in rows
-                           if r.get("Paid By") == "Ali" and r.get("Payment Mode") != "Binary")
+                           if r.get(PAID_BY_FIELD) == PAYER_ALI and r.get(PAYMENT_MODE_FIELD) != PAYMENT_MODE_BINARY)
         anurag_personal = sum(_amt(r) for r in rows
-                              if r.get("Paid By") == "Anurag" and r.get("Payment Mode") != "Binary")
+                              if r.get(PAID_BY_FIELD) == PAYER_ANURAG and r.get(PAYMENT_MODE_FIELD) != PAYMENT_MODE_BINARY)
 
         await update.message.reply_text(
             f"Today's total: {total:.2f} ({len(rows)} entries)\n"
@@ -411,13 +422,13 @@ def _fmt_time(time_str: str) -> str:
 def _format_list_lines(rows: list[dict], start_num: int = 1) -> list[str]:
     lines = []
     for i, r in enumerate(rows, start_num):
-        date = _fmt_date(str(r.get("Date", "")))
-        time = _fmt_time(str(r.get("Time", "")))
-        desc = r.get("Description", "")
+        date = _fmt_date(str(r.get(DATE_FIELD, "")))
+        time = _fmt_time(str(r.get(TIME_FIELD, "")))
+        desc = r.get(DESCRIPTION_FIELD, "")
         amt = _amt(r)
-        cat = r.get("Category", "")
-        paid_by = r.get("Paid By", "")
-        mode = r.get("Payment Mode", "")
+        cat = r.get(CATEGORY_FIELD, "")
+        paid_by = r.get(PAID_BY_FIELD, "")
+        mode = r.get(PAYMENT_MODE_FIELD, "")
         lines.append(f"{i}. {date} {time} — {desc} — {amt:.2f}\n   {cat} | {paid_by} | {mode}")
     return lines
 
@@ -464,11 +475,11 @@ async def handle_list_more(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def _entry_detail_text(r: dict) -> str:
     return (
-        f"{_fmt_date(str(r.get('Date', '')))} {_fmt_time(str(r.get('Time', '')))}\n"
-        f"Description: {r.get('Description', '')}\n"
+        f"{_fmt_date(str(r.get(DATE_FIELD, '')))} {_fmt_time(str(r.get(TIME_FIELD, '')))}\n"
+        f"Description: {r.get(DESCRIPTION_FIELD, '')}\n"
         f"Amount: {_amt(r):.2f}\n"
-        f"Category: {r.get('Category', '')}\n"
-        f"Paid By: {r.get('Paid By', '')}  |  {r.get('Payment Mode', '')}"
+        f"Category: {r.get(CATEGORY_FIELD, '')}\n"
+        f"Paid By: {r.get(PAID_BY_FIELD, '')}  |  {r.get(PAYMENT_MODE_FIELD, '')}"
     )
 
 
@@ -482,12 +493,12 @@ def _entry_action_keyboard(sheet_row: int) -> InlineKeyboardMarkup:
 
 def _edit_field_keyboard(sheet_row: int) -> InlineKeyboardMarkup:
     fields = [
-        ("Amount",       f"ef:{sheet_row}:Amount"),
-        ("Description",  f"ef:{sheet_row}:Description"),
-        ("Category",     f"ef:{sheet_row}:Category"),
-        ("Paid By",      f"ef:{sheet_row}:Paid By"),
-        ("Payment Mode", f"ef:{sheet_row}:Payment Mode"),
-        ("Date",         f"ef:{sheet_row}:Date"),
+        (AMOUNT_FIELD, f"ef:{sheet_row}:{AMOUNT_FIELD}"),
+        (DESCRIPTION_FIELD, f"ef:{sheet_row}:{DESCRIPTION_FIELD}"),
+        (CATEGORY_FIELD, f"ef:{sheet_row}:{CATEGORY_FIELD}"),
+        (PAID_BY_FIELD, f"ef:{sheet_row}:{PAID_BY_FIELD}"),
+        (PAYMENT_MODE_FIELD, f"ef:{sheet_row}:{PAYMENT_MODE_FIELD}"),
+        (DATE_FIELD, f"ef:{sheet_row}:{DATE_FIELD}"),
     ]
     buttons = [[InlineKeyboardButton(label, callback_data=cb)] for label, cb in fields]
     buttons.append([InlineKeyboardButton("✖ Cancel", callback_data="entry_back")])
@@ -564,24 +575,24 @@ async def handle_edit_field_tap(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data["edit_row"] = sheet_row
     context.user_data["edit_field"] = field
 
-    if field == "Category":
+    if field == CATEGORY_FIELD:
         await query.edit_message_text("Pick new category:", reply_markup=_category_keyboard(prefix="ev"))
         return
-    if field == "Paid By":
+    if field == PAID_BY_FIELD:
         sender_name = _get_sender_name(update.effective_user.id)
         await query.edit_message_text("Who paid?", reply_markup=_paid_by_keyboard(sender_name, prefix="ev"))
         return
-    if field == "Payment Mode":
+    if field == PAYMENT_MODE_FIELD:
         await query.edit_message_text("Payment method?", reply_markup=_payment_mode_keyboard(prefix="ev"))
         return
-    if field == "Date":
+    if field == DATE_FIELD:
         await query.edit_message_text("Pick new date:", reply_markup=_date_keyboard())
         context.user_data["edit_date_mode"] = True
         return WAITING_DATE  # enters conversation for date handling
 
     # Text fields: Amount or Description
     await query.edit_message_text(
-        f"Enter new {field}:" + (" (e.g. 45.50)" if field == "Amount" else "")
+        f"Enter new {field}:" + (" (e.g. 45.50)" if field == AMOUNT_FIELD else "")
     )
     return EDITING_TEXT
 
@@ -599,7 +610,7 @@ async def handle_edit_value_callback(update: Update, context: ContextTypes.DEFAU
         await query.edit_message_text("Session expired. Use /list again.")
         return
 
-    if field == "Amount":
+    if field == AMOUNT_FIELD:
         try:
             value = float(value)
         except ValueError:
@@ -635,14 +646,14 @@ async def handle_edit_text_input(update: Update, context: ContextTypes.DEFAULT_T
             await update.message.reply_text("Invalid format. Enter as DD-MM-YYYY (e.g. 05-03-2026):")
             return EDITING_TEXT
         try:
-            update_expense_field(sheet_row, "Date", value)
+            update_expense_field(sheet_row, DATE_FIELD, value)
             await update.message.reply_text(f"Updated Date to: {value}")
         except Exception as e:
             await update.message.reply_text(f"Update failed.\n({e})")
         context.user_data.clear()
         return ConversationHandler.END
 
-    if field == "Amount":
+    if field == AMOUNT_FIELD:
         try:
             value = float(raw.replace(",", "."))
             if value <= 0 or value >= 1_000_000:
@@ -690,9 +701,9 @@ async def balance_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"{label}\n"
             f"{'─' * 28}\n"
-            f"Ali personal:     {b['ali_personal']:.2f} ({b['ali_count']} entries)\n"
-            f"Anurag personal:  {b['anurag_personal']:.2f} ({b['anurag_count']} entries)\n"
-            f"Binary (company): {b['binary_total']:.2f} ({b['binary_count']} entries)\n"
+            f"{PAYER_ALI} personal:     {b['ali_personal']:.2f} ({b['ali_count']} entries)\n"
+            f"{PAYER_ANURAG} personal:  {b['anurag_personal']:.2f} ({b['anurag_count']} entries)\n"
+            f"{PAYMENT_MODE_BINARY} (company): {b['binary_total']:.2f} ({b['binary_count']} entries)\n"
             f"{'─' * 28}\n"
             f"{settlement_line}"
         )
@@ -717,12 +728,12 @@ async def search_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         lines = []
         for r in reversed(rows):
-            date = str(r.get("Date", ""))
-            desc = r.get("Description", "")
+            date = str(r.get(DATE_FIELD, ""))
+            desc = r.get(DESCRIPTION_FIELD, "")
             amt = _amt(r)
-            cat = r.get("Category", "")
-            paid_by = r.get("Paid By", "")
-            mode = r.get("Payment Mode", "")
+            cat = r.get(CATEGORY_FIELD, "")
+            paid_by = r.get(PAID_BY_FIELD, "")
+            mode = r.get(PAYMENT_MODE_FIELD, "")
             lines.append(f"{date} — {desc} — {amt:.2f}\n   {cat} | {paid_by} | {mode}")
 
         header = f"Search: '{keyword}' ({len(rows)} result{'s' if len(rows) != 1 else ''})\n\n"
@@ -752,8 +763,8 @@ async def settle_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(
                     "Balance Summary\n"
                     f"{'─' * 28}\n"
-                    f"Ali personal:    {b['ali_personal']:.2f}\n"
-                    f"Anurag personal: {b['anurag_personal']:.2f}\n"
+                    f"{PAYER_ALI} personal:    {b['ali_personal']:.2f}\n"
+                    f"{PAYER_ANURAG} personal: {b['anurag_personal']:.2f}\n"
                     f"{'─' * 28}\n"
                     "Accounts are already settled.\n\n"
                     "To log a payment: /settle <amount> [note]"
@@ -762,8 +773,8 @@ async def settle_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(
                     "Balance Summary\n"
                     f"{'─' * 28}\n"
-                    f"Ali personal:    {b['ali_personal']:.2f}\n"
-                    f"Anurag personal: {b['anurag_personal']:.2f}\n"
+                    f"{PAYER_ALI} personal:    {b['ali_personal']:.2f}\n"
+                    f"{PAYER_ANURAG} personal: {b['anurag_personal']:.2f}\n"
                     f"{'─' * 28}\n"
                     f"{b['debtor']} owes {b['creditor']}: {b['settlement']:.2f}\n\n"
                     f"To settle fully: /settle {b['settlement']:.2f}\n"
@@ -833,11 +844,11 @@ async def scheduled_daily_summary(context: ContextTypes.DEFAULT_TYPE):
             return
 
         total = sum(_amt(r) for r in rows)
-        binary = sum(_amt(r) for r in rows if r.get("Payment Mode") == "Binary")
+        binary = sum(_amt(r) for r in rows if r.get(PAYMENT_MODE_FIELD) == PAYMENT_MODE_BINARY)
         ali = sum(_amt(r) for r in rows
-                  if r.get("Paid By") == "Ali" and r.get("Payment Mode") != "Binary")
+                  if r.get(PAID_BY_FIELD) == PAYER_ALI and r.get(PAYMENT_MODE_FIELD) != PAYMENT_MODE_BINARY)
         anurag = sum(_amt(r) for r in rows
-                     if r.get("Paid By") == "Anurag" and r.get("Payment Mode") != "Binary")
+                     if r.get(PAID_BY_FIELD) == PAYER_ANURAG and r.get(PAYMENT_MODE_FIELD) != PAYMENT_MODE_BINARY)
 
         text = (
             f"Daily Summary\n"
@@ -845,7 +856,7 @@ async def scheduled_daily_summary(context: ContextTypes.DEFAULT_TYPE):
             f"Total today:      {total:.2f} ({len(rows)} entries)\n"
             f"  Ali personal:   {ali:.2f}\n"
             f"  Anurag personal:{anurag:.2f}\n"
-            f"  Binary (co.):   {binary:.2f}"
+            f"  {PAYMENT_MODE_BINARY} (co.):   {binary:.2f}"
         )
         await _broadcast(context, text)
     except Exception as e:
@@ -872,9 +883,9 @@ async def scheduled_weekly_summary(context: ContextTypes.DEFAULT_TYPE):
             f"Weekly Summary (week of {week_start})\n"
             f"{'─' * 28}\n"
             f"This month ({month}):\n"
-            f"  Ali personal:    {b['ali_personal']:.2f}\n"
-            f"  Anurag personal: {b['anurag_personal']:.2f}\n"
-            f"  Binary (co.):    {b['binary_total']:.2f}\n"
+            f"  {PAYER_ALI} personal:    {b['ali_personal']:.2f}\n"
+            f"  {PAYER_ANURAG} personal: {b['anurag_personal']:.2f}\n"
+            f"  {PAYMENT_MODE_BINARY} (co.):    {b['binary_total']:.2f}\n"
             f"{'─' * 28}\n"
             f"{settlement_line}"
         )

@@ -23,3 +23,12 @@ Keep the bot as a small Python project with a local `.venv/`.
 Reason:
 - Simple deployment and maintenance
 - Clean isolation from the Node-based POS and website projects
+
+## Decision 004
+
+Keep Google Sheets schema labels and dropdown values centralized in `src/constants.py`.
+
+Reason:
+- Prevent drift between Telegram handlers and Sheets integration
+- Avoid repeated hardcoded literals like `Payment Mode` and `Paid By`
+- Make future schema changes safer and easier to audit

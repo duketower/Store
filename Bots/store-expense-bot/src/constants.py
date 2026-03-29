@@ -1,0 +1,56 @@
+"""Shared schema and option constants for the expense bot."""
+
+DATE_FIELD = "Date"
+TIME_FIELD = "Time"
+DESCRIPTION_FIELD = "Description"
+AMOUNT_FIELD = "Amount"
+CATEGORY_FIELD = "Category"
+PAID_BY_FIELD = "Paid By"
+PAYMENT_MODE_FIELD = "Payment Mode"
+ADDED_BY_FIELD = "Added By"
+
+HEADERS = [
+    DATE_FIELD,
+    TIME_FIELD,
+    DESCRIPTION_FIELD,
+    AMOUNT_FIELD,
+    CATEGORY_FIELD,
+    PAID_BY_FIELD,
+    PAYMENT_MODE_FIELD,
+    ADDED_BY_FIELD,
+]
+
+SETTLEMENT_DATE_FIELD = DATE_FIELD
+SETTLEMENT_FROM_FIELD = "From"
+SETTLEMENT_TO_FIELD = "To"
+SETTLEMENT_AMOUNT_FIELD = AMOUNT_FIELD
+SETTLEMENT_NOTE_FIELD = "Note"
+SETTLEMENT_HEADERS = [
+    SETTLEMENT_DATE_FIELD,
+    SETTLEMENT_FROM_FIELD,
+    SETTLEMENT_TO_FIELD,
+    SETTLEMENT_AMOUNT_FIELD,
+    SETTLEMENT_NOTE_FIELD,
+]
+
+PAYER_ALI = "Ali"
+PAYER_ANURAG = "Anurag"
+PAYERS = [PAYER_ALI, PAYER_ANURAG]
+
+PAYMENT_MODE_CASH = "Cash"
+PAYMENT_MODE_UPI = "UPI"
+PAYMENT_MODE_BINARY = "Binary"
+PAYMENT_MODES = [PAYMENT_MODE_CASH, PAYMENT_MODE_UPI, PAYMENT_MODE_BINARY]
+
+CATEGORIES = [
+    "Raw Materials",
+    "Labour",
+    "Salary",
+    "Maintenance",
+    "Equipment",
+    "Utilities",
+    "Rent",
+    "Transport",
+    "Packaging",
+    "Miscellaneous",
+]

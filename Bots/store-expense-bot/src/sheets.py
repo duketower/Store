@@ -3,6 +3,24 @@ from datetime import datetime
 import pytz
 
 from .config import SPREADSHEET_ID, CREDENTIALS_FILE, TIMEZONE
+from .constants import (
+    AMOUNT_FIELD,
+    CATEGORY_FIELD,
+    CATEGORIES,
+    DATE_FIELD,
+    DESCRIPTION_FIELD,
+    HEADERS,
+    PAID_BY_FIELD,
+    PAYER_ALI,
+    PAYER_ANURAG,
+    PAYERS,
+    PAYMENT_MODE_BINARY,
+    PAYMENT_MODE_CASH,
+    PAYMENT_MODE_FIELD,
+    PAYMENT_MODE_UPI,
+    PAYMENT_MODES,
+    SETTLEMENT_HEADERS,
+)
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -12,26 +30,20 @@ SCOPES = [
 
 def _amt(r: dict) -> float:
     try:
-        return float(r.get("Amount") or 0)
+        return float(r.get(AMOUNT_FIELD) or 0)
     except (ValueError, TypeError):
         return 0.0
 
 
 def _real_rows(rows: list[dict]) -> list[dict]:
     """Filter out blank rows (e.g. created by ARRAYFORMULA in col I)."""
-    return [r for r in rows if str(r.get("Date", "")).strip()]
+    return [r for r in rows if str(r.get(DATE_FIELD, "")).strip()]
 
-HEADERS = ["Date", "Time", "Description", "Amount", "Category", "Paid By", "Payment Mode", "Added By"]
 SHEET_NAME = "Expenses"
 DASHBOARD_NAME = "Dashboard"
 SETTLEMENTS_NAME = "Settlements"
-SETTLEMENT_HEADERS = ["Date", "From", "To", "Amount", "Note"]
 MONTHLY_SUMMARY_NAME = "Monthly Summary"
 BUDGET_NAME = "Budget"
-CATEGORIES = ["Raw Materials", "Labour", "Salary", "Maintenance", "Equipment",
-               "Utilities", "Rent", "Transport", "Packaging", "Miscellaneous"]
-PAYERS = ["Ali", "Anurag"]
-PAYMENT_MODES = ["Cash", "UPI", "Binary"]
 
 # Default monthly budgets per category (₹)
 DEFAULT_BUDGETS = {
@@ -131,12 +143,12 @@ def setup_dashboard():
         ["", "", ""],
         ["── OVERALL SUMMARY ──────────────────────", "", ""],
         ["Total Expenses (All Time)",    "=SUM(Expenses!D2:D)", ""],
-        ["  Company (Binary)",           '=SUMIF(Expenses!G2:G,"Binary",Expenses!D2:D)', ""],
-        ["  Personal (Combined)",        '=SUMIFS(Expenses!D2:D,Expenses!G2:G,"<>Binary")', ""],
+        [f"  Company ({PAYMENT_MODE_BINARY})", f'=SUMIF(Expenses!G2:G,"{PAYMENT_MODE_BINARY}",Expenses!D2:D)', ""],
+        [f"  Personal (Combined)",        f'=SUMIFS(Expenses!D2:D,Expenses!G2:G,"<>{PAYMENT_MODE_BINARY}")', ""],
         ["", "", ""],
         ["── PERSONAL PAYMENTS (from own pocket) ─", "", ""],
-        ["Anurag",                       '=SUMIFS(Expenses!D2:D,Expenses!F2:F,"Anurag",Expenses!G2:G,"<>Binary")', ""],
-        ["Ali",                          '=SUMIFS(Expenses!D2:D,Expenses!F2:F,"Ali",Expenses!G2:G,"<>Binary")', ""],
+        [PAYER_ANURAG,                   f'=SUMIFS(Expenses!D2:D,Expenses!F2:F,"{PAYER_ANURAG}",Expenses!G2:G,"<>{PAYMENT_MODE_BINARY}")', ""],
+        [PAYER_ALI,                      f'=SUMIFS(Expenses!D2:D,Expenses!F2:F,"{PAYER_ALI}",Expenses!G2:G,"<>{PAYMENT_MODE_BINARY}")', ""],
         ["", "", ""],
         ["── COMPANY OWES (reimbursements due) ───", "", ""],
         ["To Anurag",                    "=B9", ""],
@@ -152,18 +164,18 @@ def setup_dashboard():
         ["── THIS MONTH ───────────────────────────", "", ""],
         ["Total",
          '=SUMPRODUCT((LEFT(Expenses!A2:A1000,7)=TEXT(TODAY(),"YYYY-MM"))*Expenses!D2:D1000)', ""],
-        ["Anurag",
-         '=SUMPRODUCT((LEFT(Expenses!A2:A1000,7)=TEXT(TODAY(),"YYYY-MM"))*(Expenses!F2:F1000="Anurag")*(Expenses!G2:G1000<>"Binary")*Expenses!D2:D1000)', ""],
-        ["Ali",
-         '=SUMPRODUCT((LEFT(Expenses!A2:A1000,7)=TEXT(TODAY(),"YYYY-MM"))*(Expenses!F2:F1000="Ali")*(Expenses!G2:G1000<>"Binary")*Expenses!D2:D1000)', ""],
+        [PAYER_ANURAG,
+         f'=SUMPRODUCT((LEFT(Expenses!A2:A1000,7)=TEXT(TODAY(),"YYYY-MM"))*(Expenses!F2:F1000="{PAYER_ANURAG}")*(Expenses!G2:G1000<>"{PAYMENT_MODE_BINARY}")*Expenses!D2:D1000)', ""],
+        [PAYER_ALI,
+         f'=SUMPRODUCT((LEFT(Expenses!A2:A1000,7)=TEXT(TODAY(),"YYYY-MM"))*(Expenses!F2:F1000="{PAYER_ALI}")*(Expenses!G2:G1000<>"{PAYMENT_MODE_BINARY}")*Expenses!D2:D1000)', ""],
         ["", "", ""],
         ["── THIS WEEK ────────────────────────────", "", ""],
         ["Total",
          '=SUMPRODUCT((Expenses!A2:A1000>=TEXT(TODAY()-WEEKDAY(TODAY(),3),"YYYY-MM-DD"))*(Expenses!A2:A1000<>"")*(Expenses!D2:D1000))', ""],
-        ["Anurag",
-         '=SUMPRODUCT((Expenses!A2:A1000>=TEXT(TODAY()-WEEKDAY(TODAY(),3),"YYYY-MM-DD"))*(Expenses!A2:A1000<>"")*(Expenses!F2:F1000="Anurag")*(Expenses!G2:G1000<>"Binary")*Expenses!D2:D1000)', ""],
-        ["Ali",
-         '=SUMPRODUCT((Expenses!A2:A1000>=TEXT(TODAY()-WEEKDAY(TODAY(),3),"YYYY-MM-DD"))*(Expenses!A2:A1000<>"")*(Expenses!F2:F1000="Ali")*(Expenses!G2:G1000<>"Binary")*Expenses!D2:D1000)', ""],
+        [PAYER_ANURAG,
+         f'=SUMPRODUCT((Expenses!A2:A1000>=TEXT(TODAY()-WEEKDAY(TODAY(),3),"YYYY-MM-DD"))*(Expenses!A2:A1000<>"")*(Expenses!F2:F1000="{PAYER_ANURAG}")*(Expenses!G2:G1000<>"{PAYMENT_MODE_BINARY}")*Expenses!D2:D1000)', ""],
+        [PAYER_ALI,
+         f'=SUMPRODUCT((Expenses!A2:A1000>=TEXT(TODAY()-WEEKDAY(TODAY(),3),"YYYY-MM-DD"))*(Expenses!A2:A1000<>"")*(Expenses!F2:F1000="{PAYER_ALI}")*(Expenses!G2:G1000<>"{PAYMENT_MODE_BINARY}")*Expenses!D2:D1000)', ""],
         ["", "", ""],
         ["── MONTH-OVER-MONTH ─────────────────────", "", ""],
         ["Last month",
@@ -271,9 +283,9 @@ def setup_expenses_ux():
         _validation(5, payer_list),  # Paid By
         _validation(6, mode_list),   # Payment Mode
         # Conditional formatting by Payment Mode column (G)
-        _cond_format(6, "Binary", (0.80, 0.88, 0.97)),   # light blue
-        _cond_format(6, "Cash",   (0.85, 0.96, 0.85)),   # light green
-        _cond_format(6, "UPI",    (1.00, 0.94, 0.80)),   # light orange/amber
+        _cond_format(6, PAYMENT_MODE_BINARY, (0.80, 0.88, 0.97)),  # light blue
+        _cond_format(6, PAYMENT_MODE_CASH, (0.85, 0.96, 0.85)),    # light green
+        _cond_format(6, PAYMENT_MODE_UPI, (1.00, 0.94, 0.80)),     # light orange/amber
     ]
     spreadsheet.batch_update({"requests": requests})
 
@@ -476,7 +488,7 @@ def check_budget_alert(category: str) -> dict | None:
     spent = sum(
         _amt(r)
         for r in all_rows
-        if str(r.get("Date", "")).startswith(month) and r.get("Category") == category
+        if str(r.get(DATE_FIELD, "")).startswith(month) and r.get(CATEGORY_FIELD) == category
     )
     pct = spent / budget
     if pct >= 0.80:
@@ -489,7 +501,7 @@ def get_today_expenses() -> list[dict]:
     today = datetime.now(tz).strftime("%Y-%m-%d")
     sheet = _get_sheet()
     all_rows = _real_rows(sheet.get_all_records())
-    return [r for r in all_rows if str(r.get("Date", "")) == today]
+    return [r for r in all_rows if str(r.get(DATE_FIELD, "")) == today]
 
 
 HEADER_COL = {h: i + 1 for i, h in enumerate(HEADERS)}
@@ -517,9 +529,9 @@ def search_expenses(keyword: str, limit: int = 15) -> list[dict]:
     kw = keyword.lower().strip()
     matches = [
         r for r in all_rows
-        if kw in str(r.get("Description", "")).lower()
-        or kw in str(r.get("Category", "")).lower()
-        or kw in str(r.get("Paid By", "")).lower()
+        if kw in str(r.get(DESCRIPTION_FIELD, "")).lower()
+        or kw in str(r.get(CATEGORY_FIELD, "")).lower()
+        or kw in str(r.get(PAID_BY_FIELD, "")).lower()
     ]
     # Return most recent matches, with sheet row indices
     total = len(all_rows)
@@ -585,11 +597,11 @@ def get_balance_summary(month: str = None) -> dict:
     all_rows = _real_rows(sheet.get_all_records())
 
     if month:
-        all_rows = [r for r in all_rows if str(r.get("Date", "")).startswith(month)]
+        all_rows = [r for r in all_rows if str(r.get(DATE_FIELD, "")).startswith(month)]
 
-    ali_rows = [r for r in all_rows if r.get("Paid By") == "Ali" and r.get("Payment Mode") != "Binary"]
-    anurag_rows = [r for r in all_rows if r.get("Paid By") == "Anurag" and r.get("Payment Mode") != "Binary"]
-    binary_rows = [r for r in all_rows if r.get("Payment Mode") == "Binary"]
+    ali_rows = [r for r in all_rows if r.get(PAID_BY_FIELD) == PAYER_ALI and r.get(PAYMENT_MODE_FIELD) != PAYMENT_MODE_BINARY]
+    anurag_rows = [r for r in all_rows if r.get(PAID_BY_FIELD) == PAYER_ANURAG and r.get(PAYMENT_MODE_FIELD) != PAYMENT_MODE_BINARY]
+    binary_rows = [r for r in all_rows if r.get(PAYMENT_MODE_FIELD) == PAYMENT_MODE_BINARY]
 
     ali_personal = sum(_amt(r) for r in ali_rows)
     anurag_personal = sum(_amt(r) for r in anurag_rows)
@@ -607,6 +619,6 @@ def get_balance_summary(month: str = None) -> dict:
         "binary_count": len(binary_rows),
         "diff": diff,
         "settlement": settlement,
-        "creditor": "Ali" if diff > 0 else "Anurag",
-        "debtor": "Anurag" if diff > 0 else "Ali",
+        "creditor": PAYER_ALI if diff > 0 else PAYER_ANURAG,
+        "debtor": PAYER_ANURAG if diff > 0 else PAYER_ALI,
     }

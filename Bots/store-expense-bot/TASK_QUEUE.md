@@ -17,3 +17,5 @@
 - Moved the bot into `Bots/store-expense-bot/`
 - Rebuilt the Python virtual environment inside the project
 - Added project-level documentation scaffold
+- Centralized shared sheet headers, payers, categories, and payment modes in `src/constants.py`
+- Removed duplicated business literals from `src/handlers.py` and `src/sheets.py`

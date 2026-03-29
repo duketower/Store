@@ -14,6 +14,7 @@ This is a Telegram bot that captures grocery expense entries and writes them to 
 
 - Keep changes inside `Bots/store-expense-bot/`
 - Reuse the existing module split: `bot.py`, `src/config.py`, `src/parser.py`, `src/handlers.py`, `src/sheets.py`
+- Reuse `src/constants.py` for all shared sheet headers, dropdown values, payer names, and payment-mode labels; do not re-hardcode those literals in handlers or Sheets code
 - Do not hardcode secrets or credential contents
 - Prefer simple conversational bot flows over overly complex abstractions
 

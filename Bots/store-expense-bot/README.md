@@ -74,9 +74,12 @@ Edit `.env` and fill in:
 
 ## Google Sheet Columns
 
-| Date | Time | Description | Amount | Category | Added By |
-|------|------|-------------|--------|----------|----------|
-| 2026-03-07 | 14:32:05 | Milk and eggs | 45.50 | Dairy | John (@john) |
+| Date | Time | Description | Amount | Category | Paid By | Payment Mode | Added By |
+|------|------|-------------|--------|----------|---------|--------------|----------|
+| 2026-03-07 | 14:32:05 | Milk and eggs | 45.50 | Raw Materials | Ali | Cash | Ali |
+
+The canonical sheet headers and dropdown values now live in `src/constants.py`.
+When changing a column name or allowed value, update that file first and reuse it from handlers and Sheets code.
 
 ---
 
@@ -84,6 +87,7 @@ Edit `.env` and fill in:
 
 ```
 bot.py          Entry point — run this to start the bot
+src/constants.py Shared sheet headers, payer lists, categories, and payment modes
 handlers.py     Telegram command and message handlers
 sheets.py       Google Sheets read/write logic
 parser.py       Free-text message parser
