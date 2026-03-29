@@ -39,7 +39,7 @@ The POS is only considered fully multi-device when all of the following are true
 | Products / Stock | Shared in code | Needs real-world validation around concurrent operational use. |
 | Batches / FEFO | Shared in code | Needs multi-device validation against GRN, sale, return, and RTV combinations. |
 | Customers / Credit | Shared in code | Needs live secondary-device verification for approvals, collections, and ledger parity. |
-| Cash Out / Day Session | Shared in code | Needs final operational validation during an actual shift. |
+| Cash Out / Day Session | Shared in code | Shared Firestore-backed shift report now shipped; needs final operational validation during an actual shift. |
 | Expenses / Dashboard Targets | Shared | Keep as baseline. |
 | Vendors | Shared in code | Needs secondary-device validation. |
 | GRNs / Receive Stock | Shared in code | Needs secondary-device validation. |
@@ -47,7 +47,7 @@ The POS is only considered fully multi-device when all of the following are true
 | Attendance Logs | Shared in code | Needs live validation. |
 | Leave Requests | Shared in code | Needs live validation. |
 | External Staff | Shared in code | Needs live validation. |
-| Users / Employees / Auth | Shared in code | Final decision is shared credential hashes with listener-backed employee provisioning; needs live device validation. |
+| Users / Employees / Auth | Shared in code | Employee metadata is shared; PIN verifiers now use on-demand credential fetch + device cache; needs live device validation around provisioning and PIN rotation. |
 | Store / Receipt Settings | Shared in code | Needs admin-side validation while multiple devices stay open. |
 | Reports | Shared in code | Needs cross-device spot checks on every tab. |
 | Migration / Backfill | Shared in code | Needs execution on an older local-history device to validate field migration end to end. |
@@ -232,14 +232,11 @@ If any one of these fails, the app is not yet "picture perfect."
 
 ### Phase 7: Users / Employee Auth
 
-- Decide and implement the final employee credential architecture.
-- Options to resolve:
-  - keep credential hashes shared and tighten Firestore access strategy
-  - or keep credentials local-only and introduce a controlled user provisioning/migration flow
+- Keep employee metadata shared, but move PIN verifiers to a separate credential document plus device-local cache.
 - Make employee CRUD retryable and listener-backed.
-- Align migration behavior with the final live write path so hashes are not stripped in one path and written in another.
+- Align migration behavior with the final live write path so public employee docs no longer carry credential hashes.
 - Acceptance:
-  - User management is consistent across devices and does not rely on contradictory security assumptions.
+  - User management is consistent across devices and the routine employee listener payload no longer contains staff PIN verifiers.
 
 ### Phase 8: Report Parity And Validation
 
@@ -267,7 +264,7 @@ If any one of these fails, the app is not yet "picture perfect."
 
 - ✅ Full code-path audit for every shared entity and mutation path — see `PHASE9A_AUDIT.md`
 - ✅ Two gaps found and fixed: loyalty points sync on sale; legacy session close syncId generation
-- ✅ All 18 entities confirmed covered: outbox write, idempotent Firestore write, listener, migration, page refresh
+- ✅ All shared entities confirmed covered: outbox write, idempotent Firestore write, listener, migration, page refresh
 - ✅ Write-path trace for sale, return, session open/close, credit flows documented
 - ✅ Live-drill checklist produced (Phase 9B) and release gate checklist produced (Phase 9C) in `PHASE9A_AUDIT.md`
 - ✅ Remaining risks documented with code-verified vs drill-required distinction

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DollarSign, TrendingUp, TrendingDown, Printer, CheckCircle, Hash } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -8,27 +8,15 @@ import { useUiStore } from '@/stores/uiStore'
 import { openSession, closeSession } from '@/db/queries/daySessions'
 import { getTodaySales, getTodayCashTotal } from '@/db/queries/sales'
 import { getTodayCashEntries, getTodayCashOutTotal } from '@/db/queries/cashEntries'
-import type { CashEntry } from '@/types'
 import { formatCurrency } from '@/utils/currency'
 import { db } from '@/db'
 import { exportShiftToSheets } from '@/services/sync/sheetsExport'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import { CLIENT_CONFIG } from '@/constants/clientConfig'
 import { hasFeature } from '@/constants/features'
+import { subscribeShiftReport, type ShiftReport as SharedShiftReport } from '@/services/firebase/queries'
 
-interface ZReport {
-  totalBills: number
-  totalSales: number
-  cashTotal: number
-  upiTotal: number
-  creditTotal: number
-  openingFloat: number
-  cashOutTotal: number
-  cashEntries: CashEntry[]
-  expectedCash: number
-  gstByRate: Array<{ rate: number; taxAmount: number }>
-  topProducts: Array<{ name: string; qty: number; total: number }>
-}
+type ZReport = SharedShiftReport
 
 export function ShiftClosePage() {
   const { session } = useAuth()
@@ -44,7 +32,9 @@ export function ShiftClosePage() {
   const [showDenomCounter, setShowDenomCounter] = useState(false)
   const [denoms, setDenoms] = useState<Record<number, string>>({})
   const reportRef = useRef<HTMLDivElement>(null)
-  const report = useLiveQuery(async (): Promise<ZReport> => {
+  const [sharedReport, setSharedReport] = useState<ZReport | null>(null)
+
+  const localReport = useLiveQuery(async (): Promise<ZReport> => {
     const sales = await getTodaySales()
     const [cashTotal, cashOutTotal, cashEntries] = await Promise.all([
       getTodayCashTotal(),
@@ -103,6 +93,16 @@ export function ShiftClosePage() {
       topProducts,
     }
   }, [currentSession?.id]) ?? null
+  const report = sharedReport ?? localReport
+
+  useEffect(() => {
+    if (!currentSession || !hasFeature(CLIENT_CONFIG.plan, 'firebase_sync')) {
+      setSharedReport(null)
+      return
+    }
+
+    return subscribeShiftReport(currentSession, setSharedReport)
+  }, [currentSession, setSharedReport])
 
   const DENOM_VALUES = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1]
 
@@ -225,9 +225,15 @@ export function ShiftClosePage() {
         <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
           <h3 className="text-base font-semibold text-gray-900">Cash Reconciliation</h3>
 
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-            This shift-close report currently reflects the local device’s sales, payments, and cash entries. Use the same billing device for Z-report and final cash reconciliation.
-          </div>
+          {sharedReport ? (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+              This shift-close report is using the shared synced shift data across devices. If another device is billing offline, its unsynced activity will appear after that device reconnects.
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              This shift-close report is currently using the local fallback data on this device. Reconnect once to pull the shared multi-device shift totals before final cash reconciliation.
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <InfoCard label="Opening Float" value={formatCurrency(currentSession.openingFloat)} />

@@ -2,11 +2,11 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import bcrypt from 'bcryptjs'
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInAnonymously } from 'firebase/auth'
 import {
   collection,
+  deleteField,
   doc,
   getDocs,
   getFirestore,
@@ -46,12 +46,6 @@ async function loadFirebaseConfig() {
 }
 
 async function main() {
-  const nextPin = process.argv[2] ?? '1234'
-
-  if (!/^\d{4}$/.test(nextPin)) {
-    throw new Error('PIN must be exactly 4 digits')
-  }
-
   const firebaseConfig = await loadFirebaseConfig()
   const app = initializeApp(firebaseConfig)
   const auth = getAuth(app)
@@ -59,63 +53,59 @@ async function main() {
 
   const firestore = getFirestore(app)
   const employeesSnapshot = await getDocs(collection(firestore, 'employees'))
+
   if (employeesSnapshot.empty) {
-    console.log('No employees found in Firestore.')
+    console.log('No employee docs found.')
     return
   }
 
-  const pinHash = await bcrypt.hash(nextPin, 10)
-  const employees = employeesSnapshot.docs.map((employeeDoc) => ({
-    id: employeeDoc.id,
-    name: String(employeeDoc.data().name ?? employeeDoc.id),
-  }))
+  let touched = 0
 
-  for (let index = 0; index < employees.length; index += 450) {
+  for (let index = 0; index < employeesSnapshot.docs.length; index += 200) {
     const batch = writeBatch(firestore)
-    for (const employee of employees.slice(index, index + 450)) {
+
+    for (const employeeDoc of employeesSnapshot.docs.slice(index, index + 200)) {
+      const data = employeeDoc.data()
+      const numericId = Number(employeeDoc.id)
+      const hasPinHash = typeof data.pinHash === 'string' && data.pinHash.length > 0
+      const credentialUpdatedAt = data.credentialUpdatedAt ?? data.updatedAt ?? data.createdAt ?? serverTimestamp()
+
+      if (hasPinHash && Number.isFinite(numericId)) {
+        batch.set(
+          doc(firestore, 'employee_credentials', employeeDoc.id),
+          {
+            employeeId: numericId,
+            pinHash: data.pinHash,
+            updatedAt: credentialUpdatedAt,
+          },
+          { merge: true }
+        )
+      }
+
       batch.set(
-        doc(firestore, 'employees', employee.id),
+        doc(firestore, 'employees', employeeDoc.id),
         {
-          credentialUpdatedAt: serverTimestamp(),
+          credentialUpdatedAt,
+          pinHash: deleteField(),
+          passwordHash: deleteField(),
           updatedAt: serverTimestamp(),
         },
         { merge: true }
       )
-      batch.set(
-        doc(firestore, 'employee_credentials', employee.id),
-        {
-          employeeId: Number(employee.id),
-          pinHash,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      )
+
+      if (hasPinHash) touched += 1
     }
+
     await batch.commit()
   }
 
-  const verificationSnapshot = await getDocs(collection(firestore, 'employee_credentials'))
-  const verification = await Promise.all(
-    verificationSnapshot.docs.map(async (credentialDoc) => ({
-      id: credentialDoc.id,
-      name: employees.find((employee) => employee.id === credentialDoc.id)?.name ?? credentialDoc.id,
-      valid: typeof credentialDoc.data().pinHash === 'string'
-        ? await bcrypt.compare(nextPin, credentialDoc.data().pinHash)
-        : false,
-    }))
-  )
-
-  const failed = verification.filter((employee) => !employee.valid)
-  if (failed.length > 0) {
-    throw new Error(
-      `PIN reset failed for: ${failed.map((employee) => `${employee.name} (${employee.id})`).join(', ')}`
-    )
+  const verificationSnapshot = await getDocs(collection(firestore, 'employees'))
+  const leakedDocs = verificationSnapshot.docs.filter((employeeDoc) => typeof employeeDoc.data().pinHash === 'string')
+  if (leakedDocs.length > 0) {
+    throw new Error(`pinHash still present on ${leakedDocs.length} employee docs`)
   }
 
-  console.log(`Reset PIN to ${nextPin} for ${verification.length} employees:`)
-  for (const employee of verification) {
-    console.log(`- ${employee.name} (${employee.id})`)
-  }
+  console.log(`Migrated employee credential storage for ${touched} employee docs.`)
 }
 
 main().catch((error) => {

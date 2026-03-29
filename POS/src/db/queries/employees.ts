@@ -1,6 +1,6 @@
 import { db } from '@/db'
 import type { Employee } from '@/types'
-import { syncEmployeeToFirestore } from '@/services/firebase/sync'
+import { syncEmployeeCredentialToFirestore, syncEmployeeToFirestore } from '@/services/firebase/sync'
 import { queueOutboxEntry } from './outbox'
 import { createEntityId } from '@/utils/syncIds'
 
@@ -9,9 +9,9 @@ function buildEmployeeSyncPayload(employee: Employee, id: number) {
     id,
     name: employee.name,
     role: employee.role,
-    pinHash: employee.pinHash,
     isActive: employee.isActive,
     monthlyLeaveAllotment: employee.monthlyLeaveAllotment ?? 3,
+    ...(employee.credentialUpdatedAt ? { credentialUpdatedAt: employee.credentialUpdatedAt } : {}),
     createdAt: employee.createdAt,
     updatedAt: employee.updatedAt ?? employee.createdAt,
   }
@@ -32,25 +32,73 @@ async function queueEmployeeSync(employee: Employee, id: number, createdAt: Date
   })
 }
 
+async function queueEmployeeCredentialSync(
+  employeeId: number,
+  pinHash: string,
+  createdAt: Date
+): Promise<void> {
+  await queueOutboxEntry({
+    action: 'upsert_employee_credential',
+    entityType: 'employee_credential',
+    entityKey: String(employeeId),
+    payload: JSON.stringify({
+      employeeId,
+      pinHash,
+      updatedAt: createdAt.toISOString(),
+    }),
+    createdAt,
+  })
+}
+
 export async function getAllEmployees(): Promise<Employee[]> {
   return db.employees.toArray()
 }
 
-export async function upsertEmployee(employee: Employee): Promise<number> {
+export async function upsertEmployee(
+  employee: Employee,
+  credential?: { pinHash: string }
+): Promise<number> {
   const now = new Date()
-  let id = employee.id ?? createEntityId()
+  const id = employee.id ?? createEntityId()
   const saved: Employee = employee.id
-    ? { ...employee, updatedAt: now }
-    : { ...employee, id, createdAt: employee.createdAt ?? now, updatedAt: now }
+    ? {
+        ...employee,
+        updatedAt: now,
+        ...(credential ? { credentialUpdatedAt: now } : {}),
+      }
+    : {
+        ...employee,
+        id,
+        createdAt: employee.createdAt ?? now,
+        updatedAt: now,
+        ...(credential ? { credentialUpdatedAt: now } : {}),
+      }
 
-  await db.transaction('rw', [db.employees, db.outbox], async () => {
+  await db.transaction('rw', [db.employees, db.employee_credentials, db.outbox], async () => {
     await db.employees.put(saved)
     await queueEmployeeSync(saved, id, now)
+    if (credential) {
+      await db.employee_credentials.put({
+        employeeId: id,
+        pinHash: credential.pinHash,
+        updatedAt: now,
+      })
+      await queueEmployeeCredentialSync(id, credential.pinHash, now)
+    }
   })
 
   syncEmployeeToFirestore(buildEmployeeSyncPayload(saved, id)).catch((err: unknown) =>
     console.warn('[Firestore] employee sync failed (will retry):', err)
   )
+  if (credential) {
+    syncEmployeeCredentialToFirestore({
+      employeeId: id,
+      pinHash: credential.pinHash,
+      updatedAt: now,
+    }).catch((err: unknown) =>
+      console.warn('[Firestore] employee credential sync failed (will retry):', err)
+    )
+  }
 
   return id
 }

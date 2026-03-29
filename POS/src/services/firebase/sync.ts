@@ -445,11 +445,14 @@ export async function syncEmployeeToFirestore(employee: Employee & { id: number 
         id: employee.id,
         name: employee.name,
         role: employee.role,
-        ...(employee.pinHash !== undefined ? { pinHash: employee.pinHash } : { pinHash: deleteField() }),
+        pinHash: deleteField(),
         passwordHash: deleteField(),
         isActive: employee.isActive,
         ...(employee.monthlyLeaveAllotment !== undefined
           ? { monthlyLeaveAllotment: employee.monthlyLeaveAllotment }
+          : {}),
+        ...(employee.credentialUpdatedAt
+          ? { credentialUpdatedAt: toTimestamp(employee.credentialUpdatedAt) }
           : {}),
         createdAt: toTimestamp(employee.createdAt),
         ...(employee.updatedAt ? { updatedAt: toTimestamp(employee.updatedAt) } : { updatedAt: Timestamp.now() }),
@@ -458,6 +461,26 @@ export async function syncEmployeeToFirestore(employee: Employee & { id: number 
     )
   } catch (err) {
     console.warn('[Firestore] syncEmployee failed (offline?):', err)
+  }
+}
+
+export async function syncEmployeeCredentialToFirestore(payload: {
+  employeeId: number
+  pinHash: string
+  updatedAt: Date
+}): Promise<void> {
+  try {
+    await setDoc(
+      doc(firestore, 'employee_credentials', String(payload.employeeId)),
+      {
+        employeeId: payload.employeeId,
+        pinHash: payload.pinHash,
+        updatedAt: toTimestamp(payload.updatedAt),
+      },
+      { merge: true }
+    )
+  } catch (err) {
+    console.warn('[Firestore] syncEmployeeCredential failed (offline?):', err)
   }
 }
 

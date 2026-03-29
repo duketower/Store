@@ -132,14 +132,14 @@ day_sessions, outbox, audit_log, vendors,
 grns, rtvs, rtv_items, staff_external,
 attendance_logs, leave_requests, cash_entries,
 expenses, performance_targets, store_settings,
-sale_returns
+sale_returns, employee_credentials
 ```
 Auth sessions are **not** stored in IndexedDB — they live in Zustand memory only.
 
 - DB initialized once in `db/index.ts` and exported as a singleton
 - `seed.ts` MUST be idempotent — check if records exist before inserting
 - Employee seed: uses `CLIENT_CONFIG.staff` if present (client builds); falls back to dev defaults (Anurag/Vaibhav/Samad) when absent
-- Default client credentials: admin → "Admin@1234", manager → "Manager@1234", cashier PIN → "1234" — communicated to client on handover
+- Default client staff PIN: all seeded users start at `1234` unless the live Firestore utility resets them differently
 - Products + customers are always seeded with demo data (8 products, 2 customers)
 - All sale writes use Dexie transactions (atomic): sale + items + payments + stock deduction + outbox
 - `schema.ts` imports type interfaces from `src/types/` — it does not define them

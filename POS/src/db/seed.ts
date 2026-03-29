@@ -1,11 +1,9 @@
 import bcrypt from 'bcryptjs'
 import { db } from './index'
 import { CLIENT_CONFIG } from '@/constants/clientConfig'
+import { createSyncId } from '@/utils/syncIds'
 
-// Default credentials communicated to each client on handover.
-// Admin/Manager are asked to change their password on first login via Users page.
-const DEFAULT_ADMIN_PASSWORD   = 'Admin@1234'
-const DEFAULT_MANAGER_PASSWORD = 'Manager@1234'
+// Default staff PIN communicated on handover.
 const DEFAULT_CASHIER_PIN      = '1234'
 
 // Idempotent seed — each section has its own guard
@@ -28,49 +26,69 @@ export async function seedDatabase(): Promise<void> {
   // Falls back to hardcoded dev names when CLIENT_CONFIG.staff is absent (dev mode only).
   if (CLIENT_CONFIG.staff && CLIENT_CONFIG.staff.length > 0) {
     const defaultPin = await bcrypt.hash(DEFAULT_CASHIER_PIN, SALT_ROUNDS)
+    const employees = CLIENT_CONFIG.staff.map(({ name, role }, index) => ({
+      id: index + 1,
+      name,
+      role,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      credentialUpdatedAt: now,
+    }))
 
-    const employees = await Promise.all(
-      CLIENT_CONFIG.staff.map(async ({ name, role }) => {
-        const base = { name, role, pinHash: defaultPin, isActive: true, createdAt: now }
-        if (role === 'admin') {
-          return { ...base, passwordHash: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS) }
-        }
-        if (role === 'manager') {
-          return { ...base, passwordHash: await bcrypt.hash(DEFAULT_MANAGER_PASSWORD, SALT_ROUNDS) }
-        }
-        return base  // cashier — PIN only, no password needed
-      })
-    )
-
-    await db.employees.bulkAdd(employees)
+    await db.transaction('rw', [db.employees, db.employee_credentials], async () => {
+      await db.employees.bulkAdd(employees)
+      await db.employee_credentials.bulkAdd(
+        employees.map((employee) => ({
+          employeeId: employee.id,
+          pinHash: defaultPin,
+          updatedAt: now,
+        }))
+      )
+    })
   } else {
     // Dev fallback — personal dev credentials, never shipped to clients
     const pin1234 = await bcrypt.hash('1234', SALT_ROUNDS)
-    await db.employees.bulkAdd([
+    const employees = [
       {
+        id: 1,
         name: 'Anurag',
         role: 'admin',
-        passwordHash: await bcrypt.hash('admin123', SALT_ROUNDS),
-        pinHash: pin1234,
         isActive: true,
         createdAt: now,
+        updatedAt: now,
+        credentialUpdatedAt: now,
       },
       {
+        id: 2,
         name: 'Vaibhav',
         role: 'manager',
-        passwordHash: await bcrypt.hash('manager123', SALT_ROUNDS),
-        pinHash: pin1234,
         isActive: true,
         createdAt: now,
+        updatedAt: now,
+        credentialUpdatedAt: now,
       },
       {
+        id: 3,
         name: 'Samad',
         role: 'cashier',
-        pinHash: pin1234,
         isActive: true,
         createdAt: now,
+        updatedAt: now,
+        credentialUpdatedAt: now,
       },
-    ])
+    ] as const
+
+    await db.transaction('rw', [db.employees, db.employee_credentials], async () => {
+      await db.employees.bulkAdd(employees)
+      await db.employee_credentials.bulkAdd(
+        employees.map((employee) => ({
+          employeeId: employee.id,
+          pinHash: pin1234,
+          updatedAt: now,
+        }))
+      )
+    })
   }
 
   // Seed products (varied GST slabs, barcodes, stock)
@@ -1385,5 +1403,9 @@ async function seedExpenses(): Promise<void> {
       date: daysAgo(25),
       createdAt: daysAgo(25),
     },
-  ])
+  ].map((expense) => ({
+    ...expense,
+    syncId: createSyncId('seed-expense'),
+    updatedAt: expense.createdAt,
+  })))
 }

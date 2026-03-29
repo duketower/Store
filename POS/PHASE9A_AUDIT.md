@@ -154,7 +154,7 @@ All operational screens that stay open during store operations use live Dexie su
 | CustomersPage | `useLiveQuery(syncKey)` | customers, credit_ledger |
 | UsersPage | `useLiveQuery` | employees |
 | SettingsPage | `useLiveQuery` for settings, targets, outbox queue | store_settings, performance_targets, outbox |
-| ShiftClosePage | `useLiveQuery` for Z-report | sales, payments, cash_entries, day_sessions |
+| ShiftClosePage | shared Firestore shift subscription + local fallback | sales, payments, cash_entries, day_sessions |
 | CashOutPage | `useLiveQuery` | day_sessions, cash_entries |
 | ReceiveStockPage | `useLiveQuery` | vendors |
 
@@ -173,26 +173,27 @@ Failed entries stay in the outbox and are retried on every reconnect event. The 
 
 ## Migration Execution Notes
 
-`runMigration()` in `services/sync/migration.ts` covers all 18 entities in this order:
+`runMigration()` in `services/sync/migration.ts` covers all 19 entities in this order:
 
 1. Products
 2. Batches
 3. Customers
 4. Employees
-5. Expenses
-6. Vendors
-7. GRNs
-8. RTVs (with items)
-9. Sales (with items and payments)
-10. Sale Returns
-11. Credit Ledger
-12. Day Sessions
-13. Cash Entries
-14. External Staff
-15. Attendance Logs
-16. Leave Requests
-17. Performance Targets
-18. Store Settings
+5. Employee Credentials
+6. Expenses
+7. Vendors
+8. GRNs
+9. RTVs (with items)
+10. Sales (with items and payments)
+11. Sale Returns
+12. Credit Ledger
+13. Day Sessions
+14. Cash Entries
+15. External Staff
+16. Attendance Logs
+17. Leave Requests
+18. Performance Targets
+19. Store Settings
 
 All writes use `setDoc` (idempotent) — safe to re-run. Re-running migration overwrites Firestore with the current Dexie state. Run it from the Settings → Migration page on any device that has the canonical historical data.
 
@@ -230,7 +231,7 @@ The following drills confirm the code-level guarantees hold under real condition
 ### Offline recovery drills
 
 - [ ] Device A goes offline → cashier creates 3+ bills on Device A → Device A reconnects → all 3 bills appear on Device B, stock is correct, no duplicates
-- [ ] Device A goes offline mid-shift, closes shift offline → reconnects → session close syncs to Firestore → Device B shift report shows correct Z-report
+- [ ] Device A goes offline mid-shift, closes shift offline → reconnects → session close syncs to Firestore → Device B shift state converges and the shared shift report matches after reconnect
 - [ ] Device A creates a credit sale offline → reconnects → Device B shows updated customer balance and credit ledger entry
 
 ### Idempotency drills
@@ -244,7 +245,7 @@ The following drills confirm the code-level guarantees hold under real condition
 
 ### Migration drill
 
-- [ ] Find a device with older local-history data → run migration from Settings → confirm all 18 stages complete → Firestore contains the migrated history → second device's Dexie receives the migrated data via listeners
+- [ ] Find a device with older local-history data → run migration from Settings → confirm all 19 stages complete → Firestore contains the migrated history → second device's Dexie receives the migrated data via listeners
 
 ---
 
@@ -258,7 +259,7 @@ The app may only be described as fully multi-device when ALL of the following pa
 - [ ] Customer balances match between devices after credit sale, return, and collection
 - [ ] Credit ledger entries are identical between devices
 - [ ] Cash totals match after cash-out
-- [ ] Shift totals match in Z-report between devices
+- [ ] Shift totals match in the shared shift report between devices
 - [ ] Attendance and leave state matches between devices without reload
 - [ ] Report totals agree for the same date range on both devices
 - [ ] Outbox reaches clean or expected state after recovery (no stuck failed entries)

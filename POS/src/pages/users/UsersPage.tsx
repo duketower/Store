@@ -156,15 +156,14 @@ function EmployeeFormModal({
     setSaving(true)
     try {
       const patch: Partial<Employee> = { name: form.name, role: form.role, isActive: editEmployee?.isActive ?? true, monthlyLeaveAllotment: form.monthlyLeaveAllotment }
+      let pinHash: string | undefined
       if (form.credential) {
-        const hash = await bcrypt.hash(form.credential, 10)
-        patch.pinHash = hash
-        // passwordHash no longer used for login
+        pinHash = await bcrypt.hash(form.credential, 10)
       }
       const savedEmployee: Employee = editEmployee
         ? { ...editEmployee, ...patch, updatedAt: new Date() }
         : { ...patch, createdAt: new Date(), updatedAt: new Date() } as Employee
-      await upsertEmployee(savedEmployee)
+      await upsertEmployee(savedEmployee, pinHash ? { pinHash } : undefined)
       addToast('success', editEmployee ? 'Staff updated' : `${form.name} added`)
       onSaved()
     } catch {

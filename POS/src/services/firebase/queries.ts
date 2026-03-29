@@ -17,6 +17,7 @@ import {
 import { firestore } from '.'
 import { db } from '@/db'
 import { DEFAULT_PERFORMANCE_TARGETS } from '@/db/queries/performanceTargets'
+import type { CashEntry, DaySession } from '@/types'
 
 export interface SalesAggregate {
   totalBills: number
@@ -54,6 +55,20 @@ export interface DashboardMetrics {
   }
 }
 
+export interface ShiftReport {
+  totalBills: number
+  totalSales: number
+  cashTotal: number
+  upiTotal: number
+  creditTotal: number
+  openingFloat: number
+  cashOutTotal: number
+  cashEntries: CashEntry[]
+  expectedCash: number
+  gstByRate: Array<{ rate: number; taxAmount: number }>
+  topProducts: Array<{ name: string; qty: number; total: number }>
+}
+
 interface DashboardSnapshotState {
   todaySalesSnapshot: QuerySnapshot<DocumentData> | null
   todayExpensesSnapshot: QuerySnapshot<DocumentData> | null
@@ -72,6 +87,22 @@ const EMPTY_AGGREGATE: SalesAggregate = {
   grossProfitTotal: 0,
   netProfitTotal: 0,
   estimatedProfit: false,
+}
+
+function createEmptyShiftReport(openingFloat = 0): ShiftReport {
+  return {
+    totalBills: 0,
+    totalSales: 0,
+    cashTotal: 0,
+    upiTotal: 0,
+    creditTotal: 0,
+    openingFloat,
+    cashOutTotal: 0,
+    cashEntries: [],
+    expectedCash: openingFloat,
+    gstByRate: [],
+    topProducts: [],
+  }
 }
 
 function tsToDate(value: unknown): Date {
@@ -433,5 +464,153 @@ export function subscribeDashboardMetrics(
     unsubscribeMonthSales()
     unsubscribeMonthExpenses()
     unsubscribeTargets()
+  }
+}
+
+function buildShiftReport(
+  session: DaySession,
+  salesSnapshot: QuerySnapshot<DocumentData> | null,
+  cashEntriesSnapshot: QuerySnapshot<DocumentData> | null
+): ShiftReport {
+  const report = createEmptyShiftReport(session.openingFloat ?? 0)
+  const productQtyMap: Record<string, { name: string; qty: number; total: number }> = {}
+  const gstMap: Record<number, number> = {}
+
+  salesSnapshot?.forEach((docSnapshot) => {
+    const data = docSnapshot.data()
+    report.totalBills += 1
+    report.totalSales += Number(data.grandTotal ?? 0)
+
+    if (Array.isArray(data.payments)) {
+      for (const payment of data.payments) {
+        if (!payment || typeof payment !== 'object') continue
+        const amount = Number((payment as Record<string, unknown>).amount ?? 0)
+        const method = (payment as Record<string, unknown>).method
+        if (method === 'cash') report.cashTotal += amount
+        if (method === 'upi') report.upiTotal += amount
+        if (method === 'credit') report.creditTotal += amount
+      }
+    }
+
+    if (Array.isArray(data.items)) {
+      for (const rawItem of data.items) {
+        if (!rawItem || typeof rawItem !== 'object') continue
+        const item = rawItem as Record<string, unknown>
+        const productId = Number(item.productId ?? 0)
+        const key = productId > 0 ? String(productId) : `${docSnapshot.id}-${String(item.productName ?? 'unknown')}`
+        const productName = String(item.productName ?? `Product #${productId || key}`)
+        const qty = Number(item.qty ?? 0)
+        const lineTotal = Number(item.lineTotal ?? 0)
+        const taxRate = Number(item.taxRate ?? 0)
+
+        if (!productQtyMap[key]) {
+          productQtyMap[key] = { name: productName, qty: 0, total: 0 }
+        }
+
+        productQtyMap[key].qty += qty
+        productQtyMap[key].total += lineTotal
+
+        if (taxRate > 0) {
+          const taxAmount = lineTotal - lineTotal / (1 + taxRate / 100)
+          gstMap[taxRate] = (gstMap[taxRate] ?? 0) + taxAmount
+        }
+      }
+    }
+  })
+
+  const cashEntries: CashEntry[] = []
+  cashEntriesSnapshot?.forEach((docSnapshot) => {
+    const data = docSnapshot.data()
+    const amount = Number(data.amount ?? 0)
+    report.cashOutTotal += amount
+    cashEntries.push({
+      syncId: docSnapshot.id,
+      ...(data.sessionId !== undefined ? { sessionId: Number(data.sessionId ?? 0) } : {}),
+      amount,
+      category: String(data.category ?? 'other') as CashEntry['category'],
+      ...(data.note !== undefined ? { note: String(data.note) } : {}),
+      authorizedBy: Number(data.authorizedBy ?? 0),
+      createdAt: tsToDate(data.createdAt ?? new Date()),
+    })
+  })
+
+  report.cashEntries = cashEntries.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+  report.expectedCash = report.openingFloat + report.cashTotal - report.cashOutTotal
+  report.topProducts = Object.values(productQtyMap)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5)
+  report.gstByRate = Object.entries(gstMap)
+    .map(([rate, taxAmount]) => ({ rate: Number(rate), taxAmount }))
+    .sort((a, b) => a.rate - b.rate)
+
+  return report
+}
+
+export function subscribeShiftReport(
+  session: DaySession,
+  onData: (report: ShiftReport) => void
+): () => void {
+  const shiftStart = session.openedAt instanceof Date ? session.openedAt : new Date(session.openedAt)
+  const shiftEnd = session.closedAt
+    ? (session.closedAt instanceof Date ? session.closedAt : new Date(session.closedAt))
+    : null
+
+  let active = true
+  let salesSnapshot: QuerySnapshot<DocumentData> | null = null
+  let cashEntriesSnapshot: QuerySnapshot<DocumentData> | null = null
+
+  const emit = () => {
+    if (!active) return
+    onData(buildShiftReport(session, salesSnapshot, cashEntriesSnapshot))
+  }
+
+  onData(createEmptyShiftReport(session.openingFloat ?? 0))
+
+  const salesFilters = [where('createdAt', '>=', Timestamp.fromDate(shiftStart))]
+  if (shiftEnd) {
+    salesFilters.push(where('createdAt', '<=', Timestamp.fromDate(shiftEnd)))
+  }
+
+  const unsubscribeSales = onSnapshot(
+    query(collection(firestore, 'sales'), ...salesFilters),
+    (snapshot) => {
+      salesSnapshot = snapshot
+      emit()
+    },
+    (error) => {
+      console.warn('[Shift Report] sales query failed:', error)
+      salesSnapshot = null
+      emit()
+    }
+  )
+
+  const cashEntryFilters =
+    session.id !== undefined
+      ? [where('sessionId', '==', session.id)]
+      : [where('createdAt', '>=', Timestamp.fromDate(shiftStart))]
+
+  if (shiftEnd && session.id === undefined) {
+    cashEntryFilters.push(where('createdAt', '<=', Timestamp.fromDate(shiftEnd)))
+  }
+
+  const unsubscribeCashEntries = onSnapshot(
+    query(collection(firestore, 'cash_entries'), ...cashEntryFilters),
+    (snapshot) => {
+      cashEntriesSnapshot = snapshot
+      emit()
+    },
+    (error) => {
+      console.warn('[Shift Report] cash entries query failed:', error)
+      cashEntriesSnapshot = null
+      emit()
+    }
+  )
+
+  return () => {
+    active = false
+    unsubscribeSales()
+    unsubscribeCashEntries()
   }
 }

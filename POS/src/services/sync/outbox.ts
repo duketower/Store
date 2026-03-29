@@ -12,6 +12,7 @@ import {
   syncProductToFirestore,
   syncCustomerToFirestore,
   syncEmployeeToFirestore,
+  syncEmployeeCredentialToFirestore,
   syncSessionToFirestore,
   syncAttendanceLogToFirestore,
   syncExternalStaffToFirestore,
@@ -196,6 +197,22 @@ export async function flushOutbox(): Promise<void> {
             ...data,
             createdAt: new Date(data.createdAt),
             ...(data.updatedAt ? { updatedAt: new Date(data.updatedAt) } : {}),
+          })
+          await db.outbox.delete(entry.id!)
+        } catch (error) {
+          await markOutboxFailed(entry.id, error)
+        }
+        continue
+      }
+
+      if (entry.action === 'upsert_employee_credential') {
+        try {
+          await markOutboxSyncing(entry.id)
+          const data = JSON.parse(entry.payload)
+          await syncEmployeeCredentialToFirestore({
+            employeeId: data.employeeId,
+            pinHash: data.pinHash,
+            updatedAt: new Date(data.updatedAt),
           })
           await db.outbox.delete(entry.id!)
         } catch (error) {

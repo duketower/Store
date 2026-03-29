@@ -17,10 +17,12 @@ Browser-based grocery store point-of-sale application built for online shared-st
 - Pending sync queue in Settings for outage recovery visibility
 - Sales, cash-out, credit-ledger, and shift-session data now replay through the sync outbox and hydrate back into local Dexie from Firestore
 - Shared store settings now keep receipts, QR details, and Sheets export URLs aligned across devices
-- Attendance, leave requests, external staff, and employee PIN provisioning now sync through the same Firestore-backed replay path
+- Attendance, leave requests, external staff, and employee metadata now sync through the same Firestore-backed replay path
 - Report and admin screens now reload mirrored shared data even when another device changes existing records without changing table counts
 - The header sync badge now reflects real shared-sync health instead of the old static `Local Mode` label
 - Checkout, return, GST, and sale-replay flows have been hardened so financial writes use a locked cart snapshot, safe numeric guards, corrected GST-after-discount math, and rebuildable legacy sale retries instead of silent drops
+- Shift close now uses a shared Firestore-backed shift report instead of a device-local Z-report fallback when sync is available
+- Employee PIN hashes are now cached per device on demand from a separate credential collection instead of being mirrored in every employee listener payload
 
 ## Stack
 
@@ -68,6 +70,13 @@ Reset every current Firestore user PIN back to `1234`:
 ```bash
 cd POS
 node scripts/reset-all-user-pins.mjs 1234
+```
+
+Migrate existing live employee docs from legacy shared `pinHash` fields into the new `employee_credentials` collection:
+
+```bash
+cd POS
+node scripts/migrate-employee-credentials.mjs
 ```
 
 ## Key Docs

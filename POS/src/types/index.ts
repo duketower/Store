@@ -1,4 +1,4 @@
-export type { Role, Employee, AuthSession } from './auth'
+export type { Role, Employee, EmployeeCredential, AuthSession } from './auth'
 export type { Product, Batch } from './product'
 export type { Customer, CreditLedgerEntry, CreditEntryType } from './customer'
 export type { BatchAllocation, Sale, SaleItem, Payment, CartItem, SaleStatus, PaymentMethod, SaleReturn, SaleReturnItem } from './sale'

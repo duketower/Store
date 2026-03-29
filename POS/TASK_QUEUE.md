@@ -14,12 +14,12 @@
   - Offline recovery: create bills offline → reconnect → verify convergence and no duplicates
   - Idempotency: verify no double-sync effects after retry
   - Fresh-device bootstrap: new browser profile hydrates without migration
-  - Migration drill: run on older-history device, confirm all 18 stages and listener hydration
+  - Migration drill: run on older-history device, confirm all 19 stages and listener hydration
 - Record and close any Phase 9B failures before Phase 9C operational signoff
 
 ## Done
 
-- Completed Phase 9A: full code-path audit for all 18 shared entities, fixed loyalty points sync gap and legacy session close syncId gap, produced PHASE9A_AUDIT.md with entity matrix, write-path traces, live-drill checklist, and Phase 9C release gate
+- Completed Phase 9A: full code-path audit for all shared entities, fixed loyalty points sync gap and legacy session close syncId gap, produced PHASE9A_AUDIT.md with entity matrix, write-path traces, live-drill checklist, and Phase 9C release gate
 
 
 
@@ -42,4 +42,4 @@
 - Replaced the old static `Local Mode` badge with a live shared-sync status indicator
 - Hardened checkout and recovery correctness around bill snapshot locking, safe credit balances, GST-after-discount math, return refund math, legacy sale outbox rebuilds, and batch-allocation traceability
 - Hardened final credit-limit checks, outbox concurrency/backoff, negative-stock visibility, GRN batch sync ordering, and employee password-hash stripping
-- Removed return refund flooring, made return balance sync incremental, tightened pending-sync counts, and added a local-device warning on shift close
+- Removed return refund flooring, made return balance sync incremental, tightened pending-sync counts, replaced shift close with a shared Firestore-backed shift report, and moved employee PIN hashes into a device-cached credential flow

@@ -94,13 +94,35 @@ export async function runMigration(onProgress: ProgressCallback): Promise<void> 
     employees.map((e) => ({
       id: e.id!,
       data: {
-        ...e,
+        id: e.id,
+        name: e.name,
+        role: e.role,
+        isActive: e.isActive,
+        ...(e.monthlyLeaveAllotment !== undefined
+          ? { monthlyLeaveAllotment: e.monthlyLeaveAllotment }
+          : {}),
+        ...(e.credentialUpdatedAt ? { credentialUpdatedAt: toTs(e.credentialUpdatedAt) } : {}),
         createdAt: toTs(e.createdAt),
         updatedAt: toTs(e.updatedAt ?? e.createdAt),
       },
     }))
   )
   onProgress({ stage: 'Employees', done: employees.length, total: employees.length })
+
+  const employeeCredentials = await db.employee_credentials.toArray()
+  onProgress({ stage: 'Employee Credentials', done: 0, total: employeeCredentials.length })
+  await batchWrite(
+    'employee_credentials',
+    employeeCredentials.map((credential) => ({
+      id: credential.employeeId,
+      data: {
+        employeeId: credential.employeeId,
+        pinHash: credential.pinHash,
+        updatedAt: toTs(credential.updatedAt),
+      },
+    }))
+  )
+  onProgress({ stage: 'Employee Credentials', done: employeeCredentials.length, total: employeeCredentials.length })
 
   // ── Expenses ───────────────────────────────────────────────────────────────
   const expenses = await db.expenses.toArray()

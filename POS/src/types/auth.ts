@@ -4,12 +4,17 @@ export interface Employee {
   id?: number
   name: string
   role: Role
-  pinHash?: string       // cashier only
-  passwordHash?: string  // admin/manager only
   isActive: boolean
   createdAt: Date
   updatedAt?: Date
   monthlyLeaveAllotment?: number  // default 3 when absent; admin-editable per employee
+  credentialUpdatedAt?: Date
+}
+
+export interface EmployeeCredential {
+  employeeId: number
+  pinHash: string
+  updatedAt: Date
 }
 
 export interface AuthSession {

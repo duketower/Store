@@ -3,7 +3,13 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { Delete, ShoppingCart } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
-import { verifyPin, createSession, getActiveEmployees } from './authService'
+import {
+  verifyPin,
+  createSession,
+  getActiveEmployees,
+  isEmployeeCredentialUnavailableError,
+  prefetchEmployeeCredential,
+} from './authService'
 import type { Employee } from '@/types'
 import { ROLE_COLORS, ROLE_LABELS } from '@/constants/roles'
 import { cn } from '@/utils/cn'
@@ -62,6 +68,9 @@ export function LoginScreen() {
     setAttempts(0)
     setLockoutUntil(null)
     setScreen('pin')
+    if (employee.id) {
+      void prefetchEmployeeCredential(employee.id).catch(() => undefined)
+    }
   }
 
   const handlePinDigit = (digit: string) => {
@@ -100,6 +109,13 @@ export function LoginScreen() {
         } else {
           setError(`Wrong PIN. ${MAX_PIN_ATTEMPTS - newAttempts} attempt${MAX_PIN_ATTEMPTS - newAttempts === 1 ? '' : 's'} remaining.`)
         }
+      }
+    } catch (error) {
+      setPin('')
+      if (isEmployeeCredentialUnavailableError(error)) {
+        setError(error instanceof Error ? error.message : 'Credential refresh required.')
+      } else {
+        setError('Unable to verify PIN right now. Reconnect once and try again.')
       }
     } finally {
       setLoading(false)

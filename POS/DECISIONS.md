@@ -78,9 +78,10 @@ Reason:
 
 ## Decision 010
 
-Keep employee PIN hashes in the shared employee record so staff provisioning stays multi-device.
+Keep employee metadata shared, but move PIN hashes into a separate on-demand credential cache.
 
 Reason:
-- New or edited staff accounts must be usable on every device without per-device manual setup
-- The current live app already authenticates devices into Firebase with build-scoped credentials, so shared employee records are part of the trusted store app surface
-- Migration and live writes need to follow one consistent employee-auth model instead of stripping hashes in one path and syncing them in another
+- Devices still need a shared employee list and credential versioning metadata.
+- Mirroring `pinHash` through every employee listener payload made every synced device a passive copy of all staff verifiers.
+- A separate `employee_credentials` collection plus device-local cache keeps online provisioning simple while reducing routine credential exposure.
+- The accepted tradeoff is that a device may need one online credential refresh after a PIN change before that employee can log in there offline.

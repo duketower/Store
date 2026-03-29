@@ -42,9 +42,10 @@ These were confirmed in the Phase 9A audit and subsequent fix passes. No re-test
 | GST calculated after bill discount | Code-verified |
 | FEFO batch selection logic | Code-verified |
 | GRN zero-price validation blocks submission | Code-verified |
-| `passwordHash` stripped from Firestore sync | Code-verified |
+| Shared employee docs no longer carry `pinHash` / `passwordHash` | Code-verified |
+| Employee PIN verifier fetched on demand into a local device cache | Code-verified |
 | `createEntityId` uses `crypto.getRandomValues()` — no timestamp collision | Code-verified |
-| Z-report local-device warning visible | Code-verified |
+| ShiftClosePage prefers a shared Firestore-backed shift report | Code-verified |
 
 ### Requires a real second device (cannot simulate)
 
@@ -133,17 +134,17 @@ Everything below. These are the actual drills.
 
 ---
 
-### Drill 6 — Shift close: local vs shared scope
+### Drill 6 — Shift close shared report
 
 | Field | Detail |
 |-------|--------|
-| **Scenario** | Device A closes shift; understand exactly what Device B sees and what it doesn't |
+| **Scenario** | Device A closes shift; Device B sees the same shared shift totals and closed-session state |
 | **Preconditions** | Both devices have been billing during the same session. Both online. |
 | **Steps on A** | Close the shift on Device A. |
-| **Checks on B** | (1) ShiftClose page shows the session as closed (listener-driven). (2) Note explicitly: Device B's Z-report totals will reflect Device B's local sales only — this is a **documented known limit**. (3) If Device B had NO sales, its Z-report totals are irrelevant — redirect to Device A's Z-report. |
-| **Expected** | Session closed state propagates. Z-report local-only warning is visible on both devices. |
-| **Failure signal** | Session still shows open on B after A closes it. Or B shows a Z-report total higher than its own sales without a warning. |
-| **Severity if fails** | Medium — Z-report local-scope is known and documented; session close propagation failure would be high |
+| **Checks on B** | (1) ShiftClose page shows the same shift totals as A before closure. (2) After A closes the shift, B shows the session as closed. (3) No local-only warning is shown while shared sync is healthy. |
+| **Expected** | Shared shift totals match on both devices and the closed state propagates. |
+| **Failure signal** | Session still shows open on B after A closes it. Or B shows different cash/sales totals from A while both were online and synced. |
+| **Severity if fails** | High — cash reconciliation truth diverges across devices |
 
 ---
 
@@ -154,10 +155,10 @@ Everything below. These are the actual drills.
 | **Scenario** | Device A creates a new employee; Device B can log in with their PIN |
 | **Preconditions** | Both devices online. |
 | **Steps on A** | Admin creates a new cashier with PIN "7890". |
-| **Checks on B** | (1) Login screen shows the new employee card within ~10 seconds. (2) Entering PIN "7890" on B successfully logs in. |
-| **Expected** | Login works on B without any manual action. |
-| **Failure signal** | Employee card absent on B. PIN rejected. |
-| **Note** | There is a propagation window (listener latency). If it takes >30 seconds, investigate listener health. |
+| **Checks on B** | (1) Login screen shows the new employee card within ~10 seconds. (2) Entering PIN "7890" on B successfully logs in while online. (3) After that first successful login, the same PIN still works on B offline. |
+| **Expected** | Login works on B without any admin-side reprovisioning. The first successful online login caches the verifier for offline reuse on B. |
+| **Failure signal** | Employee card absent on B. PIN rejected while online. PIN works online but fails offline immediately afterward. |
+| **Note** | There is a propagation window (listener latency + credential fetch). If it takes >30 seconds, investigate listener health or employee credential sync. |
 | **Severity if fails** | High — staff provisioning across devices broken |
 
 ---
@@ -304,8 +305,8 @@ These are **intentional architectural compromises**, not unresolved bugs. Docume
 
 | Limit | Detail | Operator guidance |
 |-------|--------|-------------------|
-| **Z-report is device-local** | ShiftClosePage aggregates sales from local Dexie only. A visible warning is now shown. | Always run shift close from the primary billing device. If multiple devices billed in one shift, Device A's Z-report will only show Device A's sales. Reconcile cash manually against the full Firestore report if needed. |
-| **PIN hash shared via Firestore** | Employee `pinHash` is synced to Firestore so staff can log into any device. Any device with anonymous Firebase auth can read it. Firestore rules restrict to `request.auth != null`. `passwordHash` was stripped. | Acceptable tradeoff for offline PIN login support. Tighten Firestore rules to role-based auth if risk tolerance changes. |
+| **Offline activity on another device is invisible until sync** | The shared shift report uses synced Firestore data. If another device is still offline, its unsynced billing/cash activity will not appear until it reconnects. | Only one billing device should keep operating during an outage. Reconnect that device before final reconciliation. |
+| **Employee PIN cache is device-local after first fetch** | Employee metadata is shared live, but the actual PIN verifier is fetched into a local device cache when that device first needs it. | New devices, or devices after a PIN change, need one online login attempt before that employee can log in there offline. |
 | **Concurrent returns on same bill from two devices** | Two devices processing returns on the same bill simultaneously can race on `returnTotal` accumulation in Firestore. | In practice: one device handles returns. If this ever produces a wrong total, re-check the Firestore `returnTotal` field manually. |
 | **Sale status `pending_sync` while still offline** | Sale status transitions to `completed` after successful fire-and-forget sync or outbox replay. During offline operation, status stays `pending_sync` until reconnect. | Cosmetic only — does not affect billing or stock. No operator action needed. |
 | **Employee PIN latency on new device** | After creating an employee on Device A, there is a listener propagation window (typically 3–10 seconds) before the new PIN works on Device B. | Normal. Tell new staff to wait 15 seconds before trying to log in on a second device. |

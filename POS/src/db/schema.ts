@@ -1,10 +1,11 @@
 import Dexie, { type Table } from 'dexie'
-import type { Employee, Product, Batch, Customer, CreditLedgerEntry, Sale, SaleItem, Payment, DaySession, OutboxEntry, AuditLogEntry, Vendor, Grn, RtvSession, RtvItem, ExternalStaff, AttendanceLog, LeaveRequest, CashEntry, Expense, PerformanceTargets, SaleReturn, SharedStoreSettings } from '@/types'
+import type { Employee, EmployeeCredential, Product, Batch, Customer, CreditLedgerEntry, Sale, SaleItem, Payment, DaySession, OutboxEntry, AuditLogEntry, Vendor, Grn, RtvSession, RtvItem, ExternalStaff, AttendanceLog, LeaveRequest, CashEntry, Expense, PerformanceTargets, SaleReturn, SharedStoreSettings } from '@/types'
 import { DB_NAME } from '@/constants/app'
 import { createSyncId } from '@/utils/syncIds'
 
 export class PosDatabase extends Dexie {
   employees!: Table<Employee>
+  employee_credentials!: Table<EmployeeCredential, number>
   products!: Table<Product>
   batches!: Table<Batch>
   customers!: Table<Customer>
@@ -401,6 +402,61 @@ export class PosDatabase extends Dexie {
           if (!request.syncId) {
             request.syncId = request.id ? `legacy-leave-${request.id}` : createSyncId('leave')
           }
+        })
+      })
+
+    this.version(14)
+      .stores({
+        employees:            '++id, role, isActive, credentialUpdatedAt',
+        employee_credentials: '&employeeId, updatedAt',
+        products:             '++id, barcode, sku, category, stock, reorderLevel',
+        batches:              '++id, productId, expiryDate, batchNo, grnId',
+        customers:            '++id, phone, name',
+        sales:                '++id, billNo, customerId, cashierId, status, createdAt',
+        sale_returns:         '++id, &syncId, saleId, billNo, createdAt',
+        sale_items:           '++id, saleId, productId, batchId',
+        payments:             '++id, saleId, method, createdAt',
+        credit_ledger:        '++id, &syncId, customerId, saleId, entryType, createdAt',
+        day_sessions:         '++id, &syncId, openedBy, status, openedAt',
+        outbox:               '++id, status, action, entityType, createdAt, updatedAt',
+        audit_log:            '++id, action, entityType, createdAt, userId',
+        vendors:              '++id, &syncId, name, isActive',
+        grns:                 '++id, &syncId, createdAt, createdBy',
+        rtvs:                 '++id, &syncId, createdAt, createdBy',
+        rtv_items:            '++id, rtvId, productId, batchId',
+        staff_external:       '++id, &syncId, name, isActive',
+        attendance_logs:      '++id, &syncId, staffId, date, [staffType+date], status, loggedBy',
+        leave_requests:       '++id, &syncId, employeeId, status, startDate, [employeeId+status]',
+        cash_entries:         '++id, &syncId, sessionId, createdAt, authorizedBy',
+        expenses:             '++id, &syncId, date, category, createdAt, updatedAt',
+        performance_targets:  '&key, updatedAt',
+        store_settings:       '&key, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        const employeeCredentialTable = tx.table('employee_credentials')
+        const employees = await tx.table('employees').toArray()
+        const credentialsToCache = employees.flatMap((employee) => {
+          const legacyEmployee = employee as Employee & { pinHash?: string }
+          if (!employee.id || !legacyEmployee.pinHash) return []
+
+          return [{
+            employeeId: employee.id,
+            pinHash: legacyEmployee.pinHash,
+            updatedAt: employee.updatedAt ?? employee.createdAt ?? new Date(),
+          }]
+        })
+
+        if (credentialsToCache.length > 0) {
+          await employeeCredentialTable.bulkPut(credentialsToCache)
+        }
+
+        await tx.table('employees').toCollection().modify((employee: Employee) => {
+          const legacyEmployee = employee as Employee & { pinHash?: string; passwordHash?: string }
+          if (legacyEmployee.pinHash) {
+            employee.credentialUpdatedAt = employee.credentialUpdatedAt ?? employee.updatedAt ?? employee.createdAt ?? new Date()
+            delete legacyEmployee.pinHash
+          }
+          delete legacyEmployee.passwordHash
         })
       })
   }
