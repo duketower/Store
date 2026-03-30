@@ -49,6 +49,13 @@ Documentation must be updated as part of the same task whenever the underlying p
 - `PROJECT_PLAN.md`
 - `TASK_QUEUE.md`
 - `DECISIONS.md`
+- `SONAR_RUNBOOK.md` for repo-wide SonarCloud access and review workflow
+
+## Shared Access Secrets
+
+- Never commit live SonarCloud, Firebase, Cloudflare, or other service tokens into tracked files
+- For SonarCloud access, use the root `SONAR_RUNBOOK.md` and a local-only `.sonar.env.local` file
+- If access details change, update the runbook and any referencing docs in the same task
 
 ## Commit Discipline
 

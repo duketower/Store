@@ -32,6 +32,7 @@ Store/
 ## Documentation System
 
 - Workspace docs live at the root: `CLAUDE.md`, `ARCHITECTURE.md`, `PROJECT_PLAN.md`, `TASK_QUEUE.md`, `DECISIONS.md`
+- Repo-wide security review access and SonarCloud workflow live in `SONAR_RUNBOOK.md`
 - Each real project also has its own local documentation set
 - `Websites/` and `Bots/` stay lightweight and act as project collections
 

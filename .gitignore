@@ -1,4 +1,5 @@
 .env
+.sonar.env.local
 credentials.json
 __pycache__/
 *.pyc
