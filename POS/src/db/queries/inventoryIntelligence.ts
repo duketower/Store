@@ -1,5 +1,5 @@
-import { db } from '@/db'
 import type { Product } from '@/types'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 
 export interface ProductIntelligence {
   product: Product
@@ -28,25 +28,22 @@ const WINDOW_DAYS     = 30   // lookback window for avg daily sales
 
 export async function getInventoryIntelligence(): Promise<InventoryIntelligence> {
   const thirtyDaysAgo = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000)
+  const { products, sales } = useFirestoreDataStore.getState()
 
-  const [products, recentSales] = await Promise.all([
-    db.products.filter((p) => p.isActive !== false).toArray(),
-    db.sales.where('createdAt').aboveOrEqual(thirtyDaysAgo).toArray(),
-  ])
+  const activeProducts = products.filter((p) => p.isActive !== false)
 
-  // Build sold-quantity map from recent sale items
+  // Build sold-quantity map from embedded sale items
   const soldMap = new Map<number, number>()
-  if (recentSales.length > 0) {
-    const recentSaleIds = new Set(recentSales.map((s) => s.id!))
-    const recentItems = await db.sale_items
-      .filter((si) => recentSaleIds.has(si.saleId))
-      .toArray()
-    for (const item of recentItems) {
+  for (const sale of sales) {
+    const saleDate = sale.createdAt instanceof Date ? sale.createdAt : new Date(sale.createdAt)
+    if (saleDate < thirtyDaysAgo) continue
+    if (!Array.isArray(sale.items)) continue
+    for (const item of sale.items) {
       soldMap.set(item.productId, (soldMap.get(item.productId) ?? 0) + item.qty)
     }
   }
 
-  const items: ProductIntelligence[] = products.map((p) => {
+  const items: ProductIntelligence[] = activeProducts.map((p) => {
     const soldLast30Days = soldMap.get(p.id!) ?? 0
     const avgDailySales  = soldLast30Days / WINDOW_DAYS
 
@@ -55,10 +52,10 @@ export async function getInventoryIntelligence(): Promise<InventoryIntelligence>
       : null
 
     let velocity: ProductIntelligence['velocity']
-    if (avgDailySales === 0)              velocity = 'dead'
-    else if (avgDailySales > FAST_THRESHOLD)  velocity = 'fast'
-    else if (avgDailySales > SLOW_THRESHOLD)  velocity = 'normal'
-    else                                      velocity = 'slow'
+    if (avgDailySales === 0)                   velocity = 'dead'
+    else if (avgDailySales > FAST_THRESHOLD)   velocity = 'fast'
+    else if (avgDailySales > SLOW_THRESHOLD)   velocity = 'normal'
+    else                                       velocity = 'slow'
 
     return {
       product: p,

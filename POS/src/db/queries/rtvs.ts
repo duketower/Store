@@ -1,9 +1,7 @@
-import { db } from '@/db'
 import type { RtvSession, RtvItem } from '@/types'
 import { createEntityId, createSyncId } from '@/utils/syncIds'
-import { toFiniteNumber } from '@/utils/numbers'
-import { queueOutboxEntry } from './outbox'
 import { syncRtvToFirestore } from '@/services/firebase/sync'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 
 export async function createRtvTransaction(
   rtv: Omit<RtvSession, 'id'> & { id?: number },
@@ -11,68 +9,35 @@ export async function createRtvTransaction(
 ): Promise<number> {
   const createdAt = rtv.createdAt ?? new Date()
   const syncId = rtv.syncId ?? createSyncId('rtv')
-  const rtvItems: RtvItem[] = []
   const rtvId = rtv.id ?? createEntityId()
+  const rtvItems: RtvItem[] = items.map((item) => ({ ...item, rtvId }))
 
-  await db.transaction('rw', [db.rtvs, db.rtv_items, db.batches, db.products, db.outbox], async () => {
-    const rtvPayload: RtvSession = { ...rtv, id: rtvId, syncId, createdAt }
-    await db.rtvs.put(rtvPayload)
-
-    for (const item of items) {
-      const rtvItem: RtvItem = { ...item, rtvId }
-      await db.rtv_items.add(rtvItem)
-      rtvItems.push(rtvItem)
-
-      await db.batches.where('id').equals(item.batchId).modify((b) => {
-        b.qtyRemaining = Math.max(0, toFiniteNumber(b.qtyRemaining) - item.qty)
-      })
-      await db.products.where('id').equals(item.productId).modify((p) => {
-        p.stock = toFiniteNumber(p.stock) - item.qty
-        p.updatedAt = createdAt
-      })
-    }
-
-    await queueOutboxEntry({
-      action: 'create_rtv',
-      entityType: 'rtv',
-      entityKey: syncId,
-      payload: JSON.stringify({
-        rtv: {
-          ...rtvPayload,
-          id: rtvId,
-          syncId,
-          createdAt: createdAt.toISOString(),
-        },
-        items: rtvItems,
-      }),
-      createdAt,
-    })
-  })
-
-  syncRtvToFirestore({
-    rtv: {
-      ...rtv,
-      id: rtvId,
-      syncId,
-      createdAt,
-    },
+  await syncRtvToFirestore({
+    rtv: { ...rtv, id: rtvId, syncId, createdAt },
     items: rtvItems,
-  }).catch((err: unknown) => console.warn('[Firestore] RTV sync failed (will retry):', err))
+  })
 
   return rtvId
 }
 
 export async function getAllRtvs(): Promise<RtvSession[]> {
-  const entries = await db.rtvs.toArray()
-  return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  const rtvs = useFirestoreDataStore.getState().rtvs
+  return [...rtvs].sort((a, b) => {
+    const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime()
+    const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime()
+    return bTime - aTime
+  })
 }
 
 export async function getRtvItems(rtvId: number): Promise<Array<RtvItem & { productName: string }>> {
-  const items = await db.rtv_items.where('rtvId').equals(rtvId).toArray()
-  return Promise.all(
-    items.map(async (item) => {
-      const product = await db.products.get(item.productId)
-      return { ...item, productName: product?.name ?? `Product #${item.productId}` }
-    })
-  )
+  const { rtvs, products } = useFirestoreDataStore.getState()
+  const rtv = rtvs.find((r) => r.id === rtvId)
+  const items: RtvItem[] = (rtv as (RtvSession & { items?: RtvItem[] }) | undefined)?.items ?? []
+  return items.map((item) => {
+    const product = products.find((p) => p.id === item.productId)
+    return { ...item, productName: product?.name ?? `Product #${item.productId}` }
+  })
 }
+
+// Legacy alias
+export const getAllRtvSessions = getAllRtvs

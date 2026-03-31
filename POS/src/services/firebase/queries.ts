@@ -15,8 +15,13 @@ import {
   type QuerySnapshot,
 } from 'firebase/firestore'
 import { firestore } from '.'
-import { db } from '@/db'
-import { DEFAULT_PERFORMANCE_TARGETS } from '@/db/queries/performanceTargets'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
+
+const DEFAULT_PERFORMANCE_TARGETS = {
+  monthlySalesTarget: 0,
+  monthlyBreakEvenTarget: 0,
+  updatedAt: new Date(0),
+}
 import type { CashEntry, DaySession } from '@/types'
 
 export interface SalesAggregate {
@@ -162,7 +167,7 @@ function finaliseAggregate(
 }
 
 async function buildEstimatedCostMap(): Promise<Map<number, number>> {
-  const [products, batches] = await Promise.all([db.products.toArray(), db.batches.toArray()])
+  const { products, batches } = useFirestoreDataStore.getState()
   const costMap = new Map<number, number>()
 
   for (const product of products) {

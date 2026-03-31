@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'

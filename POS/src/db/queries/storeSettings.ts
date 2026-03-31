@@ -1,9 +1,8 @@
-import { db } from '@/db'
 import type { SharedStoreSettings, StoreConfig } from '@/types'
 import { syncStoreSettingsToFirestore } from '@/services/firebase/sync'
-import { queueOutboxEntry } from './outbox'
 import { CLIENT_CONFIG } from '@/constants/clientConfig'
 import { persistStoreConfigCache } from '@/utils/storeConfig'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 
 const STORE_SETTINGS_KEY: SharedStoreSettings['key'] = 'store_details'
 
@@ -14,7 +13,7 @@ export const DEFAULT_STORE_SETTINGS: SharedStoreSettings = {
 }
 
 export async function getStoreSettings(): Promise<SharedStoreSettings> {
-  const settings = await db.store_settings.get(STORE_SETTINGS_KEY)
+  const settings = useFirestoreDataStore.getState().storeSettings
   if (settings) {
     persistStoreConfigCache(settings.config)
     return settings
@@ -38,26 +37,11 @@ export async function putStoreSettings(input: {
 
   persistStoreConfigCache(settings.config)
 
-  await db.transaction('rw', [db.store_settings, db.outbox], async () => {
-    await db.store_settings.put(settings)
-    await queueOutboxEntry({
-      action: 'set_store_settings',
-      entityType: 'store_settings',
-      entityKey: STORE_SETTINGS_KEY,
-      payload: JSON.stringify({
-        config: settings.config,
-        updatedAt: settings.updatedAt.toISOString(),
-        updatedBy: settings.updatedBy ?? null,
-      }),
-      createdAt: settings.updatedAt,
-    })
-  })
-
-  syncStoreSettingsToFirestore({
+  await syncStoreSettingsToFirestore({
     config: settings.config,
     updatedAt: settings.updatedAt,
     updatedBy: settings.updatedBy,
-  }).catch((err: unknown) => console.warn('[Firestore] store settings sync failed (will retry):', err))
+  })
 
   return settings
 }

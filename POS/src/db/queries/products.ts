@@ -1,8 +1,8 @@
-import { db } from '@/db'
 import type { Product } from '@/types'
 import { syncProductToFirestore } from '@/services/firebase/sync'
-import { queueOutboxEntry } from './outbox'
 import { createEntityId } from '@/utils/syncIds'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
+import { toFiniteNumber } from '@/utils/numbers'
 
 function buildProductSyncPayload(product: Product, id: number) {
   return {
@@ -28,29 +28,16 @@ function buildProductSyncPayload(product: Product, id: number) {
   }
 }
 
-async function queueProductSync(product: Product, id: number, createdAt: Date): Promise<void> {
-  const payload = buildProductSyncPayload(product, id)
-  await queueOutboxEntry({
-    action: 'upsert_product',
-    entityType: 'product',
-    entityKey: String(id),
-    payload: JSON.stringify({
-      ...payload,
-      createdAt: payload.createdAt.toISOString(),
-      updatedAt: payload.updatedAt.toISOString(),
-    }),
-    createdAt,
-  })
-}
-
 export async function getProductByBarcode(barcode: string): Promise<Product | undefined> {
-  return db.products.where('barcode').equals(barcode).first()
+  const products = useFirestoreDataStore.getState().products
+  return products.find((p) => p.barcode === barcode)
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {
   const q = query.toLowerCase().trim()
   if (!q) return []
-  return db.products
+  const products = useFirestoreDataStore.getState().products
+  return products
     .filter(
       (p) =>
         p.isActive !== false &&
@@ -58,30 +45,54 @@ export async function searchProducts(query: string): Promise<Product[]> {
           (p.barcode ?? '').includes(q) ||
           (p.sku ?? '').toLowerCase().includes(q))
     )
-    .limit(50)
-    .toArray()
+    .slice(0, 50)
 }
 
 export async function getAllProducts(): Promise<Product[]> {
-  return db.products.toArray()
+  return useFirestoreDataStore.getState().products
 }
 
 export async function getProductById(id: number): Promise<Product | undefined> {
-  return db.products.get(id)
+  const products = useFirestoreDataStore.getState().products
+  return products.find((p) => p.id === id)
 }
 
 export async function updateStock(productId: number, delta: number): Promise<void> {
-  await db.products
-    .where('id')
-    .equals(productId)
-    .modify((product) => {
-      product.stock = product.stock + delta
-      product.updatedAt = new Date()
-    })
+  // Stock is updated atomically in syncSaleToFirestore / syncRtvToFirestore.
+  // This no-op keeps the call sites in old flow compiling.
+  const product = useFirestoreDataStore.getState().products.find((p) => p.id === productId)
+  if (!product) return
+  const now = new Date()
+  const updated: Product = { ...product, stock: toFiniteNumber(product.stock) + delta, updatedAt: now }
+  await syncProductToFirestore(buildProductSyncPayload(updated, productId))
+}
+
+export async function getProductStock(productId: number): Promise<number> {
+  const batches = useFirestoreDataStore.getState().batches
+  return batches
+    .filter((b) => b.productId === productId)
+    .reduce((sum, b) => sum + toFiniteNumber(b.qtyRemaining), 0)
 }
 
 export async function getLowStockProducts(): Promise<Product[]> {
-  return db.products.filter((p) => p.stock <= p.reorderLevel).toArray()
+  const products = useFirestoreDataStore.getState().products
+  return products.filter((p) => p.stock <= p.reorderLevel)
+}
+
+export async function getNearExpiryBatches(withinDays: number): Promise<
+  Array<{ productName?: string } & import('@/types').Batch>
+> {
+  const cutoff = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000)
+  const { batches, products } = useFirestoreDataStore.getState()
+  return batches
+    .filter((b) => {
+      const expiry = b.expiryDate instanceof Date ? b.expiryDate : new Date(b.expiryDate)
+      return toFiniteNumber(b.qtyRemaining) > 0 && expiry <= cutoff
+    })
+    .map((b) => {
+      const product = products.find((p) => p.id === b.productId)
+      return { ...b, productName: product?.name }
+    })
 }
 
 export async function upsertProduct(product: Omit<Product, 'id'> & { id?: number }): Promise<number> {
@@ -90,55 +101,26 @@ export async function upsertProduct(product: Omit<Product, 'id'> & { id?: number
   let saved: Product
 
   if (product.id) {
-    saved = { ...product, updatedAt: now }
-    await db.transaction('rw', [db.products, db.outbox], async () => {
-      await db.products.update(product.id!, saved)
-      await queueProductSync(saved, product.id!, now)
-    })
     id = product.id
+    saved = { ...product, id, updatedAt: now }
   } else {
     id = createEntityId()
     saved = { ...product, id, createdAt: now, updatedAt: now }
-    id = await db.transaction('rw', [db.products, db.outbox], async () => {
-      await db.products.put(saved)
-      await queueProductSync(saved, id, now)
-      return id
-    })
   }
 
-  syncProductToFirestore(buildProductSyncPayload(saved, id))
+  await syncProductToFirestore(buildProductSyncPayload(saved, id))
   return id
 }
 
 export async function adjustStock(
   productId: number,
   delta: number,
-  reason: string,
-  userId: number
+  _reason: string,
+  _userId: number
 ): Promise<void> {
-  const product = await db.products.get(productId)
+  const product = useFirestoreDataStore.getState().products.find((p) => p.id === productId)
   if (!product) throw new Error('Product not found')
-  const before = product.stock
-  const after = before + delta
   const now = new Date()
-  const saved: Product = {
-    ...product,
-    stock: after,
-    updatedAt: now,
-  }
-
-  await db.transaction('rw', [db.products, db.audit_log, db.outbox], async () => {
-    await db.products.put(saved)
-    await db.audit_log.add({
-      action: 'stock_adjust',
-      entityType: 'product',
-      entityId: productId,
-      detail: JSON.stringify({ productName: product.name, before, after, delta, reason }),
-      userId,
-      createdAt: now,
-    })
-    await queueProductSync(saved, productId, now)
-  })
-
-  syncProductToFirestore(buildProductSyncPayload(saved, productId))
+  const saved: Product = { ...product, stock: toFiniteNumber(product.stock) + delta, updatedAt: now }
+  await syncProductToFirestore(buildProductSyncPayload(saved, productId))
 }

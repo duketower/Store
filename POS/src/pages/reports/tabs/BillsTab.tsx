@@ -8,7 +8,7 @@ import { formatCurrency } from '@/utils/currency'
 import { formatDateTime } from '@/utils/date'
 import { useAuth } from '@/hooks/useAuth'
 import { roundCurrency } from '@/utils/numbers'
-import type { Sale, SaleItem, Payment, Customer } from '@/types'
+import type { Sale, SaleItem, Payment } from '@/types'
 
 export interface BillRow {
   sale: Sale

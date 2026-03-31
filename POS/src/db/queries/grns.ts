@@ -1,24 +1,25 @@
-import { db } from '@/db'
 import type { Grn, Batch } from '@/types'
-import { createEntityId } from '@/utils/syncIds'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 
-export async function createGrn(grn: Omit<Grn, 'id'> & { id?: number }): Promise<number> {
-  const id = grn.id ?? createEntityId()
-  await db.grns.put({ ...grn, id })
-  return id
+export async function createGrn(_grn: Omit<Grn, 'id'> & { id?: number }): Promise<number> {
+  // No-op: the real GRN sync is done directly by the page via syncGrnToFirestore.
+  return Promise.resolve(_grn.id ?? Date.now())
 }
 
 export async function getAllGrns(): Promise<Grn[]> {
-  const entries = await db.grns.toArray()
-  return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  const grns = useFirestoreDataStore.getState().grns
+  return [...grns].sort((a, b) => {
+    const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime()
+    const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime()
+    return bTime - aTime
+  })
 }
 
 export async function getGrnBatches(grnId: number): Promise<Array<Batch & { productName: string }>> {
-  const batches = await db.batches.where('grnId').equals(grnId).toArray()
-  return Promise.all(
-    batches.map(async (b) => {
-      const product = await db.products.get(b.productId)
-      return { ...b, productName: product?.name ?? `Product #${b.productId}` }
-    })
-  )
+  const { batches, products } = useFirestoreDataStore.getState()
+  const grnBatches = batches.filter((b) => b.grnId === grnId)
+  return grnBatches.map((b) => {
+    const product = products.find((p) => p.id === b.productId)
+    return { ...b, productName: product?.name ?? `Product #${b.productId}` }
+  })
 }

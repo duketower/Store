@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Truck, Printer } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
-import { getAllGrns, getGrnBatches } from '@/db/queries/grns'
+import { getGrnBatches } from '@/db/queries/grns'
 import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate, formatDateTime } from '@/utils/date'

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Edit2, UserCheck, UserX, ShieldCheck } from 'lucide-react'
 import bcrypt from 'bcryptjs'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { useUiStore } from '@/stores/uiStore'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import type { Employee, Role } from '@/types'
-import { getAllEmployees, setEmployeeActive, upsertEmployee } from '@/db/queries/employees'
+import { setEmployeeActive, upsertEmployee } from '@/db/queries/employees'
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
@@ -24,10 +24,9 @@ export function UsersPage() {
   const { addToast } = useUiStore()
   const [formOpen, setFormOpen] = useState(false)
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
-  const employees = useLiveQuery(async () => {
-    const all = await getAllEmployees()
-    return all.sort((a, b) => a.name.localeCompare(b.name))
-  }, []) ?? []
+  const employees = useFirestoreDataStore((s) =>
+    [...s.employees].sort((a, b) => a.name.localeCompare(b.name))
+  )
 
   const toggleActive = async (emp: Employee) => {
     const newActive = !emp.isActive

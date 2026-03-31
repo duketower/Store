@@ -1,37 +1,28 @@
-import { db } from '@/db'
 import type { Batch } from '@/types'
 import { planFEFODeduction } from '@/utils/fefo'
-import { createEntityId } from '@/utils/syncIds'
 import { toFiniteNumber } from '@/utils/numbers'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
+import { syncBatchToFirestore } from '@/services/firebase/sync'
 
 export async function getBatchesForProduct(productId: number): Promise<Batch[]> {
-  return db.batches.where('productId').equals(productId).toArray()
+  const batches = useFirestoreDataStore.getState().batches
+  return batches.filter((b) => b.productId === productId)
 }
 
 // Returns batches sorted by expiryDate ASC (FEFO order) with qty > 0
 export async function getBatchesFEFO(productId: number): Promise<Batch[]> {
-  const batches = await db.batches
-    .where('productId')
-    .equals(productId)
-    .filter((b) => toFiniteNumber(b.qtyRemaining) > 0)
-    .toArray()
-  return batches.sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime())
-}
-
-// Deduct qty from a specific batch
-export async function deductBatch(batchId: number, qty: number): Promise<void> {
-  await db.batches
-    .where('id')
-    .equals(batchId)
-    .modify((batch) => {
-      const currentQty = toFiniteNumber(batch.qtyRemaining)
-      batch.qtyRemaining = Math.max(0, currentQty - qty)
+  const batches = useFirestoreDataStore.getState().batches
+  return batches
+    .filter((b) => b.productId === productId && toFiniteNumber(b.qtyRemaining) > 0)
+    .sort((a, b) => {
+      const aTime = a.expiryDate instanceof Date ? a.expiryDate.getTime() : new Date(a.expiryDate).getTime()
+      const bTime = b.expiryDate instanceof Date ? b.expiryDate.getTime() : new Date(b.expiryDate).getTime()
+      return aTime - bTime
     })
 }
 
-// Plan and execute FEFO deduction across batches for a product.
-// If batch stock is insufficient (out-of-stock or no batches), deducts what's available
-// and proceeds — product.stock will go negative, to be corrected via GRN later.
+// Plan FEFO deduction — read-only, no DB writes.
+// Returns plan: Array<{batchId, deductQty, purchasePrice}>
 export async function deductStockFEFO(
   productId: number,
   totalQty: number
@@ -40,11 +31,6 @@ export async function deductStockFEFO(
   const plan = planFEFODeduction(batches, totalQty)
   const batchPriceMap = new Map(batches.map((batch) => [batch.id!, batch.purchasePrice]))
 
-  // Execute whatever the plan covers — no throw on shortfall
-  for (const { batchId, deductQty } of plan) {
-    await deductBatch(batchId, deductQty)
-  }
-
   return plan.map(({ batchId, deductQty }) => ({
     batchId,
     deductQty,
@@ -52,25 +38,25 @@ export async function deductStockFEFO(
   }))
 }
 
+export async function addBatch(batch: Omit<Batch, 'id'> & { id?: number }): Promise<number> {
+  const id = batch.id ?? Date.now()
+  await syncBatchToFirestore({ ...batch, id } as Parameters<typeof syncBatchToFirestore>[0])
+  return id
+}
+
 // Get near-expiry batches (within days threshold)
 export async function getNearExpiryBatches(withinDays: number): Promise<
   Array<Batch & { productName?: string }>
 > {
   const cutoff = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000)
-  const batches = await db.batches
-    .filter((b) => toFiniteNumber(b.qtyRemaining) > 0 && b.expiryDate <= cutoff)
-    .toArray()
-
-  return Promise.all(
-    batches.map(async (b) => {
-      const product = await db.products.get(b.productId)
+  const { batches, products } = useFirestoreDataStore.getState()
+  return batches
+    .filter((b) => {
+      const expiry = b.expiryDate instanceof Date ? b.expiryDate : new Date(b.expiryDate)
+      return toFiniteNumber(b.qtyRemaining) > 0 && expiry <= cutoff
+    })
+    .map((b) => {
+      const product = products.find((p) => p.id === b.productId)
       return { ...b, productName: product?.name }
     })
-  )
-}
-
-export async function addBatch(batch: Omit<Batch, 'id'> & { id?: number }): Promise<number> {
-  const id = batch.id ?? createEntityId()
-  await db.batches.put({ ...batch, id })
-  return id
 }
