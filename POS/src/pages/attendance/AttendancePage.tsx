@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   ChevronLeft, ChevronRight, Download, Plus, Edit2, UserCheck, UserX,
   Clock, CheckCircle, XCircle, Calendar,
@@ -8,29 +7,21 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import { useUiStore } from '@/stores/uiStore'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import {
-  getAttendanceBoard,
   upsertAttendanceLog,
   clockIn,
   clockOut,
-  getTodayLog,
-  getMyAttendance,
   getLeaveBalance,
   submitLeaveRequest,
-  getLeaveRequests,
-  getMyLeaveRequests,
   getLastNLeaves,
   approveLeave,
   rejectLeave,
-  getExternalStaff,
-  getActiveExternalStaff,
   upsertExternalStaff,
   toggleExternalStaffActive,
   getLeaveExport,
 } from '@/db/queries/attendance'
 import { formatDate } from '@/utils/date'
-import { textChecksum, toTimeValue } from '@/utils/syncPulse'
 import type {
   AttendanceLog,
   AttendanceStatus,
@@ -40,7 +31,6 @@ import type {
   LeaveType,
   StaffType,
 } from '@/types'
-import type { Employee } from '@/types'
 
 type AttendanceTab = 'board' | 'leaves' | 'my' | 'external'
 
@@ -105,21 +95,6 @@ function downloadCsv(rows: string[][], filename: string) {
 export function AttendancePage() {
   const { role } = useAuth()
   const today = new Date()
-  const syncKey = useLiveQuery(async () => {
-    const [employees, externalStaff, attendanceLogs, leaveRequests] = await Promise.all([
-      db.employees.toArray(),
-      db.staff_external.toArray(),
-      db.attendance_logs.toArray(),
-      db.leave_requests.toArray(),
-    ])
-
-    return [
-      `employees:${employees.length}:${employees.reduce((sum, employee) => sum + (employee.isActive ? 1 : 0) + textChecksum(employee.name) + textChecksum(employee.role), 0)}:${employees.reduce((sum, employee) => sum + toTimeValue(employee.updatedAt ?? employee.createdAt), 0)}`,
-      `external:${externalStaff.length}:${externalStaff.reduce((sum, staff) => sum + (staff.isActive ? 1 : 0) + textChecksum(staff.name) + textChecksum(staff.designation), 0)}:${externalStaff.reduce((sum, staff) => sum + toTimeValue(staff.updatedAt ?? staff.createdAt), 0)}`,
-      `attendance:${attendanceLogs.length}:${attendanceLogs.reduce((sum, log) => sum + textChecksum(log.status) + textChecksum(log.date) + toTimeValue(log.checkIn) + toTimeValue(log.checkOut), 0)}`,
-      `leave:${leaveRequests.length}:${leaveRequests.reduce((sum, request) => sum + textChecksum(request.status) + textChecksum(request.startDate) + textChecksum(request.endDate) + toTimeValue(request.createdAt) + toTimeValue(request.approvedAt), 0)}`,
-    ].join('|')
-  }, []) ?? 'boot'
   const [tab, setTab] = useState<AttendanceTab>(() => {
     if (role === 'admin' || role === 'manager') return 'board'
     return 'my'
@@ -153,10 +128,10 @@ export function AttendancePage() {
         ))}
       </div>
 
-      {tab === 'board'    && <BoardTab today={today} syncKey={syncKey} />}
-      {tab === 'leaves'   && <LeavesTab syncKey={syncKey} />}
-      {tab === 'my'       && <MyAttendanceTab today={today} syncKey={syncKey} />}
-      {tab === 'external' && <ExternalStaffTab today={today} syncKey={syncKey} />}
+      {tab === 'board'    && <BoardTab today={today} />}
+      {tab === 'leaves'   && <LeavesTab />}
+      {tab === 'my'       && <MyAttendanceTab today={today} />}
+      {tab === 'external' && <ExternalStaffTab today={today} />}
     </PageContainer>
   )
 }
@@ -165,28 +140,40 @@ export function AttendancePage() {
 // Tab 1: Board
 // ─────────────────────────────────────────────────────────────────────────────
 
-function BoardTab({ today, syncKey }: { today: Date; syncKey: string }) {
+function BoardTab({ today }: { today: Date }) {
   const { addToast } = useUiStore()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [externalStaff, setExternalStaff] = useState<ExternalStaff[]>([])
-  const [board, setBoard] = useState<Map<string, AttendanceLog[]>>(new Map())
   const [logModal, setLogModal] = useState<{ staffId: number; staffType: StaffType; name: string; date: string } | null>(null)
   const [exporting, setExporting] = useState(false)
 
-  const load = useCallback(async () => {
-    const [emps, ext, brd] = await Promise.all([
-      db.employees.where('isActive').equals(1).sortBy('name'),
-      getActiveExternalStaff(),
-      getAttendanceBoard(year, month),
-    ])
-    setEmployees(emps)
-    setExternalStaff(ext)
-    setBoard(brd)
-  }, [year, month])
+  // Reactive store subscriptions
+  const storeEmployees = useFirestoreDataStore(s => s.employees)
+  const storeExternal = useFirestoreDataStore(s => s.staffExternal)
+  const storeAttendanceLogs = useFirestoreDataStore(s => s.attendanceLogs)
 
-  useEffect(() => { load() }, [load, syncKey])
+  // Derived data from store
+  const employees = useMemo(
+    () => storeEmployees.filter(e => e.isActive).sort((a, b) => a.name.localeCompare(b.name)),
+    [storeEmployees]
+  )
+
+  const externalStaff = useMemo(
+    () => storeExternal.filter(s => s.isActive !== false).sort((a, b) => a.name.localeCompare(b.name)),
+    [storeExternal]
+  )
+
+  const board = useMemo(() => {
+    const prefix = `${year}-${pad(month)}-`
+    const logs = storeAttendanceLogs.filter(l => l.date.startsWith(prefix))
+    const map = new Map<string, AttendanceLog[]>()
+    for (const log of logs) {
+      const arr = map.get(log.date) ?? []
+      arr.push(log)
+      map.set(log.date, arr)
+    }
+    return map
+  }, [storeAttendanceLogs, year, month])
 
   const days = Array.from({ length: daysInMonth(year, month) }, (_, i) => i + 1)
 
@@ -326,7 +313,7 @@ function BoardTab({ today, syncKey }: { today: Date; syncKey: string }) {
           staffName={logModal.name}
           date={logModal.date}
           onClose={() => setLogModal(null)}
-          onSaved={async () => { setLogModal(null); await load() }}
+          onSaved={() => setLogModal(null)}
         />
       )}
     </div>
@@ -417,50 +404,59 @@ function LogAttendanceModal({
 // Tab 2: Leave Requests (admin/manager)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LeavesTab({ syncKey }: { syncKey: string }) {
+function LeavesTab() {
   const { addToast } = useUiStore()
   const { employeeId } = useAuth()
-  const [pending, setPending] = useState<(LeaveRequest & { employeeName: string })[]>([])
-  const [history, setHistory] = useState<(LeaveRequest & { employeeName: string })[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [approveModal, setApproveModal] = useState<LeaveRequest & { employeeName: string } | null>(null)
   const [rejectModal, setRejectModal] = useState<LeaveRequest & { employeeName: string } | null>(null)
 
-  const load = useCallback(async () => {
-    const [pend, hist, allEmps] = await Promise.all([
-      getLeaveRequests('pending'),
-      getLeaveRequests('approved').then(async approved => {
-        const rejected = await getLeaveRequests('rejected')
-        return [...approved, ...rejected].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      }),
-      db.employees.toArray(),
-    ])
-    const empMap = new Map(allEmps.map(e => [e.id!, e.name]))
-    const enrich = (r: LeaveRequest) => ({ ...r, employeeName: empMap.get(r.employeeId) ?? `#${r.employeeId}` })
-    setPending(pend.map(enrich))
-    setHistory(hist.map(enrich))
-  }, [])
+  // Reactive store subscriptions
+  const storeLeaveRequests = useFirestoreDataStore(s => s.leaveRequests)
+  const storeEmployees = useFirestoreDataStore(s => s.employees)
 
-  useEffect(() => { load() }, [load, syncKey])
+  const empMap = useMemo(
+    () => new Map(storeEmployees.map(e => [e.id!, e.name])),
+    [storeEmployees]
+  )
 
-  const handleApprove = async (id: number) => {
+  const enrich = useCallback(
+    (r: LeaveRequest) => ({ ...r, employeeName: empMap.get(r.employeeId) ?? `#${r.employeeId}` }),
+    [empMap]
+  )
+
+  const pending = useMemo(
+    () => storeLeaveRequests
+      .filter(r => r.status === 'pending')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(enrich),
+    [storeLeaveRequests, enrich]
+  )
+
+  const history = useMemo(
+    () => storeLeaveRequests
+      .filter(r => r.status === 'approved' || r.status === 'rejected')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(enrich),
+    [storeLeaveRequests, enrich]
+  )
+
+  const handleApprove = async (req: LeaveRequest & { employeeName: string }) => {
     try {
-      await approveLeave(id, employeeId!)
+      await approveLeave(req.syncId!, employeeId!)
       addToast('success', 'Leave approved')
       setApproveModal(null)
-      await load()
     } catch (e: unknown) {
       addToast('error', e instanceof Error ? e.message : 'Failed')
     }
   }
 
-  const handleReject = async (id: number, reason: string) => {
+  const handleReject = async (req: LeaveRequest & { employeeName: string }, reason: string) => {
     if (!reason.trim()) { addToast('error', 'Rejection reason required'); return }
     try {
-      await rejectLeave(id, employeeId!, reason)
+      await rejectLeave(req.syncId!, employeeId!, reason)
       addToast('success', 'Leave rejected')
       setRejectModal(null)
-      await load()
     } catch {
       addToast('error', 'Failed')
     }
@@ -482,7 +478,7 @@ function LeavesTab({ syncKey }: { syncKey: string }) {
         ) : (
           <div className="space-y-2">
             {pending.map(req => (
-              <div key={req.id} className="rounded-lg border border-gray-200 bg-white p-4 flex items-start justify-between gap-4">
+              <div key={req.syncId ?? req.id} className="rounded-lg border border-gray-200 bg-white p-4 flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900 text-sm">{req.employeeName}</span>
@@ -528,7 +524,7 @@ function LeavesTab({ syncKey }: { syncKey: string }) {
             {history.length === 0 ? (
               <p className="text-sm text-gray-400 italic">No history</p>
             ) : history.map(req => (
-              <div key={req.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3 flex items-start justify-between gap-4">
+              <div key={req.syncId ?? req.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3 flex items-start justify-between gap-4">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-700 text-sm">{req.employeeName}</span>
@@ -552,7 +548,7 @@ function LeavesTab({ syncKey }: { syncKey: string }) {
       {approveModal && (
         <ApproveLeaveModal
           request={approveModal}
-          onApprove={() => handleApprove(approveModal.id!)}
+          onApprove={() => handleApprove(approveModal)}
           onClose={() => setApproveModal(null)}
         />
       )}
@@ -561,7 +557,7 @@ function LeavesTab({ syncKey }: { syncKey: string }) {
       {rejectModal && (
         <RejectLeaveModal
           request={rejectModal}
-          onReject={reason => handleReject(rejectModal.id!, reason)}
+          onReject={reason => handleReject(rejectModal, reason)}
           onClose={() => setRejectModal(null)}
         />
       )}
@@ -630,7 +626,7 @@ function ApproveLeaveModal({
             <p className="text-xs font-semibold text-gray-600 mb-2">Last {lastLeaves.length} Leave(s)</p>
             <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 text-xs">
               {lastLeaves.map(l => (
-                <div key={l.id} className="flex items-center justify-between px-3 py-2">
+                <div key={l.syncId ?? l.id} className="flex items-center justify-between px-3 py-2">
                   <span className="text-gray-600">{l.startDate === l.endDate ? l.startDate : `${l.startDate} → ${l.endDate}`}</span>
                   <span className="text-gray-500">{LEAVE_TYPE_LABELS[l.leaveType]}</span>
                   <span className={`rounded-full px-2 py-0.5 ${
@@ -706,39 +702,52 @@ function RejectLeaveModal({
 // Tab 3: My Attendance
 // ─────────────────────────────────────────────────────────────────────────────
 
-function MyAttendanceTab({ today, syncKey }: { today: Date; syncKey: string }) {
+function MyAttendanceTab({ today }: { today: Date }) {
   const { employeeId, addToast } = { ...useAuth(), ...useUiStore() }
-  const [todayLog, setTodayLog] = useState<AttendanceLog | undefined>()
   const [balance, setBalance] = useState<LeaveBalance | null>(null)
-  const [myLeaves, setMyLeaves] = useState<LeaveRequest[]>([])
-  const [myLogs, setMyLogs] = useState<AttendanceLog[]>([])
   const [viewMonth, setViewMonth] = useState(`${today.getFullYear()}-${pad(today.getMonth() + 1)}`)
   const [applyOpen, setApplyOpen] = useState(false)
   const [clockingIn, setClockingIn] = useState(false)
   const [clockingOut, setClockingOut] = useState(false)
 
-  const load = useCallback(async () => {
+  // Reactive store subscriptions
+  const storeAttendanceLogs = useFirestoreDataStore(s => s.attendanceLogs)
+  const storeLeaveRequests = useFirestoreDataStore(s => s.leaveRequests)
+
+  const todayStr = today.toISOString().slice(0, 10)
+
+  const todayLog = useMemo(
+    () => employeeId
+      ? storeAttendanceLogs.find(l => l.staffId === employeeId && l.staffType === 'employee' && l.date === todayStr)
+      : undefined,
+    [storeAttendanceLogs, employeeId, todayStr]
+  )
+
+  const myLogs = useMemo(
+    () => employeeId
+      ? storeAttendanceLogs
+          .filter(l => l.staffId === employeeId && l.staffType === 'employee' && l.date.startsWith(viewMonth))
+          .sort((a, b) => a.date.localeCompare(b.date))
+      : [],
+    [storeAttendanceLogs, employeeId, viewMonth]
+  )
+
+  const myLeaves = useMemo(
+    () => employeeId
+      ? storeLeaveRequests
+          .filter(r => r.employeeId === employeeId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      : [],
+    [storeLeaveRequests, employeeId]
+  )
+
+  // Reload leave balance when store data changes (it's a computed value)
+  useEffect(() => {
     if (!employeeId) return
     const year = today.getFullYear()
     const month = today.getMonth() + 1
-    const [log, bal, leaves] = await Promise.all([
-      getTodayLog(employeeId, 'employee'),
-      getLeaveBalance(employeeId, year, month),
-      getMyLeaveRequests(employeeId),
-    ])
-    setTodayLog(log)
-    setBalance(bal)
-    setMyLeaves(leaves)
-  }, [employeeId, today])
-
-  const loadMonthLogs = useCallback(async () => {
-    if (!employeeId) return
-    const logs = await getMyAttendance(employeeId, viewMonth)
-    setMyLogs(logs)
-  }, [employeeId, viewMonth])
-
-  useEffect(() => { load() }, [load, syncKey])
-  useEffect(() => { loadMonthLogs() }, [loadMonthLogs, syncKey])
+    getLeaveBalance(employeeId, year, month).then(setBalance)
+  }, [employeeId, today, storeLeaveRequests])
 
   const handleClockIn = async () => {
     if (!employeeId) return
@@ -746,7 +755,6 @@ function MyAttendanceTab({ today, syncKey }: { today: Date; syncKey: string }) {
     try {
       await clockIn(employeeId, 'employee', employeeId)
       addToast('success', 'Clocked in')
-      await load()
     } catch { addToast('error', 'Failed to clock in') }
     finally { setClockingIn(false) }
   }
@@ -757,7 +765,6 @@ function MyAttendanceTab({ today, syncKey }: { today: Date; syncKey: string }) {
     try {
       await clockOut(employeeId, 'employee', employeeId)
       addToast('success', 'Clocked out')
-      await load()
     } catch { addToast('error', 'Failed to clock out') }
     finally { setClockingOut(false) }
   }
@@ -841,7 +848,7 @@ function MyAttendanceTab({ today, syncKey }: { today: Date; syncKey: string }) {
             <p className="text-xs font-semibold text-gray-600 mb-2">My Leave Requests</p>
             <div className="space-y-2">
               {myLeaves.map(req => (
-                <div key={req.id} className="rounded-lg bg-gray-50 px-3 py-2 text-xs">
+                <div key={req.syncId ?? req.id} className="rounded-lg bg-gray-50 px-3 py-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-700 font-medium">
                       {req.startDate === req.endDate ? req.startDate : `${req.startDate} → ${req.endDate}`}
@@ -881,7 +888,7 @@ function MyAttendanceTab({ today, syncKey }: { today: Date; syncKey: string }) {
         ) : (
           <div className="space-y-1">
             {myLogs.map(log => (
-              <div key={log.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-xs">
+              <div key={log.syncId ?? log.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-xs">
                 <span className="text-gray-600">{log.date}</span>
                 <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_COLORS[log.status]}`}>
                   {log.status === 'half_day' ? 'Half Day' : log.status.charAt(0).toUpperCase() + log.status.slice(1)}
@@ -903,7 +910,7 @@ function MyAttendanceTab({ today, syncKey }: { today: Date; syncKey: string }) {
           balance={balance}
           today={today}
           onClose={() => setApplyOpen(false)}
-          onSaved={async () => { setApplyOpen(false); await load() }}
+          onSaved={() => setApplyOpen(false)}
         />
       )}
     </div>
@@ -1007,36 +1014,37 @@ function ApplyLeaveModal({
 // Tab 4: External Staff (admin only)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ExternalStaffTab({ today, syncKey }: { today: Date; syncKey: string }) {
+function ExternalStaffTab({ today }: { today: Date }) {
   const { employeeId, addToast } = { ...useAuth(), ...useUiStore() }
-  const [staff, setStaff] = useState<ExternalStaff[]>([])
-  const [todayLogs, setTodayLogs] = useState<Map<number, AttendanceLog>>(new Map())
   const [formOpen, setFormOpen] = useState(false)
   const [editStaff, setEditStaff] = useState<ExternalStaff | null>(null)
   const [logging, setLogging] = useState<number | null>(null)
   const todayStr = today.toISOString().slice(0, 10)
 
-  const load = useCallback(async () => {
-    const all = await getExternalStaff()
-    setStaff(all)
-    const [year, month] = [today.getFullYear(), today.getMonth() + 1]
-    const board = await getAttendanceBoard(year, month)
-    const dayLogs = board.get(todayStr) ?? []
-    const map = new Map<number, AttendanceLog>()
-    for (const l of dayLogs) {
-      if (l.staffType === 'external') map.set(l.staffId, l)
-    }
-    setTodayLogs(map)
-  }, [today, todayStr])
+  // Reactive store subscriptions
+  const storeExternal = useFirestoreDataStore(s => s.staffExternal)
+  const storeAttendanceLogs = useFirestoreDataStore(s => s.attendanceLogs)
 
-  useEffect(() => { load() }, [load, syncKey])
+  const staff = useMemo(
+    () => [...storeExternal].sort((a, b) => a.name.localeCompare(b.name)),
+    [storeExternal]
+  )
+
+  const todayLogs = useMemo(() => {
+    const map = new Map<number, AttendanceLog>()
+    for (const l of storeAttendanceLogs) {
+      if (l.staffType === 'external' && l.date === todayStr) {
+        map.set(l.staffId, l)
+      }
+    }
+    return map
+  }, [storeAttendanceLogs, todayStr])
 
   const logStatus = async (staffId: number, status: AttendanceStatus) => {
     setLogging(staffId)
     try {
       await upsertAttendanceLog(staffId, 'external', todayStr, status, employeeId!)
       addToast('success', 'Attendance logged')
-      await load()
     } catch { addToast('error', 'Failed') }
     finally { setLogging(null) }
   }
@@ -1094,7 +1102,7 @@ function ExternalStaffTab({ today, syncKey }: { today: Date; syncKey: string }) 
                     <div className="flex gap-1">
                       <button onClick={() => { setEditStaff(s); setFormOpen(true) }}
                         className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><Edit2 size={13} /></button>
-                      <button onClick={() => toggleExternalStaffActive(s.id!).then(load)}
+                      <button onClick={() => toggleExternalStaffActive(s.id!)}
                         className={`rounded p-1 ${s.isActive ? 'text-gray-400 hover:text-red-500 hover:bg-red-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}>
                         {s.isActive ? <UserX size={13} /> : <UserCheck size={13} />}
                       </button>
@@ -1114,7 +1122,7 @@ function ExternalStaffTab({ today, syncKey }: { today: Date; syncKey: string }) 
         <ExternalStaffModal
           staff={editStaff}
           onClose={() => setFormOpen(false)}
-          onSaved={async () => { setFormOpen(false); await load() }}
+          onSaved={() => setFormOpen(false)}
         />
       )}
     </div>
