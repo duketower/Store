@@ -1,36 +1,28 @@
-import { useState, useEffect } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useState, useEffect, useMemo } from 'react'
 import { Plus, Search, ChevronRight, CreditCard, History, AlertTriangle, ShieldCheck, ShieldOff } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import {
-  getAllCustomers,
-  getCustomerById,
-  searchCustomers,
   upsertCustomer,
   getCreditHistory,
   addCreditLedgerEntry,
-  updateCreditBalance,
   requestCreditLine,
   approveCreditLine,
   declineCreditRequest,
   revokeCreditLine,
-  getPendingCreditRequestCount,
 } from '@/db/queries/customers'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate } from '@/utils/date'
-import { db } from '@/db'
-import { textChecksum, toTimeValue } from '@/utils/syncPulse'
 import type { Customer, CreditLedgerEntry } from '@/types'
 
 export function CustomersPage() {
   const { addToast, setCreditRequestCount } = useUiStore()
   const { role } = useAuth()
-  const [customers, setCustomers] = useState<Customer[]>([])
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<Customer | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
   const [history, setHistory] = useState<CreditLedgerEntry[]>([])
   const [formOpen, setFormOpen] = useState(false)
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
@@ -41,61 +33,44 @@ export function CustomersPage() {
   const [approveModalOpen, setApproveModalOpen] = useState(false)
   const [approveTarget, setApproveTarget] = useState<Customer | null>(null)
   const [approveLimit, setApproveLimit] = useState('1000')
-  const syncKey = useLiveQuery(async () => {
-    const [allCustomers, ledgerEntries] = await Promise.all([db.customers.toArray(), db.credit_ledger.toArray()])
-    return [
-      `customers:${allCustomers.length}:${allCustomers.reduce((sum, customer) => sum + Math.round(customer.currentBalance * 100) + Math.round(customer.creditLimit * 100) + (customer.creditApproved ? 1 : 0) + (customer.creditRequested ? 1 : 0), 0)}:${allCustomers.reduce((sum, customer) => sum + toTimeValue(customer.updatedAt ?? customer.createdAt) + textChecksum(customer.name) + textChecksum(customer.phone), 0)}`,
-      `ledger:${ledgerEntries.length}:${ledgerEntries.reduce((sum, entry) => sum + Math.round(entry.amount * 100) + toTimeValue(entry.createdAt) + textChecksum(entry.entryType), 0)}`,
-    ].join('|')
-  }, []) ?? 'boot'
+
+  const allCustomers = useFirestoreDataStore((s) => s.customers)
+
+  const customers = useMemo(() => {
+    const q = query.toLowerCase().trim()
+    const filtered = q.length < 2
+      ? allCustomers
+      : allCustomers.filter(
+          (c) => c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)
+        )
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+  }, [allCustomers, query])
+
+  // Keep selected customer in sync with store updates
+  const selected = useMemo(
+    () => (selectedId != null ? (allCustomers.find((c) => c.id === selectedId) ?? null) : null),
+    [allCustomers, selectedId]
+  )
 
   const isManagerOrAdmin = role === 'admin' || role === 'manager'
-  const pendingRequests = customers.filter((c) => c.creditRequested === true)
-
-  const refreshCreditBadge = () =>
-    getPendingCreditRequestCount().then(setCreditRequestCount)
+  const pendingRequests = useMemo(() => allCustomers.filter((c) => c.creditRequested === true), [allCustomers])
 
   useEffect(() => {
     setCreditRequestCount(pendingRequests.length)
   }, [pendingRequests.length, setCreditRequestCount])
 
+  // Reload credit history when selected customer changes
   useEffect(() => {
-    let active = true
-
-    void (async () => {
-      const nextCustomers =
-        query.trim().length < 2
-          ? await getAllCustomers()
-          : await searchCustomers(query)
-
-      if (!active) return
-      setCustomers(nextCustomers.sort((a, b) => a.name.localeCompare(b.name)))
-
-      if (!selected?.id) return
-
-      const [current, ledger] = await Promise.all([
-        getCustomerById(selected.id),
-        getCreditHistory(selected.id),
-      ])
-
-      if (!active) return
-      setSelected(current ?? null)
-      setHistory(current ? ledger : [])
-    })()
-
-    return () => {
-      active = false
-    }
-  }, [query, selected?.id, syncKey])
+    if (!selected?.id) { setHistory([]); return }
+    getCreditHistory(selected.id).then(setHistory)
+  }, [selected?.id])
 
   const handleSearch = (q: string) => {
     setQuery(q)
   }
 
-  const selectCustomer = async (c: Customer) => {
-    setSelected(c)
-    const ledger = await getCreditHistory(c.id!)
-    setHistory(ledger)
+  const selectCustomer = (c: Customer) => {
+    setSelectedId(c.id ?? null)
   }
 
   const openAdd = () => { setEditCustomer(null); setFormOpen(true) }
@@ -106,7 +81,6 @@ export function CustomersPage() {
     if (!selected || isNaN(amount) || amount <= 0) { addToast('error', 'Enter a valid amount'); return }
     if (amount > selected.currentBalance) { addToast('error', `Amount exceeds balance of ${formatCurrency(selected.currentBalance)}`); return }
     try {
-      await updateCreditBalance(selected.id!, -amount)
       await addCreditLedgerEntry({ customerId: selected.id!, entryType: 'credit', amount, notes: 'Cash payment received', createdAt: new Date() })
       addToast('success', `Collected ${formatCurrency(amount)} from ${selected.name}`)
       setCollectOpen(false)
@@ -119,7 +93,6 @@ export function CustomersPage() {
   const handleRequestCredit = async (c: Customer) => {
     await requestCreditLine(c.id!)
     addToast('success', `Credit request submitted — pending approval`)
-    refreshCreditBadge()
   }
 
   const openApprove = (c: Customer) => {
@@ -133,7 +106,6 @@ export function CustomersPage() {
     const limit = parseInt(approveLimit, 10) || 0
     await approveCreditLine(approveTarget.id, limit)
     addToast('success', `Credit approved for ${approveTarget.name}`)
-    refreshCreditBadge()
     setApproveModalOpen(false)
     setApproveTarget(null)
   }
@@ -141,7 +113,6 @@ export function CustomersPage() {
   const handleDecline = async (c: Customer) => {
     await declineCreditRequest(c.id!)
     addToast('info', `Credit request declined for ${c.name}`)
-    refreshCreditBadge()
   }
 
   const handleRevoke = async (c: Customer) => {
@@ -216,7 +187,7 @@ export function CustomersPage() {
                 key={c.id}
                 onClick={() => selectCustomer(c)}
                 className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
-                  selected?.id === c.id ? 'bg-brand-50' : ''
+                  selectedId === c.id ? 'bg-brand-50' : ''
                 }`}
               >
                 <div>
@@ -237,7 +208,7 @@ export function CustomersPage() {
         <div className="flex-1 overflow-y-auto">
           {selected && (
             <button
-              onClick={() => setSelected(null)}
+              onClick={() => setSelectedId(null)}
               className="md:hidden flex items-center gap-1 text-sm text-brand-600 mb-3"
             >
               ← Back

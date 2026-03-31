@@ -1,16 +1,13 @@
-import { useEffect, useState, useRef } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { DollarSign, TrendingUp, TrendingDown, Printer, CheckCircle, Hash } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useUiStore } from '@/stores/uiStore'
 import { openSession, closeSession } from '@/db/queries/daySessions'
-import { getTodaySales, getTodayCashTotal } from '@/db/queries/sales'
-import { getTodayCashEntries, getTodayCashOutTotal } from '@/db/queries/cashEntries'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
-import { db } from '@/db'
-import { exportShiftToSheets } from '@/services/sync/sheetsExport'
+import { exportShiftToSheets } from '@/services/sheetsExport'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import { CLIENT_CONFIG } from '@/constants/clientConfig'
 import { hasFeature } from '@/constants/features'
@@ -34,30 +31,36 @@ export function ShiftClosePage() {
   const reportRef = useRef<HTMLDivElement>(null)
   const [sharedReport, setSharedReport] = useState<ZReport | null>(null)
 
-  const localReport = useLiveQuery(async (): Promise<ZReport> => {
-    const sales = await getTodaySales()
-    const [cashTotal, cashOutTotal, cashEntries] = await Promise.all([
-      getTodayCashTotal(),
-      getTodayCashOutTotal(),
-      getTodayCashEntries(),
-    ])
+  const storeSales = useFirestoreDataStore((s) => s.sales)
+  const storeCashEntries = useFirestoreDataStore((s) => s.cashEntries)
+  const storeProducts = useFirestoreDataStore((s) => s.products)
 
+  const localReport = useMemo((): ZReport => {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    const sales = storeSales.filter((s) => new Date(s.createdAt) >= start)
+    const cashEntries = storeCashEntries.filter((e) => new Date(e.createdAt) >= start)
+    const productMap = new Map(storeProducts.map((p) => [p.id, p.name]))
+
+    let cashTotal = 0
     let upiTotal = 0
     let creditTotal = 0
     const productQtyMap: Record<number, { name: string; qty: number; total: number }> = {}
     const gstMap: Record<number, number> = {}
 
     for (const sale of sales) {
-      const payments = await db.payments.where('saleId').equals(sale.id!).toArray()
-      for (const payment of payments) {
+      for (const payment of sale.payments ?? []) {
+        if (payment.method === 'cash') cashTotal += payment.amount
         if (payment.method === 'upi') upiTotal += payment.amount
         if (payment.method === 'credit') creditTotal += payment.amount
       }
-      const items = await db.sale_items.where('saleId').equals(sale.id!).toArray()
-      for (const item of items) {
+      for (const item of sale.items ?? []) {
         if (!productQtyMap[item.productId]) {
-          const product = await db.products.get(item.productId)
-          productQtyMap[item.productId] = { name: product?.name ?? 'Unknown', qty: 0, total: 0 }
+          productQtyMap[item.productId] = {
+            name: productMap.get(item.productId) ?? 'Unknown',
+            qty: 0,
+            total: 0,
+          }
         }
         productQtyMap[item.productId].qty += item.qty
         productQtyMap[item.productId].total += item.lineTotal
@@ -68,20 +71,12 @@ export function ShiftClosePage() {
       }
     }
 
-    const topProducts = Object.values(productQtyMap)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5)
-
-    const gstByRate = Object.entries(gstMap).map(([rate, taxAmount]) => ({
-      rate: parseInt(rate, 10),
-      taxAmount,
-    }))
-
+    const cashOutTotal = cashEntries.reduce((s, e) => s + e.amount, 0)
     const openFloat = currentSession?.openingFloat ?? 0
 
     return {
       totalBills: sales.length,
-      totalSales: sales.reduce((sum, sale) => sum + sale.grandTotal, 0),
+      totalSales: sales.reduce((sum, s) => sum + s.grandTotal, 0),
       cashTotal,
       upiTotal,
       creditTotal,
@@ -89,10 +84,14 @@ export function ShiftClosePage() {
       cashOutTotal,
       cashEntries,
       expectedCash: openFloat + cashTotal - cashOutTotal,
-      gstByRate,
-      topProducts,
+      gstByRate: Object.entries(gstMap).map(([rate, taxAmount]) => ({
+        rate: parseInt(rate, 10),
+        taxAmount,
+      })),
+      topProducts: Object.values(productQtyMap).sort((a, b) => b.total - a.total).slice(0, 5),
     }
-  }, [currentSession?.id]) ?? null
+  }, [storeSales, storeCashEntries, storeProducts, currentSession?.openingFloat])
+
   const report = sharedReport ?? localReport
 
   useEffect(() => {
@@ -120,9 +119,7 @@ export function ShiftClosePage() {
     if (isNaN(float) || float < 0) { addToast('error', 'Enter a valid opening float'); return }
     setOpening(true)
     try {
-      const id = await openSession(session!.employeeId, float)
-      const sess = await db.day_sessions.get(id)
-      if (sess) setCurrentSession(sess)
+      await openSession(session!.employeeId, float)
       addToast('success', `Shift opened with ${formatCurrency(float)} float`)
     } catch {
       addToast('error', 'Failed to open shift')

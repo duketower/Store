@@ -1,14 +1,14 @@
-import { useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useMemo, useState } from 'react'
 import { Banknote, ArrowDownLeft, Clock } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { useAuth } from '@/hooks/useAuth'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useUiStore } from '@/stores/uiStore'
-import { addCashEntry, getTodayCashEntries, getTodayCashOutTotal } from '@/db/queries/cashEntries'
-import { getTodayCashTotal } from '@/db/queries/sales'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
+import { syncCashEntryToFirestore } from '@/services/firebase/sync'
+import { createSyncId } from '@/utils/syncIds'
 import { formatCurrency } from '@/utils/currency'
-import type { CashEntryCategory } from '@/types'
+import type { CashEntry, CashEntryCategory } from '@/types'
 
 const CATEGORY_LABELS: Record<CashEntryCategory, string> = {
   supplies:       'Store Supplies',
@@ -24,27 +24,38 @@ export function CashOutPage() {
   const { currentSession } = useSessionStore()
   const { addToast } = useUiStore()
   const [loading, setLoading] = useState(false)
-  const snapshot = useLiveQuery(async () => {
-    const [entries, cashSalesTotal, cashOutTotal] = await Promise.all([
-      getTodayCashEntries(),
-      getTodayCashTotal(),
-      getTodayCashOutTotal(),
-    ])
-
-    return {
-      entries: entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      cashSalesTotal,
-      cashOutTotal,
-    }
-  }, [currentSession?.id]) ?? null
-
-  // Form state
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<CashEntryCategory>('supplies')
   const [note, setNote] = useState('')
-  const entries = snapshot?.entries ?? []
-  const cashSalesTotal = snapshot?.cashSalesTotal ?? 0
-  const cashOutTotal = snapshot?.cashOutTotal ?? 0
+
+  const cashEntries = useFirestoreDataStore((s) => s.cashEntries)
+  const sales = useFirestoreDataStore((s) => s.sales)
+
+  const todayEntries = useMemo(() => {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    return cashEntries
+      .filter((e) => new Date(e.createdAt) >= start)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }, [cashEntries])
+
+  const cashSalesTotal = useMemo(() => {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    return sales
+      .filter((s) => new Date(s.createdAt) >= start)
+      .reduce((sum, sale) => {
+        return sum + (sale.payments ?? [])
+          .filter((p) => p.method === 'cash')
+          .reduce((s2, p) => s2 + p.amount, 0)
+      }, 0)
+  }, [sales])
+
+  const cashOutTotal = useMemo(
+    () => todayEntries.reduce((s, e) => s + e.amount, 0),
+    [todayEntries]
+  )
+
   const cashInDrawer = (currentSession?.openingFloat ?? 0) + cashSalesTotal - cashOutTotal
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,20 +66,22 @@ export function CashOutPage() {
 
     setLoading(true)
     try {
-      await addCashEntry({
+      const entry: CashEntry = {
+        syncId: createSyncId('cash'),
         sessionId: currentSession?.id,
         amount: amt,
         category,
         note: note.trim() || undefined,
         authorizedBy: session.employeeId,
         createdAt: new Date(),
-      })
+      }
+      await syncCashEntryToFirestore(entry)
       addToast('success', `Cash out of ${formatCurrency(amt)} recorded`)
       setAmount('')
       setNote('')
       setCategory('supplies')
     } catch {
-      addToast('error', 'Failed to record cash out')
+      addToast('error', 'Failed to record cash out — check connection')
     } finally {
       setLoading(false)
     }
@@ -161,12 +174,12 @@ export function CashOutPage() {
               <span className="text-sm font-bold text-red-600">−{formatCurrency(cashOutTotal)}</span>
             )}
           </div>
-          {entries.length === 0 ? (
+          {todayEntries.length === 0 ? (
             <p className="px-5 py-6 text-sm text-gray-400 text-center">No cash outs recorded today.</p>
           ) : (
             <div className="divide-y divide-gray-100">
-              {entries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between px-5 py-3">
+              {todayEntries.map((entry, i) => (
+                <div key={entry.syncId ?? i} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{CATEGORY_LABELS[entry.category]}</p>
                     {entry.note && <p className="text-xs text-gray-500 mt-0.5">{entry.note}</p>}

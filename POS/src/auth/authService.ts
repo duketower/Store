@@ -1,63 +1,15 @@
 import bcrypt from 'bcryptjs'
-import { db } from '@/db'
-import { doc, getDoc, Timestamp } from 'firebase/firestore'
-import type { Employee, EmployeeCredential, AuthSession } from '@/types'
+import { doc, getDoc } from 'firebase/firestore'
+import type { Employee, AuthSession } from '@/types'
 import { SESSION_DURATION } from '@/constants/roles'
 import { firestore } from '@/services/firebase'
-import {
-  getEmployeeCredential as getCachedEmployeeCredential,
-  upsertEmployeeCredential,
-} from '@/db/queries/employeeCredentials'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 
 export class EmployeeCredentialUnavailableError extends Error {
   constructor() {
-    super('This device needs an online credential refresh before that staff PIN can be verified.')
+    super('This device needs an internet connection to verify the staff PIN.')
     this.name = 'EmployeeCredentialUnavailableError'
   }
-}
-
-function tsToDate(value: unknown): Date {
-  if (value instanceof Timestamp) return value.toDate()
-  if (value instanceof Date) return value
-  return new Date(value as string)
-}
-
-function isCredentialStale(
-  employee: Employee,
-  credential: EmployeeCredential | undefined
-): boolean {
-  if (!credential) return true
-  if (!employee.credentialUpdatedAt) return false
-  return credential.updatedAt.getTime() < employee.credentialUpdatedAt.getTime()
-}
-
-async function refreshEmployeeCredential(employee: Employee): Promise<EmployeeCredential | undefined> {
-  if (!employee.id) return undefined
-
-  const snapshot = await getDoc(doc(firestore, 'employee_credentials', String(employee.id)))
-  if (!snapshot.exists()) return undefined
-
-  const data = snapshot.data()
-  if (typeof data?.pinHash !== 'string' || data.pinHash.length === 0) return undefined
-
-  const credential: EmployeeCredential = {
-    employeeId: employee.id,
-    pinHash: data.pinHash,
-    updatedAt: tsToDate(data.updatedAt ?? employee.credentialUpdatedAt ?? employee.updatedAt ?? employee.createdAt),
-  }
-
-  await upsertEmployeeCredential(credential)
-  return credential
-}
-
-export async function prefetchEmployeeCredential(employeeId: number): Promise<void> {
-  const employee = await db.employees.get(employeeId)
-  if (!employee?.isActive) return
-
-  const cachedCredential = await getCachedEmployeeCredential(employeeId)
-  if (!isCredentialStale(employee, cachedCredential)) return
-
-  await refreshEmployeeCredential(employee)
 }
 
 export function isEmployeeCredentialUnavailableError(error: unknown): boolean {
@@ -65,24 +17,30 @@ export function isEmployeeCredentialUnavailableError(error: unknown): boolean {
 }
 
 export async function verifyPin(employeeId: number, pin: string): Promise<Employee | null> {
-  const employee = await db.employees.get(employeeId)
-  if (!employee || !employee.isActive) return null
+  const employee = useFirestoreDataStore.getState().employees.find(
+    (e) => e.id === employeeId && e.isActive
+  )
+  if (!employee) return null
 
-  let credential = await getCachedEmployeeCredential(employeeId)
+  let pinHash: string | undefined
 
-  if (isCredentialStale(employee, credential)) {
-    try {
-      credential = await refreshEmployeeCredential(employee)
-    } catch {
-      credential = credential && !isCredentialStale(employee, credential) ? credential : undefined
+  try {
+    const snapshot = await getDoc(doc(firestore, 'employee_credentials', String(employeeId)))
+    if (snapshot.exists()) {
+      const data = snapshot.data()
+      pinHash = typeof data?.pinHash === 'string' && data.pinHash.length > 0
+        ? data.pinHash
+        : undefined
     }
-  }
-
-  if (!credential?.pinHash) {
+  } catch {
     throw new EmployeeCredentialUnavailableError()
   }
 
-  const valid = await bcrypt.compare(pin, credential.pinHash)
+  if (!pinHash) {
+    throw new EmployeeCredentialUnavailableError()
+  }
+
+  const valid = await bcrypt.compare(pin, pinHash)
   return valid ? employee : null
 }
 
@@ -104,6 +62,9 @@ export function isSessionExpired(session: AuthSession): boolean {
   return new Date() > session.expiresAt
 }
 
-export async function getActiveEmployees(): Promise<Employee[]> {
-  return db.employees.filter((e) => e.isActive === true).sortBy('name')
+// Kept for type-compatibility — no longer a prefetch, just a no-op.
+// PIN credentials are always fetched from Firestore at login time.
+export function prefetchEmployeeCredential(_employeeId: number): Promise<void> {
+  return Promise.resolve()
 }
+

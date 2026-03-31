@@ -1,21 +1,16 @@
 import { useState, useRef } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2, Save, Search } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Modal } from '@/components/common/Modal'
 import { searchProducts, getProductByBarcode } from '@/db/queries/products'
-import { addBatch } from '@/db/queries/batches'
-import { getActiveVendors } from '@/db/queries/vendors'
-import { createGrn } from '@/db/queries/grns'
-import { db } from '@/db'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { syncGrnToFirestore } from '@/services/firebase/sync'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import type { Batch, Grn, Product } from '@/types'
 import { createEntityId, createSyncId } from '@/utils/syncIds'
-import { queueOutboxEntry } from '@/db/queries/outbox'
 
 interface GrnLine {
   product: Product
@@ -35,7 +30,9 @@ export function ReceiveStockPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const { addToast } = useUiStore()
   const { employeeId } = useAuth()
-  const vendors = useLiveQuery(async () => getActiveVendors(), []) ?? []
+  const vendors = useFirestoreDataStore((s) =>
+    s.vendors.filter((v) => v.isActive !== false).sort((a, b) => a.name.localeCompare(b.name))
+  )
 
   const addLine = (product: Product) => {
     // Default batch no based on date
@@ -99,103 +96,51 @@ export function ReceiveStockPage() {
           ? vendorFreeText.trim() || undefined
           : vendors.find((v) => v.id === vendorId)?.name
 
-      let savedGrnId = 0
+      const grnId = createEntityId()
       const grnSyncId = createSyncId('grn')
       const syncedBatches: Array<Batch & { id: number }> = []
       const productStockDeltas: Array<{ productId: number; qty: number }> = []
-      let savedGrn: (Grn & { id: number; syncId: string }) | null = null
 
-      await db.transaction('rw', [db.batches, db.products, db.grns, db.outbox], async () => {
-        const grnId = createEntityId()
-        const grnPayload: Grn = {
-          id: grnId,
-          syncId: grnSyncId,
-          vendorName,
-          invoiceNo: invoiceNo.trim() || undefined,
-          createdAt,
-          createdBy: employeeId ?? 0,
-          totalValue: lines.reduce((s, l) => s + l.purchasePrice * l.qty, 0),
-          lineCount: lines.length,
-        }
-        savedGrnId = await createGrn(grnPayload)
-        savedGrn = { ...grnPayload, id: grnId, syncId: grnSyncId }
-        for (const line of lines) {
-          const productId = line.product.id!
-          const batchCreatedAt = new Date()
-          const newBatchId = createEntityId()
-          const batchId = await addBatch({
-            id: newBatchId,
-            productId,
-            batchNo: line.batchNo,
-            mfgDate: line.mfgDate ? new Date(line.mfgDate) : undefined,
-            expiryDate: new Date(line.expiryDate),
-            purchasePrice: line.purchasePrice,
-            qtyRemaining: line.qty,
-            createdAt: batchCreatedAt,
-            vendor: vendorName,
-            invoiceNo: invoiceNo.trim() || undefined,
-            grnId,
-          })
-          // Increment product stock
-          await db.products
-            .where('id')
-            .equals(productId)
-            .modify((p) => {
-              p.stock += line.qty
-              p.updatedAt = createdAt
-            })
-          syncedBatches.push({
-            id: batchId,
-            productId,
-            batchNo: line.batchNo,
-            ...(line.mfgDate ? { mfgDate: new Date(line.mfgDate) } : {}),
-            expiryDate: new Date(line.expiryDate),
-            purchasePrice: line.purchasePrice,
-            qtyRemaining: line.qty,
-            createdAt: batchCreatedAt,
-            ...(vendorName ? { vendor: vendorName } : {}),
-            ...(invoiceNo.trim() ? { invoiceNo: invoiceNo.trim() } : {}),
-            grnId,
-          })
-          productStockDeltas.push({ productId, qty: line.qty })
-        }
-
-        await queueOutboxEntry({
-          action: 'create_grn',
-          entityType: 'grn',
-          entityKey: grnSyncId,
-          payload: JSON.stringify({
-            grn: {
-              ...savedGrn,
-              createdAt: createdAt.toISOString(),
-            },
-            batches: syncedBatches.map((batch) => ({
-              ...batch,
-              ...(batch.mfgDate ? { mfgDate: batch.mfgDate.toISOString() } : {}),
-              expiryDate: batch.expiryDate.toISOString(),
-              createdAt: batch.createdAt.toISOString(),
-            })),
-            productStockDeltas,
-          }),
-          createdAt,
+      for (const line of lines) {
+        const productId = line.product.id!
+        const batchCreatedAt = new Date()
+        const newBatchId = createEntityId()
+        syncedBatches.push({
+          id: newBatchId,
+          productId,
+          batchNo: line.batchNo,
+          ...(line.mfgDate ? { mfgDate: new Date(line.mfgDate) } : {}),
+          expiryDate: new Date(line.expiryDate),
+          purchasePrice: line.purchasePrice,
+          qtyRemaining: line.qty,
+          createdAt: batchCreatedAt,
+          ...(vendorName ? { vendor: vendorName } : {}),
+          ...(invoiceNo.trim() ? { invoiceNo: invoiceNo.trim() } : {}),
+          grnId,
         })
-      })
-
-      if (savedGrn) {
-        syncGrnToFirestore({
-          grn: savedGrn,
-          batches: syncedBatches,
-          productStockDeltas,
-        }).catch((err: unknown) => console.warn('[Firestore] GRN sync failed (will retry):', err))
+        productStockDeltas.push({ productId, qty: line.qty })
       }
 
-      addToast('success', `GRN #${savedGrnId} saved — ${lines.length} item(s) received`)
+      const savedGrn: Grn & { id: number; syncId: string } = {
+        id: grnId,
+        syncId: grnSyncId,
+        vendorName,
+        invoiceNo: invoiceNo.trim() || undefined,
+        createdAt,
+        createdBy: employeeId ?? 0,
+        totalValue: lines.reduce((s, l) => s + l.purchasePrice * l.qty, 0),
+        lineCount: lines.length,
+      }
+
+      await syncGrnToFirestore({ grn: savedGrn, batches: syncedBatches, productStockDeltas })
+
+      addToast('success', `GRN saved — ${lines.length} item(s) received`)
       setLines([])
       setVendorId('')
       setVendorFreeText('')
       setInvoiceNo('')
     } catch (err) {
-      addToast('error', 'Failed to save GRN')
+      addToast('error', 'Failed to save GRN — check connection')
       console.error(err)
     } finally {
       setSaving(false)

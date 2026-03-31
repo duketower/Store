@@ -6,7 +6,7 @@ import { calculateCartTotals, useCartStore } from '@/stores/cartStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { getProductByBarcode } from '@/db/queries/products'
-import { createSaleTransaction, getSaleWithItems } from '@/db/queries/sales'
+import { createSaleTransaction, type SaleReceiptData } from '@/db/queries/sales'
 import { getCustomerById } from '@/db/queries/customers'
 import { getBatchesFEFO } from '@/db/queries/batches'
 import { generateBillNumber } from '@/utils/billNumber'
@@ -27,7 +27,7 @@ export function BillingPage() {
   const { employeeId, name: cashierName } = useAuth()
 
   const [receiptSaleId, setReceiptSaleId] = useState<number | null>(null)
-  const [receiptData, setReceiptData] = useState<Awaited<ReturnType<typeof getSaleWithItems>> | null>(null)
+  const [receiptData, setReceiptData] = useState<Omit<SaleReceiptData, 'saleId'> | null>(null)
   const [voidConfirmOpen, setVoidConfirmOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState<'search' | 'cart' | 'pay'>('search')
   const [saleSubmitting, setSaleSubmitting] = useState(false)
@@ -117,7 +117,7 @@ export function BillingPage() {
         }
       }
 
-      const saleId = await createSaleTransaction({
+      const { saleId, sale, items: receiptItems, payments: receiptPayments } = await createSaleTransaction({
         billNo,
         cashierId: employeeId,
         cashierName: cashierName ?? undefined,
@@ -134,7 +134,7 @@ export function BillingPage() {
         })),
       })
       clearCart()
-      const data = await getSaleWithItems(saleId)
+      const data = { sale, items: receiptItems, payments: receiptPayments }
       setReceiptData(data)
       setReceiptSaleId(saleId)
       addToast('success', `Bill ${billNo} saved`)

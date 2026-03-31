@@ -4,7 +4,7 @@ import { Modal } from '@/components/common/Modal'
 import { getAllRtvs, getRtvItems, createRtvTransaction } from '@/db/queries/rtvs'
 import { searchProducts, getProductByBarcode } from '@/db/queries/products'
 import { getBatchesForProduct } from '@/db/queries/batches'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { useAuth } from '@/hooks/useAuth'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
@@ -74,7 +74,7 @@ export function RtvTab() {
     const items = await getRtvItems(rtvId)
     setViewRtvItems(items)
     if (session?.createdBy) {
-      const emp = await db.employees.get(session.createdBy)
+      const emp = useFirestoreDataStore.getState().employees.find((e) => e.id === session.createdBy)
       setViewRtvCreatorName(emp?.name ?? `Employee #${session.createdBy}`)
     }
   }

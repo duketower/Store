@@ -94,3 +94,12 @@ Reason:
 - `POS/platform/` handles deployment and should not rely on shell-parsed command strings.
 - `clientId`, `hostingTarget`, and `firebaseProjectId` should be treated as data, not shell syntax.
 - This reduces command-injection risk and makes build failures easier to reason about.
+
+## Decision 012
+
+Remove Dexie/IndexedDB entirely — Firestore is the single source of truth with a Zustand in-memory cache.
+
+Reason:
+- The outbox + Dexie mirror pattern added complexity without reliable convergence guarantees (schema migrations, partial sync, per-device divergence).
+- All store data is now live-synced via Firestore `onSnapshot` listeners into `firestoreDataStore`; reads are synchronous from memory; writes go directly to Firestore.
+- Accepted tradeoff: internet is required for all writes. Offline billing is no longer supported. This matches the actual store's reliable connectivity.

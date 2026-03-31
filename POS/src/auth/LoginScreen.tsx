@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { Delete, ShoppingCart } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import {
   verifyPin,
   createSession,
-  getActiveEmployees,
   isEmployeeCredentialUnavailableError,
-  prefetchEmployeeCredential,
 } from './authService'
 import type { Employee } from '@/types'
 import { ROLE_COLORS, ROLE_LABELS } from '@/constants/roles'
@@ -32,7 +30,9 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null)
-  const employees = useLiveQuery(async () => getActiveEmployees(), []) ?? []
+  const employees = useFirestoreDataStore((s) =>
+    [...s.employees.filter((e) => e.isActive)].sort((a, b) => a.name.localeCompare(b.name))
+  )
 
   // Redirect if already logged in
   useEffect(() => {
@@ -68,9 +68,6 @@ export function LoginScreen() {
     setAttempts(0)
     setLockoutUntil(null)
     setScreen('pin')
-    if (employee.id) {
-      void prefetchEmployeeCredential(employee.id).catch(() => undefined)
-    }
   }
 
   const handlePinDigit = (digit: string) => {

@@ -22,6 +22,9 @@ export interface Sale {
   lastReturnAt?: Date
   status: SaleStatus
   createdAt: Date
+  // Embedded when read from Firestore — not stored in Dexie sale table
+  items?: SaleItem[]
+  payments?: Payment[]
 }
 
 export interface SaleItem {

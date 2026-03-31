@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { Save, RotateCcw, DatabaseZap, AlertTriangle, Info, TrendingUp } from 'lucide-react'
+import { Save, RotateCcw, AlertTriangle, Info, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { CLIENT_CONFIG, APP_BUILD } from '@/constants/clientConfig'
 import { isLicenseExpired } from '@/constants/features'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
-import { getPerformanceTargets, putPerformanceTargets } from '@/db/queries/performanceTargets'
-import { getOutboxSummary, listPendingOutboxEntries } from '@/db/queries/outbox'
-import { getStoreSettings, putStoreSettings } from '@/db/queries/storeSettings'
-import { flushOutbox } from '@/services/sync/outbox'
+import { putPerformanceTargets } from '@/db/queries/performanceTargets'
+import { putStoreSettings } from '@/db/queries/storeSettings'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import { ROUTES } from '@/constants/routes'
 import { formatDate } from '@/utils/date'
@@ -31,12 +29,10 @@ export function SettingsPage() {
   const [targetsSaving, setTargetsSaving] = useState(false)
   const [targetsSaved, setTargetsSaved] = useState(false)
   const [targetsDirty, setTargetsDirty] = useState(false)
-  const [syncRefreshing, setSyncRefreshing] = useState(false)
   const [isOnline, setIsOnline] = useState(() => window.navigator.onLine)
-  const liveStoreSettings = useLiveQuery(async () => getStoreSettings(), [])
-  const liveTargets = useLiveQuery(async () => getPerformanceTargets(), [])
-  const syncEntries = useLiveQuery(async () => listPendingOutboxEntries(), []) ?? []
-  const syncSummary = useLiveQuery(async () => getOutboxSummary(), []) ?? { pending: 0, failed: 0, syncing: 0 }
+
+  const liveStoreSettings = useFirestoreDataStore((s) => s.storeSettings)
+  const liveTargets = useFirestoreDataStore((s) => s.performanceTargets)
 
   useEffect(() => {
     if (!liveStoreSettings) return
@@ -125,17 +121,6 @@ export function SettingsPage() {
       addToast('success', 'Performance targets saved')
     } finally {
       setTargetsSaving(false)
-    }
-  }
-
-  const handleRetrySync = async () => {
-    setSyncRefreshing(true)
-    try {
-      await flushOutbox()
-      const summary = await getOutboxSummary()
-      addToast('success', summary.pending === 0 && summary.failed === 0 ? 'All pending updates synced' : 'Sync retry completed')
-    } finally {
-      setSyncRefreshing(false)
     }
   }
 
@@ -258,13 +243,6 @@ export function SettingsPage() {
         <div className="rounded-lg border border-gray-200 bg-white p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Data Sync</h3>
           <div>
-            <Link to={ROUTES.MIGRATION} className="btn-secondary inline-flex items-center gap-2 text-sm">
-              <DatabaseZap size={15} />
-              Firestore Migration
-            </Link>
-            <p className="text-xs text-gray-400 mt-2">One-time sync of local data, including shared expenses, to Firestore for multi-device support.</p>
-          </div>
-          <div>
             <Link to={ROUTES.ERROR_LOG} className="btn-secondary inline-flex items-center gap-2 text-sm">
               <AlertTriangle size={15} />
               Error Log
@@ -272,58 +250,11 @@ export function SettingsPage() {
             <p className="text-xs text-gray-400 mt-2">View uncaught errors and crashes logged from all devices.</p>
           </div>
 
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Pending Sync Queue</p>
-                <p className="text-xs text-gray-500">
-                  {isOnline ? 'Online' : 'Offline'} · Pending {syncSummary.pending} · Failed {syncSummary.failed} · Syncing {syncSummary.syncing}
-                </p>
-              </div>
-              <button
-                onClick={handleRetrySync}
-                disabled={syncRefreshing || !isOnline}
-                className="btn-secondary text-sm disabled:opacity-50"
-              >
-                {syncRefreshing ? 'Retrying…' : 'Retry Sync Now'}
-              </button>
-            </div>
-
-            {syncEntries.length === 0 ? (
-              <p className="text-xs text-gray-500">No pending updates. Shared data is currently in sync.</p>
-            ) : (
-              <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white">
-                <div className="divide-y divide-gray-100">
-                  {syncEntries.slice(0, 20).map((entry) => (
-                    <div key={entry.id} className="px-3 py-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-gray-800">
-                          {entry.entityType.replace(/_/g, ' ')} · {entry.action.replace(/_/g, ' ')}
-                        </p>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                            entry.status === 'failed'
-                              ? 'bg-red-100 text-red-700'
-                              : entry.status === 'syncing'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {entry.status}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-gray-500">
-                        {entry.entityKey ?? 'No key'} · queued {formatDate(new Date(entry.createdAt))}
-                        {entry.retryCount > 0 ? ` · retries ${entry.retryCount}` : ''}
-                      </p>
-                      {entry.lastError && (
-                        <p className="mt-1 text-[11px] text-red-600">{entry.lastError}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+            <p className="text-sm font-semibold text-gray-800">Sync Status</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {isOnline ? 'Online — writes go directly to Firestore.' : 'Offline — reconnect to sync changes.'}
+            </p>
           </div>
         </div>
 

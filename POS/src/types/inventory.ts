@@ -73,6 +73,8 @@ export interface RtvSession {
   createdBy: number
   totalValue: number
   lineCount: number
+  // Embedded when read from Firestore
+  items?: RtvItem[]
 }
 
 export interface RtvItem {

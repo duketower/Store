@@ -1,6 +1,6 @@
-import { db } from '@/db'
 import { firestore } from '@/services/firebase'
 import { doc, runTransaction } from 'firebase/firestore'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 
 const COUNTER_DOC = doc(firestore, 'counters', 'billNumber')
 
@@ -17,7 +17,7 @@ export async function generateBillNumber(): Promise<string> {
       const snap = await txn.get(COUNTER_DOC)
       if (!snap.exists()) {
         // First use — initialize from local count so sequence doesn't restart at 1
-        const localCount = await db.sales.count()
+        const localCount = useFirestoreDataStore.getState().sales.length
         const next = localCount + 1
         txn.set(COUNTER_DOC, { current: next })
         return next

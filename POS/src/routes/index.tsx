@@ -12,7 +12,6 @@ import { CustomersPage } from '@/pages/customers/CustomersPage'
 import { ReportsPage } from '@/pages/reports/ReportsPage'
 import { UsersPage } from '@/pages/users/UsersPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
-import { MigrationPage } from '@/pages/settings/MigrationPage'
 import { ErrorLogPage } from '@/pages/settings/ErrorLogPage'
 import { AttendancePage } from '@/pages/attendance/AttendancePage'
 import { ROUTES } from '@/constants/routes'
@@ -94,15 +93,6 @@ export function AppRoutes() {
           element={
             <ProtectedRoute requiredRoles={['admin']}>
               <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path={ROUTES.MIGRATION}
-          element={
-            <ProtectedRoute requiredRoles={['admin']}>
-              <MigrationPage />
             </ProtectedRoute>
           }
         />
