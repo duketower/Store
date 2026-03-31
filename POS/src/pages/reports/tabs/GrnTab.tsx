@@ -1,60 +1,47 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Truck, Printer } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
 import { getAllGrns, getGrnBatches } from '@/db/queries/grns'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate, formatDateTime } from '@/utils/date'
 import { loadStoreConfig } from '@/utils/storeConfig'
 import type { Batch, Grn } from '@/types'
 
 export function GrnTab() {
-  const [loading, setLoading] = useState(false)
-  const [grnListData, setGrnListData] = useState<Grn[] | null>(null)
   const [viewGrnId, setViewGrnId] = useState<number | null>(null)
   const [viewGrnBatches, setViewGrnBatches] = useState<Array<Batch & { productName: string }> | null>(null)
   const [viewGrnSession, setViewGrnSession] = useState<Grn | null>(null)
   const [viewGrnCreatorName, setViewGrnCreatorName] = useState('')
 
+  const grnListData = useFirestoreDataStore((s) =>
+    [...s.grns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  )
+  const employees = useFirestoreDataStore((s) => s.employees)
+
   const STORE_CONFIG = loadStoreConfig()
 
-  useEffect(() => {
-    loadGrnListReport()
-  }, [])
-
-  const loadGrnListReport = async () => {
-    setLoading(true)
-    try {
-      const grns = await getAllGrns()
-      setGrnListData(grns)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const openGrnDetail = async (grnId: number) => {
-    const session = grnListData?.find((g) => g.id === grnId) ?? null
+    const session = grnListData.find((g) => g.id === grnId) ?? null
     setViewGrnSession(session)
     setViewGrnId(grnId)
     setViewGrnBatches(null)
     const batches = await getGrnBatches(grnId)
     setViewGrnBatches(batches)
     if (session?.createdBy) {
-      const emp = await db.employees.get(session.createdBy)
+      const emp = employees.find((e) => e.id === session.createdBy)
       setViewGrnCreatorName(emp?.name ?? `Employee #${session.createdBy}`)
     }
   }
 
   return (
     <div className="space-y-3">
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
-      ) : grnListData && grnListData.length === 0 ? (
+      {grnListData.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
           <Truck size={32} className="mx-auto mb-3 opacity-30" />
           <p>No GRN entries yet</p>
         </div>
-      ) : grnListData ? (
+      ) : (
         <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
@@ -90,7 +77,7 @@ export function GrnTab() {
             </tbody>
           </table>
         </div>
-      ) : null}
+      )}
 
       {/* GRN Receipt Modal */}
       {viewGrnId !== null && (

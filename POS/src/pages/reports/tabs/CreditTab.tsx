@@ -1,44 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Download, CheckCircle } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
-import { getAllCustomers, updateCreditBalance, addCreditLedgerEntry } from '@/db/queries/customers'
-import { db } from '@/db'
+import { updateCreditBalance, addCreditLedgerEntry } from '@/db/queries/customers'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { formatDateTime } from '@/utils/date'
 import { StatCard } from './SalesTab'
-import type { Customer, CreditLedgerEntry } from '@/types'
+import type { Customer } from '@/types'
 
 export function CreditTab() {
-  const [loading, setLoading] = useState(false)
-  const [creditDebtors, setCreditDebtors] = useState<Customer[] | null>(null)
-  const [creditLedger, setCreditLedger] = useState<Array<CreditLedgerEntry & { customerName: string }> | null>(null)
   const [collectModalOpen, setCollectModalOpen] = useState(false)
   const [collectCustomer, setCollectCustomer] = useState<Customer | null>(null)
   const [collectAmount, setCollectAmount] = useState('')
   const [collectSaving, setCollectSaving] = useState(false)
 
-  useEffect(() => {
-    loadCreditReport()
-  }, [])
+  const customers = useFirestoreDataStore((s) => s.customers)
+  const creditLedger = useFirestoreDataStore((s) => s.creditLedger)
 
-  const loadCreditReport = async () => {
-    setLoading(true)
-    try {
-      const customers = await getAllCustomers()
-      const debtors = customers
+  const creditDebtors = useMemo(
+    () =>
+      customers
         .filter((c) => c.currentBalance > 0)
-        .sort((a, b) => b.currentBalance - a.currentBalance)
-      setCreditDebtors(debtors)
+        .sort((a, b) => b.currentBalance - a.currentBalance),
+    [customers]
+  )
 
-      const customerMap: Record<number, string> = {}
-      customers.forEach((c) => { customerMap[c.id!] = c.name })
+  const customerMap = useMemo(
+    () => new Map(customers.map((c) => [c.id!, c.name])),
+    [customers]
+  )
 
-      const allEntries = await db.credit_ledger.orderBy('createdAt').reverse().toArray()
-      setCreditLedger(allEntries.map((e) => ({ ...e, customerName: customerMap[e.customerId] ?? `#${e.customerId}` })))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const sortedLedger = useMemo(
+    () =>
+      [...creditLedger]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .map((e) => ({ ...e, customerName: customerMap.get(e.customerId) ?? `#${e.customerId}` })),
+    [creditLedger, customerMap]
+  )
 
   const openCollect = (customer: Customer) => {
     setCollectCustomer(customer)
@@ -62,14 +60,13 @@ export function CreditTab() {
         createdAt: new Date(),
       })
       setCollectModalOpen(false)
-      await loadCreditReport()
     } finally {
       setCollectSaving(false)
     }
   }
 
   const exportCreditCSV = () => {
-    if (!creditDebtors) return
+    if (!creditDebtors.length) return
     const headers = ['Customer', 'Phone', 'Outstanding (₹)', 'Credit Limit', '% Used']
     const rows = creditDebtors.map((c) => [
       c.name,
@@ -92,16 +89,16 @@ export function CreditTab() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-500">
-          {creditDebtors ? `${creditDebtors.length} customer${creditDebtors.length !== 1 ? 's' : ''} with outstanding credit` : ''}
+          {`${creditDebtors.length} customer${creditDebtors.length !== 1 ? 's' : ''} with outstanding credit`}
         </p>
-        <button onClick={exportCreditCSV} disabled={!creditDebtors?.length} className="btn-secondary flex items-center gap-2 text-sm">
+        <button onClick={exportCreditCSV} disabled={!creditDebtors.length} className="btn-secondary flex items-center gap-2 text-sm">
           <Download size={14} />
           Export CSV
         </button>
       </div>
 
       {/* Summary Card */}
-      {creditDebtors && creditDebtors.length > 0 && (
+      {creditDebtors.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             label="Total Outstanding"
@@ -115,14 +112,12 @@ export function CreditTab() {
         </div>
       )}
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
-      ) : creditDebtors && creditDebtors.length === 0 ? (
+      {creditDebtors.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
           <CheckCircle size={32} className="mx-auto mb-3 text-green-400 opacity-60" />
           <p className="font-medium text-green-600">All clear — no pending credit</p>
         </div>
-      ) : creditDebtors ? (
+      ) : (
         <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
@@ -163,10 +158,10 @@ export function CreditTab() {
             </tbody>
           </table>
         </div>
-      ) : null}
+      )}
 
       {/* Full Ledger */}
-      {creditLedger && creditLedger.length > 0 && (
+      {sortedLedger.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Full Ledger</p>
           <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
@@ -181,7 +176,7 @@ export function CreditTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {creditLedger.map((entry) => (
+                {sortedLedger.map((entry) => (
                   <tr key={entry.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {formatDateTime(new Date(entry.createdAt))}

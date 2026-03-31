@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, Search, Edit2, AlertTriangle, Sliders, Printer, Download, X } from 'lucide-react'
 import { InventoryAlertsPanel } from '@/components/common/InventoryAlertsPanel'
 import { Modal } from '@/components/common/Modal'
-import { getAllProducts, upsertProduct, adjustStock, getLowStockProducts } from '@/db/queries/products'
-import { getNearExpiryBatches } from '@/db/queries/batches'
+import { upsertProduct, adjustStock } from '@/db/queries/products'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency } from '@/utils/currency'
@@ -305,11 +305,9 @@ function LabelPrintModal({
 
 function StockLevelsTab({
   stockData,
-  loading,
   onExportCSV,
 }: {
-  stockData: StockReportData | null
-  loading: boolean
+  stockData: StockReportData
   onExportCSV: () => void
 }) {
   return (
@@ -322,58 +320,54 @@ function StockLevelsTab({
       </div>
 
       <InventoryAlertsPanel
-        lowStock={stockData?.lowStock ?? []}
-        nearExpiry={stockData?.nearExpiry ?? []}
+        lowStock={stockData.lowStock}
+        nearExpiry={stockData.nearExpiry}
       />
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
-      ) : stockData ? (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50">
-              <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">Product</th>
-                <th className="px-4 py-3 text-left">Category</th>
-                <th className="px-4 py-3 text-right">Stock</th>
-                <th className="px-4 py-3 text-right">Reorder At</th>
-                <th className="px-4 py-3 text-right">Selling Price</th>
-                <th className="px-4 py-3 text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {stockData.products.map((p) => {
-                const isLow = p.stock <= p.reorderLevel
-                return (
-                  <tr key={p.id} className={isLow ? 'bg-amber-50' : 'hover:bg-gray-50'}>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{p.name}</p>
-                      <p className="text-xs text-gray-400">{p.sku}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{p.category}</td>
-                    <td className={`px-4 py-3 text-right font-semibold ${isLow ? 'text-amber-600' : 'text-gray-900'}`}>
-                      {p.stock} {p.unit}
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-400">{p.reorderLevel}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(p.sellingPrice)}</td>
-                    <td className="px-4 py-3 text-center">
-                      {isLow ? (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                          Low Stock
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                          OK
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+      <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-gray-200 bg-gray-50">
+            <tr className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left">Product</th>
+              <th className="px-4 py-3 text-left">Category</th>
+              <th className="px-4 py-3 text-right">Stock</th>
+              <th className="px-4 py-3 text-right">Reorder At</th>
+              <th className="px-4 py-3 text-right">Selling Price</th>
+              <th className="px-4 py-3 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {stockData.products.map((p) => {
+              const isLow = p.stock <= p.reorderLevel
+              return (
+                <tr key={p.id} className={isLow ? 'bg-amber-50' : 'hover:bg-gray-50'}>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-gray-900">{p.name}</p>
+                    <p className="text-xs text-gray-400">{p.sku}</p>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{p.category}</td>
+                  <td className={`px-4 py-3 text-right font-semibold ${isLow ? 'text-amber-600' : 'text-gray-900'}`}>
+                    {p.stock} {p.unit}
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-400">{p.reorderLevel}</td>
+                  <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(p.sellingPrice)}</td>
+                  <td className="px-4 py-3 text-center">
+                    {isLow ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        Low Stock
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        OK
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -382,10 +376,8 @@ function StockLevelsTab({
 
 function ProductsTab({
   products,
-  onReload,
 }: {
   products: Product[]
-  onReload: () => Promise<void>
 }) {
   const { role, employeeId } = useAuth()
   const { addToast } = useUiStore()
@@ -464,7 +456,6 @@ function ProductsTab({
       })
       addToast('success', editProduct ? 'Product updated' : 'Product added')
       setModalOpen(false)
-      await onReload()
     } catch {
       addToast('error', 'Failed to save product')
     } finally {
@@ -481,7 +472,6 @@ function ProductsTab({
       await adjustStock(adjustProduct.id!, delta, adjustReason, employeeId)
       addToast('success', `Stock adjusted: ${delta > 0 ? '+' : ''}${delta} ${adjustProduct.unit}`)
       setAdjustModalOpen(false)
-      await onReload()
     } catch {
       addToast('error', 'Failed to adjust stock')
     } finally {
@@ -701,29 +691,24 @@ type SubTab = 'stock' | 'products'
 
 export function StockTab() {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('stock')
-  const [loading, setLoading] = useState(false)
-  const [stockData, setStockData] = useState<StockReportData | null>(null)
 
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const [allProducts, nearExpiry, lowStock] = await Promise.all([
-        getAllProducts(),
-        getNearExpiryBatches(NEAR_EXPIRY_DAYS),
-        getLowStockProducts(),
-      ])
-      setStockData({ products: allProducts, nearExpiry, lowStock })
-    } finally {
-      setLoading(false)
-    }
-  }
+  const allProducts = useFirestoreDataStore((s) => s.products)
+  const allBatches = useFirestoreDataStore((s) => s.batches)
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  const stockData = useMemo((): StockReportData => {
+    const cutoff = new Date(Date.now() + NEAR_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
+    const productMap = new Map(allProducts.map((p) => [p.id, p.name]))
+
+    const nearExpiry = allBatches
+      .filter((b) => b.qtyRemaining > 0 && b.expiryDate <= cutoff)
+      .map((b) => ({ ...b, productName: productMap.get(b.productId) }))
+
+    const lowStock = allProducts.filter((p) => p.stock <= p.reorderLevel)
+
+    return { products: allProducts, nearExpiry, lowStock }
+  }, [allProducts, allBatches])
 
   const exportStockCSV = () => {
-    if (!stockData) return
     const headers = ['Name', 'SKU', 'Category', 'Stock', 'Unit', 'Reorder Level', 'Status', 'Selling Price']
     const rows = stockData.products.map((p) => [
       p.name,
@@ -775,15 +760,13 @@ export function StockTab() {
       {activeSubTab === 'stock' && (
         <StockLevelsTab
           stockData={stockData}
-          loading={loading}
           onExportCSV={exportStockCSV}
         />
       )}
 
       {activeSubTab === 'products' && (
         <ProductsTab
-          products={stockData?.products ?? []}
-          onReload={loadData}
+          products={stockData.products}
         />
       )}
     </div>

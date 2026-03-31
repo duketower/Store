@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Download, TrendingUp, ArrowUp, ArrowDown } from 'lucide-react'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { StatCard } from './SalesTab'
 
@@ -30,57 +30,46 @@ function marginBadgeClass(pct: number): string {
 }
 
 export function ProfitMarginTab() {
-  const [loading, setLoading] = useState(false)
-  const [rows, setRows] = useState<MarginRow[]>([])
   const [sortCol, setSortCol] = useState<SortCol>('marginPct')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  const products = useFirestoreDataStore((s) => s.products)
+  const batches = useFirestoreDataStore((s) => s.batches)
 
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const products = await db.products.toArray()
-      const result: MarginRow[] = []
+  const rows = useMemo((): MarginRow[] => {
+    const result: MarginRow[] = []
+    for (const product of products) {
+      if (!product.id) continue
+      const productBatches = batches.filter((b) => b.productId === product.id)
+      if (productBatches.length === 0) continue
 
-      for (const product of products) {
-        if (!product.id) continue
-        const batches = await db.batches.where('productId').equals(product.id).toArray()
-        if (batches.length === 0) continue
+      // Weighted average purchase price by qty remaining
+      const totalQty = productBatches.reduce((s, b) => s + b.qtyRemaining, 0)
+      let avgPurchasePrice: number
 
-        // Weighted average purchase price by qty received
-        const totalQty = batches.reduce((s, b) => s + b.qtyRemaining, 0)
-        let avgPurchasePrice: number
-
-        if (totalQty === 0) {
-          // All stock depleted — use simple average instead
-          avgPurchasePrice = batches.reduce((s, b) => s + b.purchasePrice, 0) / batches.length
-        } else {
-          const weightedSum = batches.reduce((s, b) => s + b.purchasePrice * b.qtyRemaining, 0)
-          avgPurchasePrice = weightedSum / totalQty
-        }
-
-        const margin = product.sellingPrice - avgPurchasePrice
-        const marginPct = product.sellingPrice > 0 ? (margin / product.sellingPrice) * 100 : 0
-
-        result.push({
-          productId: product.id,
-          name: product.name,
-          category: product.category,
-          sellingPrice: product.sellingPrice,
-          avgPurchasePrice,
-          margin,
-          marginPct,
-        })
+      if (totalQty === 0) {
+        // All stock depleted — use simple average instead
+        avgPurchasePrice = productBatches.reduce((s, b) => s + b.purchasePrice, 0) / productBatches.length
+      } else {
+        const weightedSum = productBatches.reduce((s, b) => s + b.purchasePrice * b.qtyRemaining, 0)
+        avgPurchasePrice = weightedSum / totalQty
       }
 
-      setRows(result)
-    } finally {
-      setLoading(false)
+      const margin = product.sellingPrice - avgPurchasePrice
+      const marginPct = product.sellingPrice > 0 ? (margin / product.sellingPrice) * 100 : 0
+
+      result.push({
+        productId: product.id,
+        name: product.name,
+        category: product.category,
+        sellingPrice: product.sellingPrice,
+        avgPurchasePrice,
+        margin,
+        marginPct,
+      })
     }
-  }
+    return result
+  }, [products, batches])
 
   const handleSort = (col: SortCol) => {
     if (sortCol === col) {
@@ -91,7 +80,7 @@ export function ProfitMarginTab() {
     }
   }
 
-  const sorted = [...rows].sort((a, b) => {
+  const sorted = useMemo(() => [...rows].sort((a, b) => {
     let av: string | number = a[sortCol]
     let bv: string | number = b[sortCol]
     if (typeof av === 'string') av = av.toLowerCase()
@@ -99,7 +88,7 @@ export function ProfitMarginTab() {
     if (av < bv) return sortDir === 'asc' ? -1 : 1
     if (av > bv) return sortDir === 'asc' ? 1 : -1
     return 0
-  })
+  }), [rows, sortCol, sortDir])
 
   const avgMargin = rows.length > 0 ? rows.reduce((s, r) => s + r.marginPct, 0) / rows.length : 0
   const highest = rows.length > 0 ? rows.reduce((a, b) => (a.marginPct > b.marginPct ? a : b)) : null
@@ -160,9 +149,7 @@ export function ProfitMarginTab() {
         </div>
       )}
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
-      ) : rows.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
           <TrendingUp size={32} className="mx-auto mb-3 opacity-30" />
           <p>No products with purchase history found.</p>

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Receipt, Plus, Trash2, X } from 'lucide-react'
-import { createExpense, deleteExpenseById, listExpensesBetween } from '@/db/queries/expenses'
+import { createExpense, deleteExpenseById } from '@/db/queries/expenses'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate } from '@/utils/date'
 import { StatCard } from './SalesTab'
@@ -54,8 +55,6 @@ export function ExpenseTab() {
   const [range, setRange] = useState<DateRange>('month')
   const [customFrom, setCustomFrom] = useState(todayStr())
   const [customTo, setCustomTo] = useState(todayStr())
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [loading, setLoading] = useState(false)
 
   // Add form state
   const [showForm, setShowForm] = useState(false)
@@ -66,21 +65,23 @@ export function ExpenseTab() {
   const [formSaving, setFormSaving] = useState(false)
 
   // Delete confirmation
-  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [deleteSyncId, setDeleteSyncId] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadExpenses()
-  }, [range, customFrom, customTo])
+  const allExpenses = useFirestoreDataStore((s) => s.expenses)
 
-  const loadExpenses = async () => {
-    setLoading(true)
-    try {
-      const { start, end } = getDateRange(range, customFrom, customTo)
-      setExpenses(await listExpensesBetween(start, end))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const expenses = useMemo((): Expense[] => {
+    const { start, end } = getDateRange(range, customFrom, customTo)
+    return allExpenses
+      .filter((e) => {
+        const d = e.date instanceof Date ? e.date : new Date(e.date)
+        return d >= start && d <= end
+      })
+      .sort((a, b) => {
+        const da = a.date instanceof Date ? a.date : new Date(a.date)
+        const db = b.date instanceof Date ? b.date : new Date(b.date)
+        return db.getTime() - da.getTime()
+      })
+  }, [allExpenses, range, customFrom, customTo])
 
   const handleAddExpense = async () => {
     const amount = parseFloat(formAmount)
@@ -98,16 +99,14 @@ export function ExpenseTab() {
       setFormNote('')
       setFormDate(todayStr())
       setFormCategory(EXPENSE_CATEGORIES[0])
-      await loadExpenses()
     } finally {
       setFormSaving(false)
     }
   }
 
-  const handleDelete = async (id: number) => {
-    await deleteExpenseById(id)
-    setDeleteId(null)
-    await loadExpenses()
+  const handleDelete = async (syncId: string) => {
+    await deleteExpenseById(syncId)
+    setDeleteSyncId(null)
   }
 
   const exportCsv = () => {
@@ -255,9 +254,7 @@ export function ExpenseTab() {
         </div>
       )}
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
-      ) : expenses.length === 0 ? (
+      {expenses.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
           <Receipt size={32} className="mx-auto mb-3 opacity-30" />
           <p>No expenses for this period</p>
@@ -308,7 +305,7 @@ export function ExpenseTab() {
                 {expenses.map((e) => {
                   const d = e.date instanceof Date ? e.date : new Date(e.date)
                   return (
-                    <tr key={e.id} className="hover:bg-gray-50">
+                    <tr key={e.syncId} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-xs text-gray-500">
                         {formatDate(d)}
                       </td>
@@ -316,21 +313,21 @@ export function ExpenseTab() {
                       <td className="px-4 py-3 text-gray-500 text-xs">{e.note ?? <span className="text-gray-300">—</span>}</td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(e.amount)}</td>
                       <td className="px-4 py-3 text-right">
-                        {deleteId === e.id ? (
+                        {deleteSyncId === e.syncId ? (
                           <div className="flex items-center justify-end gap-2">
                             <span className="text-xs text-gray-500">Delete?</span>
                             <button
-                              onClick={() => handleDelete(e.id!)}
+                              onClick={() => handleDelete(e.syncId!)}
                               className="text-xs text-red-600 font-medium hover:underline"
                             >Yes</button>
                             <button
-                              onClick={() => setDeleteId(null)}
+                              onClick={() => setDeleteSyncId(null)}
                               className="text-xs text-gray-500 hover:underline"
                             >No</button>
                           </div>
                         ) : (
                           <button
-                            onClick={() => setDeleteId(e.id!)}
+                            onClick={() => setDeleteSyncId(e.syncId!)}
                             className="text-gray-300 hover:text-red-500 transition-colors"
                           >
                             <Trash2 size={14} />

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Download, Package } from 'lucide-react'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 
 type RangeOption = 'last7' | 'last30' | 'thisMonth' | 'custom'
@@ -52,70 +52,48 @@ export function TopProductsTab() {
     return d.toISOString().slice(0, 10)
   })
   const [customTo, setCustomTo] = useState(() => new Date().toISOString().slice(0, 10))
-  const [loading, setLoading] = useState(false)
-  const [byQty, setByQty] = useState<ProductStat[]>([])
-  const [byRevenue, setByRevenue] = useState<ProductStat[]>([])
 
-  useEffect(() => {
-    loadData()
-  }, [range, customFrom, customTo])
+  const allSales = useFirestoreDataStore((s) => s.sales)
+  const allProducts = useFirestoreDataStore((s) => s.products)
 
-  const loadData = async () => {
-    if (range === 'custom' && (!customFrom || !customTo)) return
-    setLoading(true)
-    try {
-      const { start, end } = getRangeDates(range, customFrom, customTo)
+  const { byQty, byRevenue } = useMemo(() => {
+    if (range === 'custom' && (!customFrom || !customTo)) {
+      return { byQty: [], byRevenue: [] }
+    }
 
-      // Get sales in date range
-      const sales = await db.sales
-        .filter((s) => s.createdAt >= start && s.createdAt <= end)
-        .toArray()
+    const { start, end } = getRangeDates(range, customFrom, customTo)
 
-      if (sales.length === 0) {
-        setByQty([])
-        setByRevenue([])
-        return
-      }
+    const sales = allSales.filter((s) => {
+      const t = new Date(s.createdAt)
+      return t >= start && t <= end
+    })
 
-      const saleIds = sales.map((s) => s.id!)
+    if (sales.length === 0) return { byQty: [], byRevenue: [] }
 
-      // Get all sale_items for those sales
-      const allItems = await db.sale_items
-        .filter((si) => saleIds.includes(si.saleId))
-        .toArray()
+    const nameMap = new Map(allProducts.map((p) => [p.id!, p.name]))
 
-      // Aggregate by productId
-      const statsMap = new Map<number, { qtySold: number; revenue: number }>()
-      for (const item of allItems) {
+    const statsMap = new Map<number, { qtySold: number; revenue: number }>()
+    for (const sale of sales) {
+      for (const item of sale.items ?? []) {
         const existing = statsMap.get(item.productId) ?? { qtySold: 0, revenue: 0 }
         existing.qtySold += item.qty
         existing.revenue += item.lineTotal
         statsMap.set(item.productId, existing)
       }
-
-      // Fetch product names
-      const productIds = Array.from(statsMap.keys())
-      const products = await db.products
-        .filter((p) => productIds.includes(p.id!))
-        .toArray()
-      const nameMap = new Map(products.map((p) => [p.id!, p.name]))
-
-      const stats: ProductStat[] = Array.from(statsMap.entries()).map(([productId, s]) => ({
-        productId,
-        name: nameMap.get(productId) ?? `Product #${productId}`,
-        qtySold: s.qtySold,
-        revenue: s.revenue,
-      }))
-
-      const sorted_qty = [...stats].sort((a, b) => b.qtySold - a.qtySold).slice(0, 10)
-      const sorted_rev = [...stats].sort((a, b) => b.revenue - a.revenue).slice(0, 10)
-
-      setByQty(sorted_qty)
-      setByRevenue(sorted_rev)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    const stats: ProductStat[] = Array.from(statsMap.entries()).map(([productId, s]) => ({
+      productId,
+      name: nameMap.get(productId) ?? `Product #${productId}`,
+      qtySold: s.qtySold,
+      revenue: s.revenue,
+    }))
+
+    return {
+      byQty: [...stats].sort((a, b) => b.qtySold - a.qtySold).slice(0, 10),
+      byRevenue: [...stats].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
+    }
+  }, [allSales, allProducts, range, customFrom, customTo])
 
   const exportCSV = () => {
     const lines: string[] = []
@@ -194,9 +172,7 @@ export function TopProductsTab() {
         </button>
       </div>
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
-      ) : !hasData ? (
+      {!hasData ? (
         <div className="rounded-lg border border-gray-200 bg-white py-16 text-center text-gray-400">
           <Package size={36} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">No sales data for the selected period</p>

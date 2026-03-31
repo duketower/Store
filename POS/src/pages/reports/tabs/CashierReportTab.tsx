@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Download, Users } from 'lucide-react'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 
 type RangeOption = 'today' | 'last7' | 'last30' | 'custom'
@@ -49,67 +49,49 @@ export function CashierReportTab() {
   const [range, setRange] = useState<RangeOption>('today')
   const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().slice(0, 10))
   const [customTo, setCustomTo] = useState(() => new Date().toISOString().slice(0, 10))
-  const [loading, setLoading] = useState(false)
-  const [stats, setStats] = useState<CashierStat[]>([])
 
-  useEffect(() => {
-    loadData()
-  }, [range, customFrom, customTo])
+  const allSales = useFirestoreDataStore((s) => s.sales)
+  const employees = useFirestoreDataStore((s) => s.employees)
 
-  const loadData = async () => {
-    if (range === 'custom' && (!customFrom || !customTo)) return
-    setLoading(true)
-    try {
-      const { start, end } = getRangeDates(range, customFrom, customTo)
+  const stats = useMemo((): CashierStat[] => {
+    if (range === 'custom' && (!customFrom || !customTo)) return []
 
-      const sales = await db.sales
-        .filter((s) => s.createdAt >= start && s.createdAt <= end)
-        .toArray()
+    const { start, end } = getRangeDates(range, customFrom, customTo)
 
-      if (sales.length === 0) {
-        setStats([])
-        return
+    const sales = allSales.filter((s) => {
+      const t = new Date(s.createdAt)
+      return t >= start && t <= end
+    })
+
+    if (sales.length === 0) return []
+
+    const nameMap = new Map(employees.map((e) => [e.id!, e.name]))
+
+    const cashierMap = new Map<number, { bills: number; revenue: number; cash: number; upi: number }>()
+    for (const sale of sales) {
+      const existing = cashierMap.get(sale.cashierId) ?? { bills: 0, revenue: 0, cash: 0, upi: 0 }
+      existing.bills += 1
+      existing.revenue += sale.grandTotal
+
+      for (const p of sale.payments ?? []) {
+        if (p.method === 'cash') existing.cash += p.amount
+        else if (p.method === 'upi') existing.upi += p.amount
       }
-
-      // Group by cashierId
-      const cashierMap = new Map<number, { bills: number; revenue: number; cash: number; upi: number }>()
-      for (const sale of sales) {
-        const existing = cashierMap.get(sale.cashierId) ?? { bills: 0, revenue: 0, cash: 0, upi: 0 }
-        existing.bills += 1
-        existing.revenue += sale.grandTotal
-
-        const payments = await db.payments.where('saleId').equals(sale.id!).toArray()
-        for (const p of payments) {
-          if (p.method === 'cash') existing.cash += p.amount
-          else if (p.method === 'upi') existing.upi += p.amount
-        }
-        cashierMap.set(sale.cashierId, existing)
-      }
-
-      // Fetch employee names
-      const cashierIds = Array.from(cashierMap.keys())
-      const employees = await db.employees
-        .filter((e) => cashierIds.includes(e.id!))
-        .toArray()
-      const nameMap = new Map(employees.map((e) => [e.id!, e.name]))
-
-      const result: CashierStat[] = Array.from(cashierMap.entries())
-        .map(([cashierId, s]) => ({
-          cashierId,
-          name: nameMap.get(cashierId) ?? `Staff #${cashierId}`,
-          totalBills: s.bills,
-          totalRevenue: s.revenue,
-          avgBillValue: s.bills > 0 ? s.revenue / s.bills : 0,
-          cashCollected: s.cash,
-          upiCollected: s.upi,
-        }))
-        .sort((a, b) => b.totalRevenue - a.totalRevenue)
-
-      setStats(result)
-    } finally {
-      setLoading(false)
+      cashierMap.set(sale.cashierId, existing)
     }
-  }
+
+    return Array.from(cashierMap.entries())
+      .map(([cashierId, s]) => ({
+        cashierId,
+        name: nameMap.get(cashierId) ?? `Staff #${cashierId}`,
+        totalBills: s.bills,
+        totalRevenue: s.revenue,
+        avgBillValue: s.bills > 0 ? s.revenue / s.bills : 0,
+        cashCollected: s.cash,
+        upiCollected: s.upi,
+      }))
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+  }, [allSales, employees, range, customFrom, customTo])
 
   const exportCSV = () => {
     if (stats.length === 0) return
@@ -190,9 +172,7 @@ export function CashierReportTab() {
         </button>
       </div>
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
-      ) : stats.length === 0 ? (
+      {stats.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white py-16 text-center text-gray-400">
           <Users size={36} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">No billing activity for the selected period</p>

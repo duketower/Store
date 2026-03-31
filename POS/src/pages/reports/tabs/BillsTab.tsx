@@ -3,7 +3,7 @@ import { Download, Receipt, Search, X } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
 import { Receipt as ReceiptView } from '@/pages/billing/components/Receipt'
 import { getSaleReturns, getSaleWithItems, processReturn, type ReturnItem } from '@/db/queries/sales'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { formatDateTime } from '@/utils/date'
 import { useAuth } from '@/hooks/useAuth'
@@ -45,43 +45,41 @@ export function BillsTab() {
 
   const { employeeId } = useAuth()
 
-  useEffect(() => {
-    loadBillsReport()
-  }, [])
+  const sales = useFirestoreDataStore((s) => s.sales)
+  const employees = useFirestoreDataStore((s) => s.employees)
+  const customers = useFirestoreDataStore((s) => s.customers)
 
-  const loadBillsReport = async () => {
+  useEffect(() => {
+    buildBillsData()
+  }, [sales, employees, customers])
+
+  const buildBillsData = () => {
     setLoading(true)
     try {
-      const allSales = await db.sales.orderBy('createdAt').reverse().toArray()
-      const employeeCache: Record<number, string> = {}
-      const customerCache: Record<number, Customer> = {}
+      const employeeMap = new Map(employees.map((e) => [e.id, e.name]))
+      const customerMap = new Map(customers.map((c) => [c.id, c]))
 
-      const rows: BillRow[] = await Promise.all(
-        allSales.map(async (sale) => {
-          const payments = await db.payments.where('saleId').equals(sale.id!).toArray()
-          const paymentSummary = payments
-            .map((p) => `${p.method.toUpperCase()} ${formatCurrency(p.amount)}`)
-            .join(', ')
-
-          if (!employeeCache[sale.cashierId]) {
-            const emp = await db.employees.get(sale.cashierId)
-            employeeCache[sale.cashierId] = emp?.name ?? `#${sale.cashierId}`
-          }
-
-          let customerName: string | undefined
-          let customerPhone: string | undefined
-          if (sale.customerId) {
-            if (!customerCache[sale.customerId]) {
-              const c = await db.customers.get(sale.customerId)
-              if (c) customerCache[sale.customerId] = c
-            }
-            const c = customerCache[sale.customerId]
-            if (c) { customerName = c.name; customerPhone = c.phone }
-          }
-
-          return { sale, paymentSummary, cashierName: employeeCache[sale.cashierId], customerName, customerPhone }
-        })
+      const sorted = [...sales].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
+
+      const rows: BillRow[] = sorted.map((sale) => {
+        const payments = sale.payments ?? []
+        const paymentSummary = payments
+          .map((p) => `${p.method.toUpperCase()} ${formatCurrency(p.amount)}`)
+          .join(', ')
+
+        const cashierName = employeeMap.get(sale.cashierId) ?? `#${sale.cashierId}`
+
+        let customerName: string | undefined
+        let customerPhone: string | undefined
+        if (sale.customerId) {
+          const c = customerMap.get(sale.customerId)
+          if (c) { customerName = c.name; customerPhone = c.phone }
+        }
+
+        return { sale, paymentSummary, cashierName, customerName, customerPhone }
+      })
       setBillsData(rows)
     } finally {
       setLoading(false)
@@ -172,7 +170,7 @@ export function BillsTab() {
         returnBill.sale.customerId
       )
       setReturnModalOpen(false)
-      await loadBillsReport()
+      buildBillsData()
     } catch {
       // silent
     } finally {

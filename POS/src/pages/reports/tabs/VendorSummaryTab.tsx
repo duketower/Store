@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Truck, Plus, Search, Edit2, Phone, FileText, ToggleLeft, ToggleRight } from 'lucide-react'
-import { db } from '@/db'
+import { useFirestoreDataStore } from '@/stores/firestoreDataStore'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate } from '@/utils/date'
 import { StatCard } from './SalesTab'
 import { Modal } from '@/components/common/Modal'
-import { getAllVendors, upsertVendor, toggleVendorActive } from '@/db/queries/vendors'
+import { upsertVendor, toggleVendorActive } from '@/db/queries/vendors'
 import { useUiStore } from '@/stores/uiStore'
-import type { Grn, Vendor } from '@/types'
+import type { Vendor } from '@/types'
 
 type DateRange = 'last30' | 'last90' | 'last180' | 'thisYear' | 'custom'
 type SubTab = 'summary' | 'vendors'
@@ -77,11 +77,8 @@ export function VendorSummaryTab() {
   const [range, setRange] = useState<DateRange>('last30')
   const [customFrom, setCustomFrom] = useState(todayStr())
   const [customTo, setCustomTo] = useState(todayStr())
-  const [rows, setRows] = useState<VendorRow[]>([])
-  const [loading, setLoading] = useState(false)
 
   // Vendors state
-  const [vendors, setVendors] = useState<Vendor[]>([])
   const [query, setQuery] = useState('')
   const [showInactive, setShowInactive] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -89,52 +86,42 @@ export function VendorSummaryTab() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    loadVendorSummary()
-  }, [range, customFrom, customTo])
+  const allGrns = useFirestoreDataStore((s) => s.grns)
+  const vendors = useFirestoreDataStore((s) => s.vendors)
 
-  useEffect(() => {
-    if (subTab === 'vendors') {
-      loadVendors()
-    }
-  }, [subTab])
+  const rows = useMemo((): VendorRow[] => {
+    const { start, end } = getDateRange(range, customFrom, customTo)
+    const grns = allGrns.filter((g) => {
+      const d = g.createdAt instanceof Date ? g.createdAt : new Date(g.createdAt)
+      return d >= start && d <= end
+    })
 
-  const loadVendorSummary = async () => {
-    setLoading(true)
-    try {
-      const { start, end } = getDateRange(range, customFrom, customTo)
-      const grns: Grn[] = await db.grns
-        .filter((g) => {
-          const d = g.createdAt instanceof Date ? g.createdAt : new Date(g.createdAt)
-          return d >= start && d <= end
-        })
-        .toArray()
-
-      const map: Record<string, VendorRow> = {}
-      for (const grn of grns) {
-        const key = grn.vendorName?.trim() || '(Unknown Vendor)'
-        const d = grn.createdAt instanceof Date ? grn.createdAt : new Date(grn.createdAt)
-        if (!map[key]) {
-          map[key] = { vendorName: key, grnCount: 0, totalValue: 0, lastGrnDate: d }
-        }
-        map[key].grnCount += 1
-        map[key].totalValue += grn.totalValue
-        if (d > map[key].lastGrnDate) {
-          map[key].lastGrnDate = d
-        }
+    const map: Record<string, VendorRow> = {}
+    for (const grn of grns) {
+      const key = grn.vendorName?.trim() || '(Unknown Vendor)'
+      const d = grn.createdAt instanceof Date ? grn.createdAt : new Date(grn.createdAt)
+      if (!map[key]) {
+        map[key] = { vendorName: key, grnCount: 0, totalValue: 0, lastGrnDate: d }
       }
-
-      const sorted = Object.values(map).sort((a, b) => b.totalValue - a.totalValue)
-      setRows(sorted)
-    } finally {
-      setLoading(false)
+      map[key].grnCount += 1
+      map[key].totalValue += grn.totalValue
+      if (d > map[key].lastGrnDate) {
+        map[key].lastGrnDate = d
+      }
     }
-  }
 
-  const loadVendors = async () => {
-    const all = await getAllVendors()
-    setVendors(all)
-  }
+    return Object.values(map).sort((a, b) => b.totalValue - a.totalValue)
+  }, [allGrns, range, customFrom, customTo])
+
+  const filtered = useMemo(() => vendors.filter((v) => {
+    const matchQuery =
+      !query ||
+      v.name.toLowerCase().includes(query.toLowerCase()) ||
+      (v.phone ?? '').includes(query) ||
+      (v.gstin ?? '').toLowerCase().includes(query.toLowerCase())
+    const matchActive = showInactive || v.isActive
+    return matchQuery && matchActive
+  }), [vendors, query, showInactive])
 
   const exportCsv = () => {
     if (rows.length === 0) return
@@ -153,16 +140,6 @@ export function VendorSummaryTab() {
     a.click()
     URL.revokeObjectURL(url)
   }
-
-  const filtered = vendors.filter((v) => {
-    const matchQuery =
-      !query ||
-      v.name.toLowerCase().includes(query.toLowerCase()) ||
-      (v.phone ?? '').includes(query) ||
-      (v.gstin ?? '').toLowerCase().includes(query.toLowerCase())
-    const matchActive = showInactive || v.isActive
-    return matchQuery && matchActive
-  })
 
   const openAdd = () => {
     setEditVendor(null)
@@ -194,7 +171,6 @@ export function VendorSummaryTab() {
       })
       addToast('success', editVendor ? 'Vendor updated' : 'Vendor added')
       setModalOpen(false)
-      await loadVendors()
     } catch {
       addToast('error', 'Failed to save vendor')
     } finally {
@@ -205,7 +181,6 @@ export function VendorSummaryTab() {
   const handleToggleActive = async (vendor: Vendor) => {
     try {
       await toggleVendorActive(vendor.id!, !vendor.isActive)
-      await loadVendors()
       addToast('success', `${vendor.name} ${vendor.isActive ? 'deactivated' : 'activated'}`)
     } catch {
       addToast('error', 'Failed to update vendor')
@@ -293,9 +268,7 @@ export function VendorSummaryTab() {
             </button>
           </div>
 
-          {loading ? (
-            <p className="text-sm text-gray-400">Loading…</p>
-          ) : rows.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="rounded-lg border border-gray-200 bg-white py-12 text-center text-gray-400">
               <Truck size={32} className="mx-auto mb-3 opacity-30" />
               <p>No GRNs found for this period</p>
