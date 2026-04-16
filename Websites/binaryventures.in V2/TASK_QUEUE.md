@@ -48,6 +48,7 @@ Full plan: `docs/dark_theme_plan.md`
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - deepen Services and Case Studies with more technical implementation detail
 - add a Blog section for publishing useful company notes, service explainers, and technical/business guides; working categories are Guides, Ratings, and Strategies, but the structure should be tweaked beyond the NinjaPromo-style reference before writing begins, with room for additional sections
+- add a region-aware website experience so visitors can see only the content, service framing, and pricing relevant to their country; explore a region dropdown, automatic country detection, or a combined approach with manual override
 - save the AU/US reference website shortlist into project docs for later review
 - enrich the simple pricing cards with the useful detail from the reverted pricing experiment
 - tighten the homepage mobile header and hero spacing after live device review
