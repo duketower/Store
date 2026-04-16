@@ -3,14 +3,40 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 
 import { siteNavigation, publicContact } from "@/content/site";
+import { groupedServiceOffers } from "@/content/services";
 import { Button } from "@/components/ui/button";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  NavigationMenuContent,
+  NavigationMenuLink,
+} from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 
 type SiteHeaderProps = {
   className?: string;
+};
+
+const servicesDropdownGroups = [
+  ...groupedServiceOffers.map((group) => ({
+    title: group.name,
+    description: group.homepageSummary,
+    items: group.offers.map((service) => ({
+      title: service.name,
+      href: `/services#${service.id}`,
+    })),
+  })),
+];
+
+const continuityDropdownItem = {
+  title: "Maintenance & Support",
+  href: "/services#continuity",
+  description: "Continuity, updates, fixes, and technical support after launch.",
 };
 
 export function SiteHeader({ className }: SiteHeaderProps) {
@@ -75,27 +101,109 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               <ul className="flex items-center gap-8 text-sm">
                 {siteNavigation.map((item) => (
                   <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      aria-current={isActiveLink(item.href) ? "page" : undefined}
-                      className={cn(
-                        "relative inline-flex h-11 items-center px-1 text-sm font-medium transition-colors duration-150",
-                        isActiveLink(item.href)
-                          ? "text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <span className="relative">
-                        {item.name}
-                        <span
-                          aria-hidden="true"
-                          className={cn(
-                            "absolute left-1/2 top-[calc(100%+0.45rem)] h-px -translate-x-1/2 rounded-full bg-border transition-all duration-200",
-                            isActiveLink(item.href) ? "w-[calc(100%+1rem)] opacity-100" : "w-0 opacity-0"
-                          )}
-                        />
-                      </span>
-                    </Link>
+                    {item.name === "Services" ? (
+                      <NavigationMenu>
+                        <NavigationMenuList>
+                          <NavigationMenuItem>
+                            <NavigationMenuTrigger
+                              className={cn(
+                                "h-11 rounded-full bg-transparent px-3 py-2 text-sm font-medium transition-colors duration-150 hover:bg-white/[0.04] focus:outline-none data-[state=open]:bg-white/[0.06]",
+                                isActiveLink(item.href)
+                                  ? "text-foreground"
+                                  : "text-muted-foreground hover:text-foreground"
+                              )}
+                            >
+                              {item.name}
+                            </NavigationMenuTrigger>
+                            <NavigationMenuContent className="p-0">
+                              <div className="w-[min(980px,calc(100vw-2rem))]">
+                                <div className="grid divide-y divide-white/[0.07] lg:grid-cols-4 lg:divide-x lg:divide-y-0">
+                                  {servicesDropdownGroups.map((group) => (
+                                    <div key={group.title} className="flex min-w-0 flex-col gap-5 p-5">
+                                      <div className="space-y-2 border-b border-white/[0.07] pb-4">
+                                        <h3 className="text-base font-semibold leading-6 text-foreground">
+                                          {group.title}
+                                        </h3>
+                                        <p className="text-xs leading-5 text-muted-foreground">
+                                          {group.description}
+                                        </p>
+                                      </div>
+                                      <div className="relative space-y-1 rounded-xl bg-white/[0.025] py-1 pl-3 pr-1 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-px before:bg-gradient-to-b before:from-secondary/70 before:to-white/[0.06]">
+                                        {group.items.map((service) => (
+                                          <NavigationMenuLink key={service.title} asChild>
+                                            <Link
+                                              href={service.href}
+                                              className="group/link flex min-h-10 items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                            >
+                                              <span>{service.title}</span>
+                                              <ArrowRight className="size-3.5 shrink-0 translate-x-0 opacity-45 transition duration-200 group-hover/link:translate-x-0.5 group-hover/link:opacity-100" />
+                                            </Link>
+                                          </NavigationMenuLink>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="border-t border-white/[0.07] bg-white/[0.025] p-3">
+                                  <div className="grid gap-2 lg:grid-cols-[1fr_13rem]">
+                                    <NavigationMenuLink asChild>
+                                      <Link
+                                        href={continuityDropdownItem.href}
+                                        className="group/link flex min-h-14 items-center justify-between gap-4 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                      >
+                                        <span className="min-w-0">
+                                          <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+                                            Continuity
+                                          </span>
+                                          <span className="mt-1 block font-medium text-foreground">
+                                            {continuityDropdownItem.title}
+                                          </span>
+                                          <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                                            {continuityDropdownItem.description}
+                                          </span>
+                                        </span>
+                                        <ArrowRight className="size-3.5 shrink-0 opacity-60 transition duration-200 group-hover/link:translate-x-0.5 group-hover/link:opacity-100" />
+                                      </Link>
+                                    </NavigationMenuLink>
+                                    <NavigationMenuLink asChild>
+                                      <Link
+                                        href="/services"
+                                        className="group/link flex min-h-14 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                      >
+                                        <span>View all services</span>
+                                        <ArrowRight className="size-3.5 shrink-0 transition duration-200 group-hover/link:translate-x-0.5" />
+                                      </Link>
+                                    </NavigationMenuLink>
+                                  </div>
+                                </div>
+                              </div>
+                            </NavigationMenuContent>
+                          </NavigationMenuItem>
+                        </NavigationMenuList>
+                      </NavigationMenu>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        aria-current={isActiveLink(item.href) ? "page" : undefined}
+                        className={cn(
+                          "relative inline-flex h-11 items-center px-1 text-sm font-medium transition-colors duration-150",
+                          isActiveLink(item.href)
+                            ? "text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <span className="relative">
+                          {item.name}
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "absolute left-1/2 top-[calc(100%+0.45rem)] h-px -translate-x-1/2 rounded-full bg-border transition-all duration-200",
+                              isActiveLink(item.href) ? "w-[calc(100%+1rem)] opacity-100" : "w-0 opacity-0"
+                            )}
+                          />
+                        </span>
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

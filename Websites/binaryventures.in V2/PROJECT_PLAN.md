@@ -28,6 +28,19 @@ Build the redesign foundation while standing up the V2 codebase in parallel so a
 - adapt approved components to the V2 system
 - replace demo placeholder content with actual page builds
 
+## Phase 3b — Visual System Finalisation (Dark Theme Overhaul)
+
+This phase was added after NinjaPromo visual analysis (April 2026) confirmed the dark palette direction.
+
+- rewrite the color token system in `globals.css` to the locked dark palette
+- apply the primary brand gradient (`#D278FE → #2D69FB`) to buttons, headline accents, and featured elements
+- build and wire the new homepage stat strip (large-number metric block)
+- do a visual pass on every section component to confirm dark treatment and gradient accents
+- enforce alternating section backgrounds for visual rhythm
+- full desktop and mobile visual review before moving to Phase 4
+
+Reference: `docs/dark_theme_plan.md`, `docs/visual_system_brief.md`, `DECISIONS.md` (Decision 008–009)
+
 ## Phase 4 — Launch Preparation
 
 - polish copy

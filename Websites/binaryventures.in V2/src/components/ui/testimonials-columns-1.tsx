@@ -5,67 +5,67 @@ import { motion } from "motion/react";
 
 const proofItems = [
   {
-    text: "An offline-first retail operations system brought billing, inventory visibility, and daily store workflows into one dependable setup.",
+    text: "A retail operations system consolidated billing, stock management, expiry tracking, and daily reporting — replacing disconnected tools that had been slowing the team down for years.",
     image:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
     name: "Retail Operations System",
-    role: "Store workflows and reporting",
+    role: "Active since 2023 · 10+ staff daily",
   },
   {
-    text: "A custom website rebuild gave a service business a stronger digital presence, cleaner positioning, and a more credible first impression.",
+    text: "A service business website was rebuilt from scratch and has been actively managed for over 2 years — regular content updates, structural improvements, and reliable uptime throughout.",
     image:
       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
-    name: "Service Business Website",
-    role: "Trust and enquiry improvement",
+    name: "Managed Service Website",
+    role: "2+ years managed · ongoing",
   },
   {
-    text: "A lead sourcing workflow reduced manual effort by extracting, structuring, and preparing targeted prospect data for outreach.",
+    text: "A lead sourcing workflow cut hours of manual research per week by automatically extracting, structuring, and delivering targeted prospect data ready for outreach.",
     image:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=200&q=80",
     name: "Lead Workflow Automation",
-    role: "Faster pipeline preparation",
+    role: "Hours saved weekly",
   },
   {
-    text: "Internal dashboards helped operators move from scattered tools to clearer reporting, cleaner handoffs, and better day-to-day visibility.",
+    text: "An academic institution website has been managed continuously since launch — content stays current, the design stays consistent, and the team no longer handles updates manually.",
     image:
       "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80",
-    name: "Operational Dashboards",
-    role: "Clarity for growing teams",
+    name: "Academic Institution Website",
+    role: "Managed · multi-year engagement",
   },
   {
-    text: "Bots were used to route repetitive tasks, reduce response lag, and keep business information moving without extra manual overhead.",
+    text: "End-of-day sales summaries that once required manual collation now arrive automatically via bot — reducing close-of-day overhead and keeping reporting consistent across store locations.",
     image:
       "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=200&q=80",
-    name: "Bot-Driven Workflows",
-    role: "Lower operational drag",
+    name: "Sales Reporting Bot",
+    role: "Daily automated reporting",
   },
   {
-    text: "Automation systems connected repeated business steps across tools, removing friction where teams were previously relying on manual work.",
+    text: "A Telegram notification bot was built for internal operations — routing updates, surfacing alerts, and cutting the back-and-forth that was slowing down routine coordination.",
     image:
       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80",
-    name: "Connected Automations",
-    role: "Smoother business operations",
+    name: "Operations Notification Bot",
+    role: "Live in production",
   },
   {
-    text: "Business systems were designed around the way teams actually work, not around generic templates that look good but fail in practice.",
+    text: "Custom POS dashboards replaced spreadsheet-based reporting with real-time visibility — operators could see stock levels, daily totals, and forecasts without waiting for end-of-day summaries.",
     image:
       "https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=200&q=80",
-    name: "Custom Business Systems",
-    role: "Built around real process",
+    name: "POS Dashboards",
+    role: "Real-time operational visibility",
   },
   {
-    text: "Founder-led delivery meant faster decisions, more direct communication, and less confusion between strategy, design, and implementation.",
+    text: "A data scraping and structuring workflow processed thousands of records per run — turning unstructured public data into clean, actionable lists with no manual effort.",
     image:
       "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80",
-    name: "Founder-Led Execution",
-    role: "Direct collaboration model",
+    name: "Data Collection Automation",
+    role: "Thousands of records per run",
   },
   {
-    text: "The strongest work came from combining websites, internal tools, bots, and automation into one practical setup instead of separate one-off fixes.",
+    text: "Projects built across websites, internal systems, bots, and automation — delivered with direct communication, clear scope, and no unnecessary agency layers between client and builder.",
     image:
       "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80",
-    name: "Complete Tech Setup",
-    role: "End-to-end digital systems",
+    name: "Founder-Led Studio",
+    role: "India & Adelaide, Australia",
   },
 ];
 

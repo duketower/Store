@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { Variants } from "framer-motion";
 
 import { SiteHeader } from "@/components/site/site-header";
@@ -13,6 +13,8 @@ import { ProcessPreviewSection } from "@/components/ui/grid-feature-cards";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
 import { ProofColumnsSection } from "@/components/ui/testimonials-columns-1";
 import SectionWithMockup from "@/components/ui/section-with-mockup";
+import { ObjectionCardsSection } from "@/components/ui/objection-cards";
+import { PricingPreviewSection } from "@/components/ui/pricing-preview";
 
 const transitionVariants: { item: Variants } = {
   item: {
@@ -33,17 +35,6 @@ const transitionVariants: { item: Variants } = {
     },
   },
 };
-
-const servicePillars = [
-  "Websites",
-  "Web Apps",
-  "Bots",
-  "Automation",
-  "POS Systems",
-  "Internal Tools",
-  "Lead Systems",
-  "Operations",
-];
 
 export function HeroSection() {
   return (
@@ -104,12 +95,12 @@ export function HeroSection() {
                 <AnimatedGroup variants={transitionVariants}>
                   <Link
                     href="/services"
-                    className="bg-muted group mx-auto flex w-fit max-w-full items-center gap-3 rounded-full border p-1 pl-3 pr-1 shadow-md shadow-black/5 transition-all duration-300 hover:bg-background dark:border-t-white/5 dark:shadow-zinc-950 dark:hover:border-t-border sm:gap-4 sm:pl-4"
+                    className="bg-muted/70 group mx-auto flex w-fit max-w-full items-center gap-3 rounded-full border border-border/75 p-1 pl-3 pr-1 shadow-md shadow-black/20 transition-all duration-300 hover:bg-muted/90 sm:gap-4 sm:pl-4"
                   >
                     <span className="text-foreground text-xs sm:text-sm">
                       Websites, systems, and automation
                     </span>
-                    <span className="block h-4 w-0.5 border-l bg-white dark:border-background dark:bg-zinc-700" />
+                    <span className="block h-4 w-0.5 border-l bg-foreground/20" />
 
                     <div className="bg-background size-6 overflow-hidden rounded-full duration-500 group-hover:bg-muted">
                       <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
@@ -188,48 +179,17 @@ export function HeroSection() {
                   aria-hidden
                   className="absolute inset-0 z-10 bg-gradient-to-b from-transparent from-35% to-background"
                 />
-                <div className="inset-shadow-2xs bg-background ring-background relative mx-auto max-w-6xl overflow-hidden rounded-2xl border p-4 shadow-lg shadow-zinc-950/15 ring-1 dark:inset-shadow-white/20">
+                <div className="inset-shadow-2xs bg-background ring-background relative mx-auto max-w-6xl overflow-hidden rounded-2xl border border-white/10 p-4 shadow-lg shadow-zinc-950/15 ring-1">
                   <img
-                    className="bg-background relative hidden aspect-[4/3] rounded-2xl object-cover sm:aspect-[15/8] dark:block"
+                    className="relative aspect-[4/3] w-full rounded-2xl object-cover sm:aspect-[15/8]"
                     src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=2400&q=80"
                     alt="business systems collaboration"
-                    width="2700"
-                    height="1440"
-                  />
-                  <img
-                    className="border-border/25 relative z-[2] aspect-[4/3] rounded-2xl border object-cover sm:aspect-[15/8] dark:hidden"
-                    src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=2400&q=80"
-                    alt="technology workspace"
                     width="2700"
                     height="1440"
                   />
                 </div>
               </div>
             </AnimatedGroup>
-          </div>
-        </section>
-        <section className="bg-background pb-16 pt-16 md:pb-32">
-          <div className="group relative m-auto max-w-5xl px-6">
-            <div className="absolute inset-0 z-10 flex scale-95 items-center justify-center opacity-0 duration-500 group-hover:scale-100 group-hover:opacity-100">
-              <Link
-                href="/services"
-                className="block text-sm duration-150 hover:opacity-75"
-              >
-                <span>Explore Services</span>
-
-                <ChevronRight className="ml-1 inline-block size-3" />
-              </Link>
-            </div>
-            <div className="mx-auto mt-12 grid max-w-3xl grid-cols-2 gap-4 transition-all duration-500 group-hover:opacity-50 group-hover:blur-xs sm:grid-cols-4">
-              {servicePillars.map((pillar) => (
-                <div
-                  key={pillar}
-                  className="flex items-center justify-center rounded-2xl border bg-muted/40 px-4 py-4 text-center text-sm font-medium text-foreground"
-                >
-                  {pillar}
-                </div>
-              ))}
-            </div>
           </div>
         </section>
         <ProofColumnsSection />
@@ -258,7 +218,9 @@ export function HeroSection() {
           secondaryImageSrc="https://images.unsplash.com/photo-1497366412874-3415097a27e7?auto=format&fit=crop&w=1400&q=80"
           reverseLayout
         />
+        <ObjectionCardsSection />
         <ServicesPreviewSection />
+        <PricingPreviewSection />
         <ProcessPreviewSection />
         <FinalCtaSection />
       </main>

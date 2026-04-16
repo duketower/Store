@@ -2,18 +2,55 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
-import { publicContact } from "@/content/site";
 import {
   engagementModels,
   groupedServiceOffers,
-  pricingAnchors,
   technicalCapabilities,
   servicesFraming,
   servicesIntro,
   type ServiceOffer,
 } from "@/content/services";
-import { Button } from "@/components/ui/button";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
+
+const serviceArchitectureItems = [
+  ...groupedServiceOffers.map((group) => ({
+    id: group.id,
+    eyebrow: group.eyebrow,
+    title: group.name,
+    body: group.homepageSummary,
+    href: `#${group.id}`,
+    items: group.offers.map((service) => service.name),
+  })),
+  {
+    id: "continuity",
+    eyebrow: "Post-Launch Support",
+    title: "Continuity",
+    body:
+      "Maintenance, updates, fixes, and smaller improvements after the main system is delivered.",
+    href: "#continuity",
+    items: ["Maintenance & Support"],
+  },
+];
+
+const startingPointItems = [
+  ...groupedServiceOffers.flatMap((group) =>
+    group.offers.map((service) => ({
+      label: service.name,
+      value: formatStartingPoint(service),
+      summary: service.scope,
+      href: `#${service.id}`,
+      kind: service.level === "primary" ? "Primary" : "Supporting",
+    }))
+  ),
+  {
+    label: "Maintenance & Support",
+    value: "From $150/mo",
+    summary:
+      "Ongoing website management, operational updates, technical fixes, and smaller improvements after project delivery.",
+    href: "#continuity",
+    kind: "Continuity",
+  },
+];
 
 export function ServicesPage() {
   return (
@@ -40,35 +77,7 @@ export function ServicesPage() {
           </div>
         </section>
 
-        <section className="px-6 pb-12 pt-2 md:pb-16">
-          <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-4">
-            {pricingAnchors.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-border/80 bg-card/70 px-5 py-5 shadow-sm"
-              >
-                <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
-                <p className="mt-3 text-xl font-semibold text-foreground">{item.value}</p>
-                <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                  {item.summary}
-                </p>
-                <ul className="mt-5 space-y-2">
-                  {item.includes.map((detail) => (
-                    <li
-                      key={detail}
-                      className="grid grid-cols-[0.5rem_1fr] items-start gap-x-3 text-sm leading-6 text-foreground/80"
-                    >
-                      <span className="mt-[0.55rem] h-1.5 w-1.5 rounded-full bg-foreground/35" />
-                      <span>{detail}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="px-6 py-16 md:py-24">
+        <section className="px-6 pb-12 pt-2 md:pb-20">
           <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[0.95fr_1.05fr]">
             <div className="max-w-xl">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
@@ -87,6 +96,54 @@ export function ServicesPage() {
                 supporting pieces that make it usable in practice: automation,
                 launch setup, brand support, and continuity after launch.
               </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-12 md:py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Service Architecture
+              </p>
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                Choose the layer you need, or combine them into one complete setup.
+              </h2>
+              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
+                The page is organized around the way projects usually come together:
+                the main build, the automation layer, the launch setup, the brand
+                presence, and the support that keeps it useful after launch.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {serviceArchitectureItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="group flex min-h-64 flex-col rounded-[1.5rem] border border-border/80 bg-card/60 p-5 transition-colors hover:border-border hover:bg-card/80"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    {item.eyebrow}
+                  </p>
+                  <h3 className="mt-4 text-xl font-semibold text-foreground">
+                    {item.title}
+                  </h3>
+                  <p className="mt-3 grow text-sm leading-7 text-muted-foreground">
+                    {item.body}
+                  </p>
+                  <ul className="mt-5 flex flex-wrap gap-2">
+                    {item.items.map((service) => (
+                      <li
+                        key={service}
+                        className="rounded-full border border-border/80 bg-background/80 px-3 py-1 text-xs font-medium text-foreground"
+                      >
+                        {service}
+                      </li>
+                    ))}
+                  </ul>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
@@ -118,6 +175,35 @@ export function ServicesPage() {
             </div>
           </section>
         ))}
+
+        <section id="continuity" className="scroll-mt-32 px-6 py-10 md:py-12">
+          <div className="mx-auto grid max-w-6xl gap-6 rounded-[2rem] border border-border/80 bg-card/60 p-6 md:grid-cols-[1.1fr_0.9fr] md:p-8">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Post-Launch Support
+              </p>
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                Continuity keeps the setup useful after launch.
+              </h2>
+              <p className="mt-5 max-w-2xl text-sm leading-8 text-muted-foreground md:text-base">
+                Maintenance and support are available for clients who want regular
+                updates, technical fixes, smaller refinements, and practical help
+                after the main system is delivered.
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] border border-border/80 bg-background/80 p-6">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Starting Point
+              </p>
+              <p className="mt-4 text-3xl font-semibold text-foreground">From $150/mo</p>
+              <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                Best suited for ongoing website management, operational updates,
+                technical fixes, continuity support, and smaller improvements after
+                project delivery.
+              </p>
+            </div>
+          </div>
+        </section>
 
         <section className="px-6 py-16 md:py-24">
           <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
@@ -154,6 +240,49 @@ export function ServicesPage() {
         </section>
 
         <section className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Starting Points
+              </p>
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                Pricing starts from clear entry points, then adjusts to the real scope.
+              </h2>
+              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
+                These are starting points, not forced packages. Supporting services
+                are often bundled into broader setup projects when that is the cleaner
+                path.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {startingPointItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="rounded-[1.5rem] border border-border/80 bg-card/60 p-5 transition-colors hover:border-border hover:bg-card/80"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    {item.kind}
+                  </p>
+                  <div className="mt-4 flex items-start justify-between gap-4">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {item.label}
+                    </h3>
+                    <p className="shrink-0 text-sm font-semibold text-foreground">
+                      {item.value}
+                    </p>
+                  </div>
+                  <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                    {item.summary}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16 md:py-24">
           <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
             <div className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
@@ -162,6 +291,10 @@ export function ServicesPage() {
               <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
                 Clear service engagements, broader setup projects, and post-launch continuity.
               </h2>
+              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
+                Not sure what the right setup looks like yet? That is exactly
+                where a useful conversation begins.
+              </p>
             </div>
 
             <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -185,66 +318,6 @@ export function ServicesPage() {
           </div>
         </section>
 
-        <section id="continuity" className="scroll-mt-32 px-6 pb-16 pt-4 md:pb-24">
-          <div className="mx-auto grid max-w-6xl gap-6 rounded-[2rem] border border-border/80 bg-card/60 p-6 md:grid-cols-[1.1fr_0.9fr] md:p-8">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Continuity
-              </p>
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-                Maintenance and support stay available after launch, but they do not replace the main build.
-              </h2>
-              <p className="mt-5 max-w-2xl text-sm leading-8 text-muted-foreground md:text-base">
-                Support is offered as a post-launch continuity option for clients
-                who want regular updates, maintenance, smaller refinements, and
-                technical help after the main system is delivered.
-              </p>
-            </div>
-            <div className="rounded-[1.5rem] border border-border/80 bg-background/80 p-6">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Starting Point
-              </p>
-              <p className="mt-4 text-3xl font-semibold text-foreground">From $150/mo</p>
-              <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                Best suited for ongoing website management, operational updates,
-                technical fixes, continuity support, and smaller improvements after
-                project delivery.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 pb-16 pt-4 md:pb-24">
-          <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Custom Scope
-              </p>
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-                Not sure what the right setup looks like yet?
-              </h2>
-              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
-                That is exactly where a useful conversation begins. We can help
-                define the right mix of build, automation, launch setup, and
-                supporting services before you commit to the wrong scope.
-              </p>
-            </div>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="w-full rounded-full px-8 sm:w-auto">
-                <Link href={publicContact.bookingHref}>Book a Call</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="w-full rounded-full px-8 sm:w-auto"
-              >
-                <a href={`mailto:${publicContact.email}`}>Email Us</a>
-              </Button>
-            </div>
-          </div>
-        </section>
-
         <FinalCtaSection />
       </main>
       <SiteFooter />
@@ -254,7 +327,10 @@ export function ServicesPage() {
 
 function ServiceCard({ service }: { service: ServiceOffer }) {
   return (
-    <article className="rounded-[1.75rem] border border-border/80 bg-background/80 p-5 shadow-sm md:p-6">
+    <article
+      id={service.id}
+      className="scroll-mt-32 rounded-[1.75rem] border border-border/80 bg-background/80 p-5 shadow-sm md:p-6"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[75%]">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -294,37 +370,45 @@ function ServiceCard({ service }: { service: ServiceOffer }) {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <ListBlock label="Technical Scope" items={service.technicalScope} />
-        <ListBlock label="Common System Elements" items={service.systemElements} />
-      </div>
+      <details className="group mt-8 rounded-[1.25rem] border border-border/80 bg-card/60 p-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+          <span>Technical details and integrations</span>
+          <span className="text-lg leading-none text-muted-foreground transition-transform group-open:rotate-45">
+            +
+          </span>
+        </summary>
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <ListBlock label="Technical Scope" items={service.technicalScope} />
+          <ListBlock label="Common System Elements" items={service.systemElements} />
+        </div>
 
-      <div className="mt-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Integration Examples
-        </p>
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {service.integrationExamples.map((item) => (
+        <div className="mt-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Integration Examples
+          </p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {service.integrationExamples.map((item) => (
+              <li
+                key={item}
+                className="rounded-full border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <ul className="mt-8 flex flex-wrap gap-2">
+          {service.tags.map((tag) => (
             <li
-              key={item}
-              className="rounded-full border border-border/80 bg-card/80 px-3 py-1.5 text-xs font-medium text-foreground"
+              key={tag}
+              className="rounded-full border border-border/80 bg-secondary/50 px-3 py-1.5 text-xs font-medium text-foreground"
             >
-              {item}
+              #{tag}
             </li>
           ))}
         </ul>
-      </div>
-
-      <ul className="mt-8 flex flex-wrap gap-2">
-        {service.tags.map((tag) => (
-          <li
-            key={tag}
-            className="rounded-full border border-border/80 bg-secondary/50 px-3 py-1.5 text-xs font-medium text-foreground"
-          >
-            #{tag}
-          </li>
-        ))}
-      </ul>
+      </details>
     </article>
   );
 }

@@ -1,32 +1,58 @@
 # Binary Ventures Website V2 Task Queue
 
-## Current
+## Current — Dark Theme Visual Overhaul
+
+Full plan: `docs/dark_theme_plan.md`
+
+### Phase 1 — Color System Foundation
+- [ ] Rewrite `src/app/globals.css` — replace all light oklch tokens with dark palette values
+- [ ] Add gradient custom properties: `--gradient-brand`, `--gradient-warm`, `--gradient-hot`
+- [ ] Add accent spot color properties: `--color-violet`, `--color-blue`, `--color-amber`, `--color-coral`, `--color-teal`, `--color-cyan`
+- [ ] Add `.gradient-text`, `.gradient-border` utility classes
+
+### Phase 2 — Header
+- [ ] Update `src/components/site/site-header.tsx` — dark nav, gradient CTA button
+
+### Phase 3 — Hero
+- [ ] Update `src/components/ui/hero-section-1.tsx` — gradient text on headline, radial violet glow bg, review background image for dark compatibility
+
+### Phase 4 — New Stat Strip
+- [ ] Build `src/components/ui/stat-strip.tsx` — large-number metric block (4 stats, gradient labels)
+- [ ] Wire into homepage between proof columns and positioning block
+
+### Phase 5 — Remaining Section Passes
+- [ ] `src/components/ui/testimonials-columns-1.tsx` — dark cards, purple glow section bg
+- [ ] `src/components/ui/section-with-mockup.tsx` — confirm dark, no light bleed
+- [ ] `src/components/ui/objection-cards.tsx` — gradient-border on hover, section glow
+- [ ] `src/components/ui/pricing-preview.tsx` — gradient-border + teal glow on featured card, gradient price text
+- [ ] `src/components/ui/ai-models-preview.tsx` — dark cards, per-category accent colors
+- [ ] `src/components/ui/grid-feature-cards.tsx` — dark treatment, gradient step numbers
+- [ ] `src/components/ui/pulse-beams.tsx` — gradient CTA button, radial violet+blue glow
+
+### Phase 6 — Section Background Rhythm
+- [ ] Apply alternating backgrounds per the rhythm defined in `docs/dark_theme_plan.md` Phase 5
+
+### Phase 7 — Typography Pass
+- [ ] Audit headline weights across all sections — `font-bold` / `font-extrabold` where needed
+- [ ] Confirm body copy uses `text-foreground/70` pattern throughout
+
+### Phase 8 — Review
+- [ ] Full visual review on localhost at desktop and mobile breakpoints
+- [ ] `npx tsc --noEmit` clean
+- [ ] No light backgrounds bleeding through any section
+
+## Backlog
 
 - replace the temporary Contact-page booking route with a real scheduling link later
-- review and refine the integrated homepage hero content against the final visual direction
-- decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - add visual assets to the Work page case studies later
-- continue tuning CTA treatment after live visual review
-- rebalance the connected systems mockup section after live layout review
-- fix dark CTA label contrast after live review
-- refine active desktop navigation state after visual review
-- simplify active navigation so only the current route gets emphasis
-- rename the public Work label to Case Studies while keeping the `/work` route stable
+- decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - deepen Services and Case Studies with more technical implementation detail
+- add a Blog section for publishing useful company notes, service explainers, and technical/business guides; working categories are Guides, Ratings, and Strategies, but the structure should be tweaked beyond the NinjaPromo-style reference before writing begins, with room for additional sections
 - save the AU/US reference website shortlist into project docs for later review
 - enrich the simple pricing cards with the useful detail from the reverted pricing experiment
-- align pricing card bullet lists after visual review
 - tighten the homepage mobile header and hero spacing after live device review
 - normalize the secondary page mobile spacing after the shared header fix
 - convert the service pillars detail modal into a mobile-safe scrollable sheet
-- save a detailed Adelaide SEO strategy report into project docs
-- save a detailed service expansion strategy based on the reference website shortlist
-- restructure the service architecture so expanded offers do not feel buried
-
-## Next
-
-- define the final visual system for bold premium tech using the integrated section set
-- decide whether to refine or replace any integrated homepage components after visual review
 - implement the site-side Adelaide SEO foundations after strategy approval
 - decide whether to add the supporting setup services as a secondary Services-page section or implement them directly into the current content model
 - review the grouped services architecture on live mobile after deploy
