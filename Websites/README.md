@@ -10,10 +10,9 @@ This folder groups website projects.
 
 ## Current Projects
 
-- `binaryventures.in/` — Binary Ventures company website
-- `binaryventures.in V2/` — strategy and rebuild workspace for the next version
+- `binaryventures.in V2/` — Binary Ventures company website
 
 ## Notes
 
-- `binaryventures.in V2/` now has its own Next.js implementation scaffold in addition to strategy docs
+- `binaryventures.in V2/` is the only active Binary Ventures website workspace
 - Build output and dependency folders inside website projects should stay ignored in source control

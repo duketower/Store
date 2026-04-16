@@ -11,7 +11,7 @@ Store/
 │   ├── platform/                # This folder
 │   └── docs/                    # Plans and blueprints
 ├── Websites/
-│   └── binaryventures.in/       # Company website
+│   └── binaryventures.in V2/    # Company website
 └── Bots/
     └── store-expense-bot/       # Telegram expense bot
 ```

@@ -15,7 +15,6 @@ Store/
 │   ├── platform/
 │   └── docs/
 ├── Websites/
-│   ├── binaryventures.in/
 │   └── binaryventures.in V2/
 └── Bots/
     └── store-expense-bot/
@@ -25,8 +24,7 @@ Store/
 
 - Run the POS web app from `POS/`
 - Run the POS client build/deploy tooling from `POS/platform/`
-- Run the company website from `Websites/binaryventures.in/`
-- Build the next website strategy and redesign in `Websites/binaryventures.in V2/`
+- Run and maintain the company website from `Websites/binaryventures.in V2/`
 - Keep Telegram bot work inside `Bots/`
 
 ## Documentation System

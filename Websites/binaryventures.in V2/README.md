@@ -1,17 +1,17 @@
 # Binary Ventures Website V2
 
-This folder is the zero-based rebuild workspace for `binaryventures.in`.
+This folder is the active Binary Ventures website workspace for `binaryventures.in`.
 
 Current phase:
-- core multi-page implementation
-- content and route structure
-- visual refinement and proof expansion next
+- live multi-page implementation
+- content and route refinement
+- proof expansion and launch polish
 
-This is not a continuation of the current website's design system. The old site may be referenced for factual business information only.
+The previous `Websites/binaryventures.in/` workspace has been removed. Keep future website work here.
 
 ## Current Goal
 
-Move from core implementation into visual refinement, proof enrichment, and launch polish without inheriting the old site's design patterns.
+Keep the live site refined, proof-oriented, and easy to maintain from this V2 workspace.
 
 ## Implementation Status
 

@@ -1,6 +1,6 @@
 # Binary Ventures Website V2 Instructions
 
-This folder is the strategy and future implementation workspace for the complete redesign of `binaryventures.in`.
+This folder is the active implementation and strategy workspace for `binaryventures.in`.
 
 ## First Read
 
@@ -22,10 +22,10 @@ This folder is the strategy and future implementation workspace for the complete
 
 ## Core Rule
 
-This is a zero-based redesign.
+This site began as a zero-based redesign and is now the active Binary Ventures website.
 
-- Do not reuse design patterns, layout patterns, section composition, or visual language from the current live website
-- The current website may only be used as a factual source for services, positioning clues, contact details, and proof inventory
+- Do not reintroduce design patterns, layout patterns, section composition, or visual language from the removed old website
+- Treat this V2 workspace as the source of truth for services, positioning, contact details, and proof inventory
 - Every design and content decision should be justified by the V2 strategy, not by what already exists
 
 ## Working Rules
