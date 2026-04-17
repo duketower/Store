@@ -349,35 +349,39 @@ function ServiceCard({ service }: { service: ServiceOffer }) {
         {service.description}
       </p>
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-2">
-        <DetailBlock label="Delivery" body={service.delivery} />
-        <DetailBlock label="Best For" body={service.meta.bestFor} />
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-[1.25rem] border border-border/80 bg-card/60 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Best For
+          </p>
+          <p className="mt-3 text-sm leading-7 text-foreground/80">
+            {service.meta.bestFor}
+          </p>
+        </div>
+        <div className="rounded-[1.25rem] border border-border/80 bg-card/60 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Usually Includes
+          </p>
+          <p className="mt-3 text-sm leading-7 text-foreground/80">
+            {service.meta.includes}
+          </p>
+        </div>
       </div>
 
-      <div className="mt-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Typical Scope
-        </p>
-        <p className="mt-3 text-sm leading-7 text-foreground/80">{service.scope}</p>
-      </div>
-
-      <div className="mt-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          What This Usually Includes
-        </p>
-        <p className="mt-3 text-sm leading-7 text-foreground/80">
-          {service.meta.includes}
-        </p>
-      </div>
-
-      <details className="group mt-8 rounded-[1.25rem] border border-border/80 bg-card/60 p-4">
+      <details className="group mt-6 rounded-[1.25rem] border border-border/80 bg-card/60 p-4">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
-          <span>Technical details and integrations</span>
+          <span>Delivery, scope, and technical detail</span>
           <span className="text-lg leading-none text-muted-foreground transition-transform group-open:rotate-45">
             +
           </span>
         </summary>
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          <DetailBlock label="Delivery" body={service.delivery} />
+          <DetailBlock label="Typical Scope" body={service.scope} />
+        </div>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <ListBlock label="Technical Scope" items={service.technicalScope} />
           <ListBlock label="Common System Elements" items={service.systemElements} />
         </div>
@@ -445,7 +449,7 @@ function ListBlock({ label, items }: { label: string; items: string[] }) {
       <ul className="mt-3 space-y-3">
         {items.map((item) => (
           <li key={item} className="flex gap-3 text-sm leading-7 text-foreground/80">
-            <span className="mt-[0.7rem] h-1.5 w-1.5 rounded-full bg-foreground/40" />
+            <span className="mt-[0.7rem] h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40" />
             <span>{item}</span>
           </li>
         ))}

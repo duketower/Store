@@ -24,6 +24,7 @@ type SiteHeaderProps = {
 
 const servicesDropdownGroups = [
   ...groupedServiceOffers.map((group) => ({
+    id: group.id,
     title: group.name,
     description: group.homepageSummary,
     items: group.offers.map((service) => ({
@@ -209,23 +210,78 @@ export function SiteHeader({ className }: SiteHeaderProps) {
               </ul>
             </div>
 
-            <div className="mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 group-data-[state=active]:block md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none lg:group-data-[state=active]:flex dark:shadow-none">
+            <div className="mb-6 hidden max-h-[calc(100svh-6rem)] w-full flex-wrap items-center justify-end space-y-8 overflow-y-auto rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 group-data-[state=active]:block md:flex-nowrap lg:m-0 lg:flex lg:max-h-none lg:w-fit lg:gap-6 lg:space-y-0 lg:overflow-visible lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none lg:group-data-[state=active]:flex dark:shadow-none">
               <div className="lg:hidden">
-                <ul className="space-y-6 text-base">
+                <ul className="space-y-4 text-base">
                   {siteNavigation.map((item) => (
                     <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        aria-current={isActiveLink(item.href) ? "page" : undefined}
-                        className={cn(
-                          "inline-flex min-h-11 items-center rounded-full px-5 py-2 text-base transition-[color,background-color,border-color] duration-150",
-                          isActiveLink(item.href)
-                            ? "bg-white/60 text-foreground"
-                            : "text-muted-foreground hover:bg-white/50 hover:text-foreground"
-                        )}
-                      >
-                        <span>{item.name}</span>
-                      </Link>
+                      {item.name === "Services" ? (
+                        <details className="group rounded-2xl border border-border/70 bg-card/50 p-2">
+                          <summary
+                            className={cn(
+                              "flex min-h-11 cursor-pointer list-none items-center justify-between rounded-xl px-4 py-2 text-base transition-colors [&::-webkit-details-marker]:hidden",
+                              isActiveLink(item.href)
+                                ? "bg-white/10 text-foreground"
+                                : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                            )}
+                          >
+                            <span>{item.name}</span>
+                            <span className="text-lg leading-none transition-transform group-open:rotate-45">
+                              +
+                            </span>
+                          </summary>
+                          <div className="mt-3 space-y-4 px-2 pb-2">
+                            {servicesDropdownGroups.map((group) => (
+                              <div key={group.title}>
+                                <Link
+                                  href={`/services#${group.id}`}
+                                  className="block rounded-xl px-2 py-1 text-sm font-semibold text-foreground"
+                                >
+                                  {group.title}
+                                </Link>
+                                <div className="mt-1 grid gap-1">
+                                  {group.items.map((service) => (
+                                    <Link
+                                      key={service.title}
+                                      href={service.href}
+                                      className="flex min-h-10 items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                                    >
+                                      <span>{service.title}</span>
+                                      <ArrowRight className="size-3.5 opacity-60" />
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            <Link
+                              href={continuityDropdownItem.href}
+                              className="flex min-h-10 items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                            >
+                              <span>{continuityDropdownItem.title}</span>
+                              <ArrowRight className="size-3.5 opacity-60" />
+                            </Link>
+                            <Link
+                              href="/services"
+                              className="flex min-h-11 items-center justify-center rounded-full border border-white/80 bg-white px-4 py-2 text-sm font-semibold !text-slate-950"
+                            >
+                              View all services
+                            </Link>
+                          </div>
+                        </details>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          aria-current={isActiveLink(item.href) ? "page" : undefined}
+                          className={cn(
+                            "inline-flex min-h-11 items-center rounded-full px-5 py-2 text-base transition-[color,background-color,border-color] duration-150",
+                            isActiveLink(item.href)
+                              ? "bg-white/60 text-foreground"
+                              : "text-muted-foreground hover:bg-white/50 hover:text-foreground"
+                          )}
+                        >
+                          <span>{item.name}</span>
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

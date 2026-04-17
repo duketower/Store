@@ -1,7 +1,4 @@
-"use client";
-
 import React from "react";
-import { motion } from "motion/react";
 
 const proofItems = [
   {
@@ -69,77 +66,18 @@ const proofItems = [
   },
 ];
 
-const firstColumn = proofItems.slice(0, 3);
-const secondColumn = proofItems.slice(3, 6);
-const thirdColumn = proofItems.slice(6, 9);
-
-export const TestimonialsColumn = (props: {
-  className?: string;
-  testimonials: typeof proofItems;
-  duration?: number;
-}) => {
-  return (
-    <div className={props.className}>
-      <motion.div
-        animate={{
-          translateY: "-50%",
-        }}
-        transition={{
-          duration: props.duration || 10,
-          repeat: Infinity,
-          ease: "linear",
-          repeatType: "loop",
-        }}
-        className="flex flex-col gap-6 bg-background pb-6"
-      >
-        {[...new Array(2).fill(0)].map((_, index) => (
-          <React.Fragment key={index}>
-            {props.testimonials.map(({ text, image, name, role }, i) => (
-              <div
-                className="w-full max-w-xs rounded-3xl border border-border/70 bg-background/80 p-8 shadow-lg shadow-primary/10 backdrop-blur-sm"
-                key={`${name}-${i}`}
-              >
-                <div className="text-sm leading-7 text-foreground/80">{text}</div>
-                <div className="mt-5 flex items-center gap-3">
-                  <img
-                    width={40}
-                    height={40}
-                    src={image}
-                    alt={name}
-                    className="h-10 w-10 rounded-full object-cover"
-                  />
-                  <div className="flex flex-col">
-                    <div className="font-medium leading-5 tracking-tight">{name}</div>
-                    <div className="text-sm leading-5 tracking-tight text-muted-foreground">
-                      {role}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </React.Fragment>
-        ))}
-      </motion.div>
-    </div>
-  );
-};
+const featuredProofItems = proofItems.slice(0, 6);
 
 export function ProofColumnsSection() {
   return (
-    <section className="relative my-20 bg-background pb-24 pt-10">
+    <section className="relative bg-background py-20 md:py-28">
       <div
         aria-hidden
         className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(155,153,254,0.12),transparent_70%)]"
       />
 
       <div className="container relative z-10 mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          viewport={{ once: true }}
-          className="mx-auto flex max-w-[640px] flex-col items-center justify-center text-center"
-        >
+        <div className="mx-auto flex max-w-[640px] flex-col items-center justify-center text-center">
           <div className="flex justify-center">
             <div className="rounded-lg border border-border/70 bg-muted/50 px-4 py-1 text-sm">
               Proof of Work
@@ -153,20 +91,36 @@ export function ProofColumnsSection() {
             The work is built to be used in real operations, not just to look
             impressive in a portfolio.
           </p>
-        </motion.div>
+        </div>
 
-        <div className="mt-10 flex max-h-[740px] justify-center gap-6 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)]">
-          <TestimonialsColumn testimonials={firstColumn} duration={15} />
-          <TestimonialsColumn
-            testimonials={secondColumn}
-            className="hidden md:block"
-            duration={19}
-          />
-          <TestimonialsColumn
-            testimonials={thirdColumn}
-            className="hidden lg:block"
-            duration={17}
-          />
+        <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {featuredProofItems.map(({ text, image, name, role }, index) => (
+            <article
+              key={name}
+              className={`rounded-2xl border border-border/70 bg-card/70 p-5 shadow-sm shadow-primary/5 ${
+                index > 2 ? "hidden md:block" : ""
+              }`}
+            >
+              <p className="text-sm leading-7 text-foreground/80">{text}</p>
+              <div className="mt-5 flex items-center gap-3">
+                <img
+                  width={40}
+                  height={40}
+                  src={image}
+                  alt=""
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+                <div className="flex flex-col">
+                  <div className="font-medium leading-5 tracking-tight text-foreground">
+                    {name}
+                  </div>
+                  <div className="text-sm leading-5 tracking-tight text-muted-foreground">
+                    {role}
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </section>

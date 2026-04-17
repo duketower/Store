@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { publicContact } from "@/content/site";
 import {
   caseStudies,
+  type CaseStudy,
   deliveryStandards,
   implementationPatterns,
   workCapabilities,
@@ -69,80 +70,7 @@ export function WorkPage() {
 
             <div className="mt-10 space-y-8 md:mt-12">
               {caseStudies.map((caseStudy) => (
-                <article
-                  key={caseStudy.title}
-                  className="rounded-[2rem] border border-border/80 bg-card/60 p-6 shadow-sm md:p-8"
-                >
-                  <div className="flex flex-col gap-8 md:grid md:grid-cols-[1.1fr_0.9fr]">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                        {caseStudy.category}
-                      </p>
-                      <h3 className="mt-4 text-2xl font-semibold text-foreground md:text-3xl">
-                        {caseStudy.title}
-                      </h3>
-                      <div className="mt-8 grid gap-6">
-                        <InfoBlock label="Context" body={caseStudy.context} />
-                        <InfoBlock label="Challenge" body={caseStudy.challenge} />
-                      </div>
-                    </div>
-
-                    <div className="space-y-6 rounded-[1.5rem] border border-border/80 bg-background/80 p-6">
-                      <InfoBlock label="Solution" body={caseStudy.solution} />
-                      <InfoBlock
-                        label="Technical Detail"
-                        body={caseStudy.technicalDetail}
-                      />
-                      <InfoBlock label="Outcome" body={caseStudy.outcome} />
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Workflow Highlights
-                        </p>
-                        <ul className="mt-4 space-y-3">
-                          {caseStudy.workflowHighlights.map((item) => (
-                            <li
-                              key={item}
-                              className="flex gap-3 text-sm leading-7 text-foreground/80"
-                            >
-                              <span className="mt-[0.7rem] h-1.5 w-1.5 rounded-full bg-foreground/40" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          System Elements
-                        </p>
-                        <ul className="mt-4 flex flex-wrap gap-2">
-                          {caseStudy.systemElements.map((item) => (
-                            <li
-                              key={item}
-                              className="rounded-full border border-border/80 bg-card/70 px-3 py-1.5 text-xs font-medium text-foreground"
-                            >
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Capabilities
-                        </p>
-                        <ul className="mt-4 flex flex-wrap gap-2">
-                          {caseStudy.capabilities.map((capability) => (
-                            <li
-                              key={capability}
-                              className="rounded-full border border-border/80 bg-secondary/50 px-3 py-1.5 text-xs font-medium text-foreground"
-                            >
-                              {capability}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </article>
+                <CaseStudyCard key={caseStudy.title} caseStudy={caseStudy} />
               ))}
             </div>
           </div>
@@ -258,6 +186,95 @@ function InfoBlock({ label, body }: { label: string; body: string }) {
       <p className="mt-3 text-sm leading-7 text-foreground/80 md:text-[0.95rem]">
         {body}
       </p>
+    </div>
+  );
+}
+
+function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
+  return (
+    <article className="rounded-[2rem] border border-border/80 bg-card/60 p-6 shadow-sm md:p-8">
+      <div className="flex flex-col gap-8 md:grid md:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            {caseStudy.category}
+          </p>
+          <h3 className="mt-4 text-2xl font-semibold text-foreground md:text-3xl">
+            {caseStudy.title}
+          </h3>
+          <p className="mt-6 text-sm leading-7 text-muted-foreground md:text-[0.95rem]">
+            {caseStudy.context}
+          </p>
+          <div className="mt-6 rounded-[1.25rem] border border-border/80 bg-background/70 p-4">
+            <InfoBlock label="Outcome" body={caseStudy.outcome} />
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <InfoBlock label="Challenge" body={caseStudy.challenge} />
+          <InfoBlock label="Solution" body={caseStudy.solution} />
+
+          <details className="group rounded-[1.25rem] border border-border/80 bg-background/80 p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+              <span>Technical and workflow detail</span>
+              <span className="text-lg leading-none text-muted-foreground transition-transform group-open:rotate-45">
+                +
+              </span>
+            </summary>
+
+            <div className="mt-6 space-y-6">
+              <InfoBlock label="Technical Detail" body={caseStudy.technicalDetail} />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Workflow Highlights
+                </p>
+                <ul className="mt-4 space-y-3">
+                  {caseStudy.workflowHighlights.map((item) => (
+                    <li
+                      key={item}
+                      className="flex gap-3 text-sm leading-7 text-foreground/80"
+                    >
+                      <span className="mt-[0.7rem] h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/40" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <TagList label="System Elements" items={caseStudy.systemElements} />
+              <TagList label="Capabilities" items={caseStudy.capabilities} accent />
+            </div>
+          </details>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function TagList({
+  label,
+  items,
+  accent = false,
+}: {
+  label: string;
+  items: string[];
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      <ul className="mt-4 flex flex-wrap gap-2">
+        {items.map((item) => (
+          <li
+            key={item}
+            className={`rounded-full border border-border/80 px-3 py-1.5 text-xs font-medium text-foreground ${
+              accent ? "bg-secondary/50" : "bg-card/70"
+            }`}
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

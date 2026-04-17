@@ -109,25 +109,25 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
                 {selected.description}
               </p>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {selected.offers.map((offer) => (
-                  <ServiceSummaryCard key={offer.id} service={offer} />
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-5 grid gap-3 sm:flex">
                 <Link
                   href={`/services#${selected.id}`}
-                  className="inline-flex items-center justify-center rounded-full border border-border/80 bg-card/80 px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-border/80 bg-card/80 px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                 >
                   View full section
                 </Link>
                 <Link
                   href="/contact"
-                  className="inline-flex items-center justify-center rounded-full border border-border/80 bg-foreground px-5 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/80 bg-white px-5 py-3 text-sm font-semibold !text-slate-950 transition-opacity hover:opacity-90"
                 >
                   Book a Call
                 </Link>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {selected.offers.map((offer) => (
+                  <ServiceSummaryCard key={offer.id} service={offer} />
+                ))}
               </div>
             </motion.div>
           </motion.div>
