@@ -77,7 +77,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
       >
         <div
           className={cn(
-            "mx-auto mt-2 max-w-6xl px-4 transition-all duration-300 sm:px-6 lg:px-12",
+            "mx-auto mt-2 max-w-6xl px-4 transition-[max-width,padding,border-color,background-color,box-shadow,backdrop-filter] duration-300 sm:px-6 lg:px-12",
             isScrolled &&
               "max-w-4xl rounded-2xl border bg-background/70 backdrop-blur-lg lg:px-5"
           )}
@@ -108,7 +108,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                           <NavigationMenuItem>
                             <NavigationMenuTrigger
                               className={cn(
-                                "h-11 rounded-full bg-transparent px-3 py-2 text-sm font-medium transition-colors duration-150 hover:bg-white/[0.04] focus:outline-none data-[state=open]:bg-white/[0.06]",
+                                "h-11 rounded-full bg-transparent px-3 py-2 text-sm font-medium transition-colors duration-150 hover:bg-white/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[state=open]:bg-white/[0.06]",
                                 isActiveLink(item.href)
                                   ? "text-foreground"
                                   : "text-muted-foreground hover:text-foreground"
@@ -198,7 +198,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                           <span
                             aria-hidden="true"
                             className={cn(
-                              "absolute left-1/2 top-[calc(100%+0.45rem)] h-px -translate-x-1/2 rounded-full bg-border transition-all duration-200",
+                              "absolute left-1/2 top-[calc(100%+0.45rem)] h-px -translate-x-1/2 rounded-full bg-border transition-[width,opacity] duration-200",
                               isActiveLink(item.href) ? "w-[calc(100%+1rem)] opacity-100" : "w-0 opacity-0"
                             )}
                           />
@@ -302,18 +302,18 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                   size="sm"
                   className={cn("h-12 px-5", isScrolled && "lg:hidden")}
                 >
-                  <Link href={publicContact.bookingHref}>
+                  <a href={publicContact.bookingHref}>
                     <span>Book a Call</span>
-                  </Link>
+                  </a>
                 </Button>
                 <Button
                   asChild
                   size="sm"
                   className={cn("h-12 px-5", isScrolled ? "lg:inline-flex" : "hidden")}
                 >
-                  <Link href={publicContact.bookingHref}>
+                  <a href={publicContact.bookingHref}>
                     <span>Book a Call</span>
-                  </Link>
+                  </a>
                 </Button>
               </div>
             </div>

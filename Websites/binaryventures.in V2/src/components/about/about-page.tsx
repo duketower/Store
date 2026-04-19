@@ -54,7 +54,7 @@ export function AboutPage() {
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="w-full rounded-full px-8 sm:w-auto">
-                  <Link href={publicContact.bookingHref}>Book a Call</Link>
+                  <a href={publicContact.bookingHref}>Book a Call</a>
                 </Button>
                 <Button
                   asChild
@@ -145,7 +145,7 @@ export function AboutPage() {
                 variant="outline"
                 className="w-full rounded-full px-8 sm:w-auto"
               >
-                <Link href={publicContact.bookingHref}>Book a Call</Link>
+                <a href={publicContact.bookingHref}>Book a Call</a>
               </Button>
             </div>
           </div>

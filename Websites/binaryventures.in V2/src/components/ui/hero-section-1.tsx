@@ -15,6 +15,7 @@ import { ProofColumnsSection } from "@/components/ui/testimonials-columns-1";
 import SectionWithMockup from "@/components/ui/section-with-mockup";
 import { ObjectionCardsSection } from "@/components/ui/objection-cards";
 import { PricingPreviewSection } from "@/components/ui/pricing-preview";
+import { publicContact } from "@/content/site";
 
 const transitionVariants: { item: Variants } = {
   item: {
@@ -84,6 +85,7 @@ export function HeroSection() {
                 className="absolute inset-x-0 top-56 -z-20 hidden opacity-70 lg:top-32 lg:block"
                 width="3276"
                 height="4095"
+                fetchPriority="high"
               />
             </AnimatedGroup>
             <div
@@ -95,7 +97,7 @@ export function HeroSection() {
                 <AnimatedGroup variants={transitionVariants}>
                   <Link
                     href="/services"
-                    className="bg-muted/70 group mx-auto flex w-fit max-w-full items-center gap-3 rounded-full border border-border/75 p-1 pl-3 pr-1 shadow-md shadow-black/20 transition-all duration-300 hover:bg-muted/90 sm:gap-4 sm:pl-4"
+                    className="bg-muted/70 group mx-auto flex w-fit max-w-full items-center gap-3 rounded-full border border-border/75 p-1 pl-3 pr-1 shadow-md shadow-black/20 transition-[background-color,border-color,box-shadow,transform] duration-300 hover:bg-muted/90 sm:gap-4 sm:pl-4"
                   >
                     <span className="text-foreground text-xs sm:text-sm">
                       Websites, systems, and automation
@@ -143,9 +145,9 @@ export function HeroSection() {
                     size="lg"
                     className="h-14 w-full px-7 text-base sm:w-auto"
                   >
-                    <Link href="/contact">
+                    <a href={publicContact.bookingHref}>
                       <span className="text-nowrap">Book a Call</span>
-                    </Link>
+                    </a>
                   </Button>
                   <Button
                     asChild
@@ -186,6 +188,7 @@ export function HeroSection() {
                     alt="business systems collaboration"
                     width="2700"
                     height="1440"
+                    fetchPriority="high"
                   />
                 </div>
               </div>

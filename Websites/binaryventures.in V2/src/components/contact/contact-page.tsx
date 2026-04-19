@@ -13,6 +13,14 @@ import { serviceRequestGroups } from "@/content/services";
 import { Button } from "@/components/ui/button";
 
 export function ContactPage() {
+  const renderContactAction = (href: string, label: string) => {
+    if (href.startsWith("/")) {
+      return <Link href={href}>{label}</Link>;
+    }
+
+    return <a href={href}>{label}</a>;
+  };
+
   return (
     <>
       <SiteHeader />
@@ -53,7 +61,7 @@ export function ContactPage() {
                 <div className="mt-8">
                   {option.variant === "primary" ? (
                     <Button asChild size="lg" className="w-full rounded-full px-8 sm:w-auto">
-                      <Link href={option.actionHref}>{option.actionLabel}</Link>
+                      {renderContactAction(option.actionHref, option.actionLabel)}
                     </Button>
                   ) : (
                     <Button

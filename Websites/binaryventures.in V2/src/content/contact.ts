@@ -1,3 +1,5 @@
+import { publicContact } from "@/content/site";
+
 export const contactIntro = {
   title: "Tell us what your business needs.",
   body:
@@ -8,9 +10,9 @@ export const contactOptions = [
   {
     title: "Book a Call",
     body:
-      "Use the contact route now and we will move the conversation forward directly while the public scheduling link is being set up.",
-    actionLabel: "Go to Contact Flow",
-    actionHref: "/contact",
+      "Choose a 30-minute slot to talk through your business context, what needs to be built, and the best next step.",
+    actionLabel: "Schedule a 30-Minute Call",
+    actionHref: publicContact.bookingHref,
     variant: "primary" as const,
   },
   {

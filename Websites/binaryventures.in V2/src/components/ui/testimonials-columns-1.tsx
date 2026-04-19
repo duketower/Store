@@ -108,6 +108,7 @@ export function ProofColumnsSection() {
                   height={40}
                   src={image}
                   alt=""
+                  loading="lazy"
                   className="h-10 w-10 rounded-full object-cover"
                 />
                 <div className="flex flex-col">

@@ -2,13 +2,10 @@
 
 ## Current
 
-- [ ] Run a focused desktop and mobile screenshot review across all live pages when requested
-- [ ] Prioritize practical navigation, spacing, service-flow, and content fixes from that review
+- [ ] Continue launch polish from live device review when new feedback is available
 
 ## Backlog
 
-- replace the temporary Contact-page booking route with a real scheduling link later
-- add visual assets to the Work page case studies later
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - deepen Services and Case Studies with more technical implementation detail
 - add a Blog section for publishing useful company notes, service explainers, and technical/business guides; working categories are Guides, Ratings, and Strategies, but the structure should be tweaked beyond the NinjaPromo-style reference before writing begins, with room for additional sections
@@ -58,3 +55,14 @@
 - ignored generated Firebase deploy logs to keep the V2 workspace clean after deploys
 - removed low-value category strips from Case Studies and simplified the Services page structure after live review
 - tightened the Case Studies page spacing after removing the decorative category strip
+- ran a focused desktop and mobile route audit across all live pages
+- fixed duplicated metadata titles on secondary pages
+- replaced the stale homepage `Demo` wrapper with a named Home page component
+- improved document dark-theme hints, focus states, reduced-motion handling, and image loading hints
+- converted the homepage service preview cards into semantic keyboard-accessible buttons
+- changed Book a Call CTAs from a circular Contact route to a prefilled email booking fallback
+- verified mobile menu, service modal, and Services hash links in-browser
+- added visual proof panels, surfaced metrics, and strengthened anonymized case-study cards on the Work page
+- reviewed all public pages across desktop, tablet, and mobile
+- made homepage scroll-reveal sections visible by default so full-page captures and slow devices do not show blank content bands
+- replaced the email-based booking fallback with the real Calendly scheduling URL

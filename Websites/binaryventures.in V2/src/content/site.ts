@@ -8,7 +8,7 @@ export const siteNavigation = [
 
 export const publicContact = {
   email: "connect@binaryventures.in",
-  bookingHref: "/contact",
+  bookingHref: "https://calendly.com/binaryventurespvtltd/30min",
   locations: [
     {
       label: "India",

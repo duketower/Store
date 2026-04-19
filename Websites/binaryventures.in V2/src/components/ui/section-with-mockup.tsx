@@ -61,7 +61,7 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
         <motion.div
           className={`grid w-full grid-cols-1 items-center gap-14 md:gap-10 lg:gap-14 ${layoutClasses}`}
           variants={containerVariants}
-          initial="hidden"
+          initial={false}
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
         >
@@ -93,7 +93,7 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
                 reverseLayout ? "-left-10" : "-right-10"
               )}
               style={{ filter: "blur(1px)" }}
-              initial={{ y: 0 }}
+              initial={false}
               whileInView={{ y: reverseLayout ? -12 : -18 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
               viewport={{ once: true, amount: 0.5 }}
@@ -108,7 +108,7 @@ const SectionWithMockup: React.FC<SectionWithMockupProps> = ({
 
             <motion.div
               className="relative z-10 overflow-hidden rounded-[32px] border border-border/50 bg-white/6 shadow-[0_32px_90px_-48px_rgba(15,23,42,0.35)] backdrop-blur-[15px] backdrop-brightness-[100%]"
-              initial={{ y: 0 }}
+              initial={false}
               whileInView={{ y: reverseLayout ? 14 : 18 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
               viewport={{ once: true, amount: 0.5 }}

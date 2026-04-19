@@ -1,6 +1,11 @@
 export type CaseStudy = {
   title: string;
   category: string;
+  metric: string;
+  metricLabel: string;
+  timeline: string;
+  visualKind: "operations" | "website" | "institution" | "automation";
+  proofPoints: string[];
   context: string;
   challenge: string;
   solution: string;
@@ -15,6 +20,15 @@ export const caseStudies: CaseStudy[] = [
   {
     title: "Custom Retail Operations System",
     category: "Web App / Operations",
+    metric: "10+",
+    metricLabel: "staff using the system daily",
+    timeline: "Active since 2023",
+    visualKind: "operations",
+    proofPoints: [
+      "Billing, inventory, and reporting in one operating view",
+      "End-of-day summaries pushed through bot-based updates",
+      "Dashboards shaped around different business workflows",
+    ],
     context:
       "An inventory-led business needed a dependable system to manage billing, stock, day-to-day operations, and reporting in one place.",
     challenge:
@@ -46,6 +60,15 @@ export const caseStudies: CaseStudy[] = [
   {
     title: "Managed Website for a Service Business",
     category: "Website / Ongoing Support",
+    metric: "2+ yrs",
+    metricLabel: "managed after launch",
+    timeline: "Ongoing support engagement",
+    visualKind: "website",
+    proofPoints: [
+      "Rebuilt public presence around trust and clearer enquiries",
+      "Content updates handled without destabilizing the site",
+      "Mobile behavior and enquiry routing improved over time",
+    ],
     context:
       "A service-led business needed a stronger website presence that could support trust, explain the offer clearly, and stay updated over time.",
     challenge:
@@ -77,6 +100,15 @@ export const caseStudies: CaseStudy[] = [
   {
     title: "Managed Website for an Academic Institution",
     category: "Website / Managed Delivery",
+    metric: "Multi-year",
+    metricLabel: "managed website engagement",
+    timeline: "Continuously maintained",
+    visualKind: "institution",
+    proofPoints: [
+      "Public information organized into clearer page structures",
+      "Regular updates handled as part of an operating rhythm",
+      "Maintenance reduced stress around website changes",
+    ],
     context:
       "An academic institution needed a website that could communicate clearly, stay current, and support regular updates without friction.",
     challenge:
@@ -108,6 +140,15 @@ export const caseStudies: CaseStudy[] = [
   {
     title: "Automation and Bot Workflows",
     category: "Bots / Automation",
+    metric: "Hours",
+    metricLabel: "of manual work reduced weekly",
+    timeline: "Live operational workflows",
+    visualKind: "automation",
+    proofPoints: [
+      "Routine reports delivered without manual collation",
+      "Internal notifications routed through the right channel",
+      "Lead and data workflows structured for faster follow-up",
+    ],
     context:
       "Businesses needed faster reporting, cleaner internal visibility, and less manual follow-up across routine operational tasks.",
     challenge:

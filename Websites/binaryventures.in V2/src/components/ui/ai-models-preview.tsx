@@ -9,6 +9,7 @@ import {
   type GroupedServiceOffers,
   type ServiceOffer,
 } from "@/content/services";
+import { publicContact } from "@/content/site";
 
 type Props = {
   models: GroupedServiceOffers[];
@@ -54,26 +55,28 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
 
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {models.map((group) => (
-          <motion.li
-            key={group.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="cursor-pointer rounded-2xl border border-border/70 bg-card/80 p-5 text-card-foreground shadow-sm shadow-primary/5 transition hover:shadow-lg hover:shadow-primary/10"
-            onClick={() => setSelected(group)}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-medium">{group.name}</span>
-              <Badge>{group.eyebrow}</Badge>
-            </div>
-            <p className="mt-3 min-h-24 text-sm leading-6 text-muted-foreground">
-              {group.homepageSummary}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              {group.offers.map((offer) => (
-                <Badge key={offer.id}>{offer.name}</Badge>
-              ))}
-            </div>
-          </motion.li>
+          <li key={group.id}>
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="h-full w-full cursor-pointer rounded-2xl border border-border/70 bg-card/80 p-5 text-left text-card-foreground shadow-sm shadow-primary/5 transition-[border-color,box-shadow,transform] hover:shadow-lg hover:shadow-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              onClick={() => setSelected(group)}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium">{group.name}</span>
+                <Badge>{group.eyebrow}</Badge>
+              </div>
+              <p className="mt-3 min-h-24 text-sm leading-6 text-muted-foreground">
+                {group.homepageSummary}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                {group.offers.map((offer) => (
+                  <Badge key={offer.id}>{offer.name}</Badge>
+                ))}
+              </div>
+            </motion.button>
+          </li>
         ))}
       </ul>
 
@@ -116,12 +119,12 @@ export const AiModelsList: React.FC<Props> = ({ models, className = "" }) => {
                 >
                   View full section
                 </Link>
-                <Link
-                  href="/contact"
+                <a
+                  href={publicContact.bookingHref}
                   className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/80 bg-white px-5 py-3 text-sm font-semibold !text-slate-950 transition-opacity hover:opacity-90"
                 >
                   Book a Call
-                </Link>
+                </a>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">

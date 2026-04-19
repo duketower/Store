@@ -5,6 +5,7 @@ import React from "react";
 import { motion, type Transition } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
+import { publicContact } from "@/content/site";
 import { cn } from "@/lib/utils";
 
 interface BeamPath {
@@ -334,7 +335,7 @@ export function FinalCtaSection() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="rounded-full px-8">
-              <Link href="/contact">Book a Call</Link>
+              <a href={publicContact.bookingHref}>Book a Call</a>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full px-8">
               <a href="mailto:connect@binaryventures.in">Email Us</a>

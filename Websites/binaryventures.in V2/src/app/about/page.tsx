@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AboutPage } from "@/components/about/about-page";
 
 export const metadata: Metadata = {
-  title: "About | Binary Ventures",
+  title: "About",
   description:
     "Learn about the founder-led model, working style, and operating footprint behind Binary Ventures.",
 };

@@ -59,7 +59,7 @@ function AnimatedContainer({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
@@ -97,7 +97,7 @@ export function PricingPreviewSection() {
               <Link
                 href={tier.href}
                 className={cn(
-                  "group flex h-full flex-col rounded-2xl border p-5 transition-all duration-200 hover:shadow-lg",
+                  "group flex h-full flex-col rounded-2xl border p-5 transition-[border-color,box-shadow,transform,background-color] duration-200 hover:shadow-lg",
                   tier.accent
                     ? "border-primary/30 bg-[linear-gradient(160deg,rgba(155,153,254,0.08),rgba(43,200,183,0.04))] hover:border-primary/50 hover:shadow-primary/10"
                     : "border-border/70 bg-card/60 hover:border-border hover:shadow-primary/5"
