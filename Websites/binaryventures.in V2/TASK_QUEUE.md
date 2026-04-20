@@ -4,11 +4,27 @@
 
 - [ ] Continue launch polish from live device review when new feedback is available
 
+## Insights — Automation Layer (insights_automation_guide.md steps 8–15, 19–20)
+
+Next coding tasks to enable daily article automation:
+
+- [ ] Create Notion database `Binary Ventures Insights Pipeline` with the properties defined in guide section 8
+- [ ] Create Notion internal integration, share DB, add `NOTION_TOKEN` + `NOTION_DATABASE_ID` to GitHub secrets
+- [ ] Create Gemini API key, add `GEMINI_API_KEY` to GitHub secrets
+- [ ] Create `scripts/generate-insight-article.mjs` — connects Notion, picks one Approved item, calls Gemini, validates, saves article, updates Notion status
+- [ ] Create `.github/workflows/daily-insight.yml` — cron `37 4 * * *`, runs generation script, builds, commits, pushes, deploys
+- [ ] Add `FIREBASE_SERVICE_ACCOUNT` to GitHub secrets
+- [ ] Create/verify `.github/workflows/firebase-deploy.yml` — triggers on push to main
+- [ ] Test daily workflow manually via `workflow_dispatch`
+- [ ] Submit `https://binaryventures.in/sitemap.xml` in Google Search Console
+- [ ] Monitor Search Console for two weeks before enabling auto-publish
+
 ## Backlog
 
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - deepen Services and Case Studies with more technical implementation detail
-- add a Blog section for publishing useful company notes, service explainers, and technical/business guides; working categories are Guides, Ratings, and Strategies, but the structure should be tweaked beyond the NinjaPromo-style reference before writing begins, with room for additional sections
+- Insights section is live with 3 starter articles — automation layer is the next phase (see In Progress block above)
+- add more articles to `src/content/insights/articles/` following the frontmatter format in `docs/insights_automation_guide.md`
 - add a region-aware website experience using the plan in `docs/regional_pricing_strategy.md`; start with `/au` pages, regional pricing data, a region selector, and SEO-friendly `hreflang` rather than forced IP redirects
 - save the AU/US reference website shortlist into project docs for later review
 - enrich the simple pricing cards with the useful detail from the reverted pricing experiment
@@ -66,3 +82,4 @@
 - reviewed all public pages across desktop, tablet, and mobile
 - made homepage scroll-reveal sections visible by default so full-page captures and slow devices do not show blank content bands
 - replaced the email-based booking fallback with the real Calendly scheduling URL
+- implemented the Insights section: `/insights` listing page, `/insights/[slug]` article page, Markdown article loader (`src/lib/insights.ts`), 3 starter articles, and sitemap generation (`src/app/sitemap.ts`); build verified clean
