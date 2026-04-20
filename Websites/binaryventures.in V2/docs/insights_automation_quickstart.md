@@ -8,6 +8,7 @@ Use this short checklist after creating the Notion database.
   - `Daily Insight`
   - `Firebase Deploy`
 - `NOTION_DATABASE_ID` has been added to GitHub secrets.
+- Daily article generation uses `gemini-2.5-flash-lite` by default.
 - The Notion database id is:
 
 ```txt

@@ -21,8 +21,8 @@ const ARTICLES_DIR = path.resolve(__dirname, "../src/content/insights/articles")
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
 const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Use latest stable flash model — update if Google changes the ID.
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+// Keep this on a low-cost/free-tier friendly model. Override with GEMINI_MODEL if needed.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
 
 // ─── Notion helpers ───────────────────────────────────────────────────────────
 
