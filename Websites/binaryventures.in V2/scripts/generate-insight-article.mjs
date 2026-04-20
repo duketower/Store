@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Daily article generation pipeline:
- *   Notion (Approved) → Gemini → Markdown file → Notion (Generated)
+ *   Notion (Approved) → Gemini → draft Markdown file → Notion (Generated)
  *
  * Required env vars:
  *   NOTION_TOKEN          — Notion internal integration secret
@@ -127,7 +127,7 @@ Additional brief: ${topic.brief || "None"}
 - At least 5 clear headings (H2 or H3).
 - Include a practical introduction.
 - Include numbered steps or checklists where relevant.
-- Include at least one internal CTA linking to: https://calendly.com/binaryventurespvtltd/30min
+- Include at least one CTA linking to: https://calendly.com/binaryventurespvtltd/30min
 - Include a FAQ section with 3–4 relevant questions.
 - Use the primary keyword naturally — do not stuff it.
 - Write in clear, direct English. No jargon. No buzzwords.
@@ -149,7 +149,7 @@ tags:
   - tag two
   - tag three
 author: "Binary Ventures"
-status: "published"
+status: "draft"
 canonical: "https://binaryventures.in/insights/${topic.slug || slugify(topic.title)}"
 ---
 
@@ -224,6 +224,8 @@ function validate(raw, fm) {
   if (!fm.date) errors.push("Missing date");
   if (!fm.category) errors.push("Missing category");
   if (!fm.canonical) errors.push("Missing canonical");
+  if (!/^https:\/\/binaryventures\.in\/insights\//.test(fm.canonical))
+    errors.push("Canonical must use binaryventures.in insights URL");
   if (wordCount < 800) errors.push(`Too short: ${wordCount} words (min 800)`);
   if (headingCount < 4) errors.push(`Too few headings: ${headingCount} (min 4)`);
   if (/\[PLACEHOLDER\]|\[INSERT\]|\[ADD HERE\]/i.test(body))
@@ -296,7 +298,8 @@ async function run() {
   // Update Notion
   await updateNotionStatus(topic.pageId, "Generated");
   console.log(`✅ Notion status updated to: Generated`);
-  console.log(`\n🎉 Done. Review the article before publishing:\n   ${filePath}`);
+  console.log(`\n🎉 Done. Review the draft before publishing:\n   ${filePath}`);
+  console.log('   To publish, change frontmatter status from "draft" to "published" and commit it.');
 }
 
 run().catch((err) => {

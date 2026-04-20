@@ -3,10 +3,11 @@
 ## Current
 
 - [ ] Continue launch polish from live device review when new feedback is available
+- [ ] Push and deploy the local Insights launch-blocker fixes so `/insights` is live on `binaryventures.in`
 
 ## Insights — Automation Layer: Manual Setup Required
 
-Code is done. These steps require manual action before the pipeline can run:
+Code is present locally. These steps require manual action before the pipeline can run:
 
 - [ ] **You** — Create Notion database `Binary Ventures Insights Pipeline` with properties from `docs/insights_automation_guide.md` section 8
 - [ ] **You** — Create Notion internal integration at notion.so/my-integrations, share DB with it, copy token
@@ -18,15 +19,15 @@ Code is done. These steps require manual action before the pipeline can run:
 - [ ] **You** — Monitor Search Console for two weeks before enabling auto-publish
 
 Code already committed:
-- [x] `scripts/generate-insight-article.mjs` — Notion → Gemini → Markdown, with quality validation
-- [x] `.github/workflows/daily-insight.yml` — cron at 10:07 AM IST, build, commit, push, deploy
-- [x] `.github/workflows/firebase-deploy.yml` — deploy on every push to main (paths: Websites/binaryventures.in V2/**)
+- [x] `scripts/generate-insight-article.mjs` — Notion → Gemini → draft Markdown, with quality validation
+- [x] repo-root `.github/workflows/daily-insight.yml` — cron at 10:07 AM IST, build, commit, push generated drafts
+- [x] repo-root `.github/workflows/firebase-deploy.yml` — deploy on every push to main (paths: Websites/binaryventures.in V2/**)
 
 ## Backlog
 
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - deepen Services and Case Studies with more technical implementation detail
-- Insights section is live with 3 starter articles — automation layer is the next phase (see In Progress block above)
+- Insights section is ready locally with 3 starter articles — push and deploy before submitting to Search Console
 - add more articles to `src/content/insights/articles/` following the frontmatter format in `docs/insights_automation_guide.md`
 - add a region-aware website experience using the plan in `docs/regional_pricing_strategy.md`; start with `/au` pages, regional pricing data, a region selector, and SEO-friendly `hreflang` rather than forced IP redirects
 - save the AU/US reference website shortlist into project docs for later review
@@ -86,4 +87,5 @@ Code already committed:
 - made homepage scroll-reveal sections visible by default so full-page captures and slow devices do not show blank content bands
 - replaced the email-based booking fallback with the real Calendly scheduling URL
 - implemented the Insights section: `/insights` listing page, `/insights/[slug]` article page, Markdown article loader (`src/lib/insights.ts`), 3 starter articles, and sitemap generation (`src/app/sitemap.ts`); build verified clean
-- built the full Insights automation layer: `scripts/generate-insight-article.mjs` (Notion → Gemini → Markdown + validation), `.github/workflows/daily-insight.yml` (cron 10:07 AM IST), `.github/workflows/firebase-deploy.yml` (push to main); awaiting manual secret setup to activate
+- built the Insights automation layer: `scripts/generate-insight-article.mjs` (Notion → Gemini → draft Markdown + validation), repo-root `.github/workflows/daily-insight.yml` (cron 10:07 AM IST), repo-root `.github/workflows/firebase-deploy.yml` (push to main); awaiting push, deploy, and manual secret setup to activate
+- fixed Insights launch blockers: added navigation discovery, corrected starter article Calendly URLs, moved workflows to repo root, made generated articles drafts by default, hid non-published article pages from static generation, added custom article typography, and added static category pages at `/insights/category/[slug]`

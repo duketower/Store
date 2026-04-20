@@ -139,7 +139,7 @@ Do not wait for your next scheduled review if any of these are true:
 
 We offer maintenance retainers for businesses that want someone accountable for keeping their site healthy — without calling a developer every time something feels off.
 
-If you are unsure whether your current website is in good shape, [book a free 30-minute review call](https://calendly.com/binaryventures/discovery) and we will walk through the main areas together.
+If you are unsure whether your current website is in good shape, [book a free 30-minute review call](https://calendly.com/binaryventurespvtltd/30min) and we will walk through the main areas together.
 
 ---
 

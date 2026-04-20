@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getAllArticles } from "@/lib/insights";
+import { categoryToSlug, getAllArticles, insightCategories } from "@/lib/insights";
 
 export const dynamic = "force-static";
 
@@ -22,5 +22,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...articleRoutes];
+  const categoryRoutes: MetadataRoute.Sitemap = insightCategories.map((category) => ({
+    url: `${BASE_URL}/insights/category/${categoryToSlug(category)}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: 0.6,
+  }));
+
+  return [...staticRoutes, ...categoryRoutes, ...articleRoutes];
 }

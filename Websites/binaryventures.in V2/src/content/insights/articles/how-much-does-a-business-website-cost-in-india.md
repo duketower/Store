@@ -152,7 +152,7 @@ We build websites for businesses that need things done properly and want to own 
 
 Every project comes with a defined scope, clean code handover, and transparent pricing. We work with small and mid-size businesses across India and are particularly focused on companies in Indore, Bhopal, and Adelaide.
 
-If you are budgeting for a website and want an honest estimate for your situation, [book a free 30-minute call](https://calendly.com/binaryventures/discovery) — no pitch, just a real conversation.
+If you are budgeting for a website and want an honest estimate for your situation, [book a free 30-minute call](https://calendly.com/binaryventurespvtltd/30min) — no pitch, just a real conversation.
 
 ---
 

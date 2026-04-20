@@ -29,6 +29,35 @@ export interface ArticleMeta extends ArticleFrontmatter {
   readingTime: number;
 }
 
+export const insightCategories = [
+  "Guides",
+  "Websites",
+  "Web Apps",
+  "Automation",
+  "AI Chatbots",
+  "Business Systems",
+  "SEO & Growth",
+  "Local Business",
+] as const;
+
+function stripLeadingTitle(content: string): string {
+  return content.replace(/^\s*# [^\n]+\n+/, "");
+}
+
+export function categoryToSlug(category: string): string {
+  return category
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+export function getCategoryBySlug(slug: string): string | null {
+  return insightCategories.find((category) => categoryToSlug(category) === slug) ?? null;
+}
+
 function calcReadingTime(text: string): number {
   const words = text.trim().split(/\s+/).length;
   return Math.max(1, Math.ceil(words / 200));
@@ -57,15 +86,23 @@ export function getAllArticles(): ArticleMeta[] {
     .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
+export function getArticlesByCategory(category: string): ArticleMeta[] {
+  return getAllArticles().filter((article) => article.category === category);
+}
+
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const filePath = path.join(ARTICLES_DIR, `${slug}.md`);
   if (!fs.existsSync(filePath)) return null;
   const raw = fs.readFileSync(filePath, "utf8");
   const { data, content } = matter(raw);
-  const processed = await remark().use(remarkHtml).process(content);
+  const frontmatter = data as ArticleFrontmatter;
+  if (frontmatter.status !== "published") return null;
+
+  const articleBody = stripLeadingTitle(content);
+  const processed = await remark().use(remarkHtml).process(articleBody);
   return {
-    ...(data as ArticleFrontmatter),
+    ...frontmatter,
     content: processed.toString(),
-    readingTime: calcReadingTime(content),
+    readingTime: calcReadingTime(articleBody),
   };
 }

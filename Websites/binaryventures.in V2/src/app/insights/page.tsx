@@ -5,7 +5,7 @@ import { ArrowRight, Clock } from "lucide-react";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
-import { getAllArticles } from "@/lib/insights";
+import { categoryToSlug, getAllArticles, insightCategories } from "@/lib/insights";
 
 export const metadata: Metadata = {
   title: "Insights",
@@ -18,18 +18,6 @@ export const metadata: Metadata = {
     url: "https://binaryventures.in/insights",
   },
 };
-
-const CATEGORIES = [
-  "All",
-  "Guides",
-  "Websites",
-  "Web Apps",
-  "Automation",
-  "AI Chatbots",
-  "Business Systems",
-  "SEO & Growth",
-  "Local Business",
-];
 
 export default function InsightsPage() {
   const articles = getAllArticles();
@@ -66,13 +54,21 @@ export default function InsightsPage() {
         <section className="border-b border-border/50 px-6 pb-4">
           <div className="mx-auto max-w-6xl">
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => (
-                <span
-                  key={cat}
-                  className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground cursor-pointer"
+              <Link
+                href="/insights"
+                aria-current="page"
+                className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+              >
+                All
+              </Link>
+              {insightCategories.map((category) => (
+                <Link
+                  key={category}
+                  href={`/insights/category/${categoryToSlug(category)}`}
+                  className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
                 >
-                  {cat}
-                </span>
+                  {category}
+                </Link>
               ))}
             </div>
           </div>

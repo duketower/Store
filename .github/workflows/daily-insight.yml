@@ -7,7 +7,7 @@ on:
     - cron: "37 4 * * *"
 
 jobs:
-  generate-and-deploy:
+  generate-draft:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,7 +29,7 @@ jobs:
         working-directory: "Websites/binaryventures.in V2"
         run: npm ci
 
-      - name: Generate article
+      - name: Generate draft article
         working-directory: "Websites/binaryventures.in V2"
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -41,22 +41,13 @@ jobs:
         working-directory: "Websites/binaryventures.in V2"
         run: npm run build
 
-      - name: Commit generated article
+      - name: Commit generated draft
         working-directory: "Websites/binaryventures.in V2"
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src/content/insights/articles/
-          git diff --cached --quiet || git commit -m "content(insights): add generated article [skip ci]"
+          git diff --cached --quiet || git commit -m "content(insights): add generated draft"
 
       - name: Push
         run: git push
-
-      - name: Deploy to Firebase
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          projectId: binaryventures-in
-          entryPoint: "Websites/binaryventures.in V2"

@@ -81,6 +81,85 @@ a {
   text-decoration: none;
 }
 
+.article-content {
+  color: var(--muted-foreground);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.article-content > * + * {
+  margin-top: 1.35rem;
+}
+
+.article-content h2,
+.article-content h3 {
+  color: var(--foreground);
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.article-content h2 {
+  margin-top: 2.75rem;
+  font-size: clamp(1.55rem, 1.3rem + 0.8vw, 2rem);
+}
+
+.article-content h3 {
+  margin-top: 2rem;
+  font-size: 1.25rem;
+}
+
+.article-content p,
+.article-content li {
+  max-width: 72ch;
+}
+
+.article-content strong {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.article-content a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+.article-content ul,
+.article-content ol {
+  display: grid;
+  gap: 0.65rem;
+  padding-left: 1.35rem;
+}
+
+.article-content ul {
+  list-style: disc;
+}
+
+.article-content ol {
+  list-style: decimal;
+}
+
+.article-content hr {
+  margin-block: 2rem;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.article-content code {
+  border-radius: 0.35rem;
+  background: var(--muted);
+  padding: 0.1rem 0.3rem;
+  color: var(--foreground);
+  font-size: 0.9em;
+}
+
+.article-content blockquote {
+  border-left: 2px solid var(--primary);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+}
+
 :where(a, button, summary):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 4px;

@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - "Websites/binaryventures.in V2/**"
+      - ".github/workflows/firebase-deploy.yml"
+  workflow_dispatch:
 
 jobs:
   deploy:

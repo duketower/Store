@@ -7,7 +7,6 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
 import {
-  getAllArticleSlugs,
   getAllArticles,
   getArticleBySlug,
 } from "@/lib/insights";
@@ -17,7 +16,7 @@ interface Props {
 }
 
 export function generateStaticParams() {
-  return getAllArticleSlugs().map((slug) => ({ slug }));
+  return getAllArticles().map((article) => ({ slug: article.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -130,22 +129,12 @@ export default async function ArticlePage({ params }: Props) {
           </div>
         </section>
 
-        {/* Article body — HTML sanitized by remark-html at parse time */}
+        {/* Article body */}
         <section className="px-6 pb-16">
           <div className="mx-auto max-w-3xl">
             <div
-              className="prose prose-neutral dark:prose-invert max-w-none
-                prose-headings:font-semibold prose-headings:tracking-tight
-                prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl
-                prose-p:leading-7 prose-p:text-muted-foreground
-                prose-li:text-muted-foreground
-                prose-strong:text-foreground
-                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                prose-hr:border-border/50
-                prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-sm
-                prose-blockquote:border-l-primary/50 prose-blockquote:text-muted-foreground"
-              // Content is parsed from repo-controlled Markdown via remark-html (sanitize: true).
-              // No user input reaches this render path.
+              className="article-content"
+              // Content is parsed from repo-controlled Markdown via remark-html.
               dangerouslySetInnerHTML={{ __html: article.content }}
             />
 

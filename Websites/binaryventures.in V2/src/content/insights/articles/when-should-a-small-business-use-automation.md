@@ -146,7 +146,7 @@ We build automation systems for businesses that are tired of manual work slowing
 
 We work with tools like n8n, Make, WhatsApp Business API, and custom integrations depending on what the situation requires.
 
-If you have a specific repetitive process in mind, [book a free 30-minute call](https://calendly.com/binaryventures/discovery) and we can tell you whether automation makes sense and what it would take.
+If you have a specific repetitive process in mind, [book a free 30-minute call](https://calendly.com/binaryventurespvtltd/30min) and we can tell you whether automation makes sense and what it would take.
 
 ---
 
