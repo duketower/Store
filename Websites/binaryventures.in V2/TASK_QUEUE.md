@@ -4,20 +4,23 @@
 
 - [ ] Continue launch polish from live device review when new feedback is available
 
-## Insights — Automation Layer (insights_automation_guide.md steps 8–15, 19–20)
+## Insights — Automation Layer: Manual Setup Required
 
-Next coding tasks to enable daily article automation:
+Code is done. These steps require manual action before the pipeline can run:
 
-- [ ] Create Notion database `Binary Ventures Insights Pipeline` with the properties defined in guide section 8
-- [ ] Create Notion internal integration, share DB, add `NOTION_TOKEN` + `NOTION_DATABASE_ID` to GitHub secrets
-- [ ] Create Gemini API key, add `GEMINI_API_KEY` to GitHub secrets
-- [ ] Create `scripts/generate-insight-article.mjs` — connects Notion, picks one Approved item, calls Gemini, validates, saves article, updates Notion status
-- [ ] Create `.github/workflows/daily-insight.yml` — cron `37 4 * * *`, runs generation script, builds, commits, pushes, deploys
-- [ ] Add `FIREBASE_SERVICE_ACCOUNT` to GitHub secrets
-- [ ] Create/verify `.github/workflows/firebase-deploy.yml` — triggers on push to main
-- [ ] Test daily workflow manually via `workflow_dispatch`
-- [ ] Submit `https://binaryventures.in/sitemap.xml` in Google Search Console
-- [ ] Monitor Search Console for two weeks before enabling auto-publish
+- [ ] **You** — Create Notion database `Binary Ventures Insights Pipeline` with properties from `docs/insights_automation_guide.md` section 8
+- [ ] **You** — Create Notion internal integration at notion.so/my-integrations, share DB with it, copy token
+- [ ] **You** — Create Gemini API key at aistudio.google.com
+- [ ] **You** — Add GitHub secrets to the repo: `NOTION_TOKEN`, `NOTION_DATABASE_ID`, `GEMINI_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`
+- [ ] **You** — Add at least one Notion item with Status = `Approved` to test the pipeline
+- [ ] **You** — Run the Daily Insight workflow manually via GitHub Actions → workflow_dispatch
+- [ ] **You** — Submit `https://binaryventures.in/sitemap.xml` in Google Search Console
+- [ ] **You** — Monitor Search Console for two weeks before enabling auto-publish
+
+Code already committed:
+- [x] `scripts/generate-insight-article.mjs` — Notion → Gemini → Markdown, with quality validation
+- [x] `.github/workflows/daily-insight.yml` — cron at 10:07 AM IST, build, commit, push, deploy
+- [x] `.github/workflows/firebase-deploy.yml` — deploy on every push to main (paths: Websites/binaryventures.in V2/**)
 
 ## Backlog
 
@@ -83,3 +86,4 @@ Next coding tasks to enable daily article automation:
 - made homepage scroll-reveal sections visible by default so full-page captures and slow devices do not show blank content bands
 - replaced the email-based booking fallback with the real Calendly scheduling URL
 - implemented the Insights section: `/insights` listing page, `/insights/[slug]` article page, Markdown article loader (`src/lib/insights.ts`), 3 starter articles, and sitemap generation (`src/app/sitemap.ts`); build verified clean
+- built the full Insights automation layer: `scripts/generate-insight-article.mjs` (Notion → Gemini → Markdown + validation), `.github/workflows/daily-insight.yml` (cron 10:07 AM IST), `.github/workflows/firebase-deploy.yml` (push to main); awaiting manual secret setup to activate
