@@ -26,6 +26,7 @@ Code present:
 - [x] repo-root `.github/workflows/daily-insight.yml` — cron at 10:07 AM IST
 - [x] repo-root `.github/workflows/publish-approved-insight.yml` — cron at 05:37 PM IST
 - [x] repo-root `.github/workflows/firebase-deploy.yml` — deploy on website pushes to main
+- [x] `Find Insight Trends` manually tested successfully; created 5 Notion `Trend Found` topics
 
 ## Backlog
 
@@ -91,5 +92,6 @@ Code present:
 - made homepage scroll-reveal sections visible by default so full-page captures and slow devices do not show blank content bands
 - replaced the email-based booking fallback with the real Calendly scheduling URL
 - implemented the Insights section: `/insights` listing page, `/insights/[slug]` article page, Markdown article loader (`src/lib/insights.ts`), 3 starter articles, and sitemap generation (`src/app/sitemap.ts`); build verified clean
-- built the Insights automation layer: `scripts/generate-insight-article.mjs` (Notion → Gemini → draft Markdown + validation), repo-root `.github/workflows/daily-insight.yml` (cron 10:07 AM IST), repo-root `.github/workflows/firebase-deploy.yml` (push to main); awaiting push, deploy, and manual secret setup to activate
+- built the first Insights automation layer: `scripts/generate-insight-article.mjs` (Notion → Gemini → draft Markdown + validation), repo-root `.github/workflows/daily-insight.yml` (cron 10:07 AM IST), repo-root `.github/workflows/firebase-deploy.yml` (push to main)
+- upgraded Insights automation into a staged editorial flow: trend discovery, topic approval, draft generation, final publish approval, Firebase deploy, and Notion published status update
 - fixed Insights launch blockers: added navigation discovery, corrected starter article Calendly URLs, moved workflows to repo root, made generated articles drafts by default, hid non-published article pages from static generation, added custom article typography, and added static category pages at `/insights/category/[slug]`

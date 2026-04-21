@@ -11,6 +11,7 @@ Use this checklist to run the staged Insights automation.
   - `Firebase Deploy`
 - GitHub secrets are configured for Notion, Gemini, and Firebase.
 - Topic discovery and draft generation use `gemini-2.5-flash-lite` by default.
+- `Find Insight Trends` has been tested successfully and created 5 `Trend Found` rows in Notion.
 - The Notion database id is:
 
 ```txt
@@ -50,6 +51,30 @@ Needs Review
 Rejected
 ```
 
+## Notion Properties
+
+The automation expects these Notion database properties:
+
+| Property | Type |
+| --- | --- |
+| Title | Title |
+| Slug | Text |
+| Status | Select |
+| Category | Select |
+| Market | Text |
+| Primary Keyword | Text |
+| Secondary Keywords | Multi-select |
+| Angle | Text |
+| Target Audience | Text |
+| Brief | Text |
+| Generated Draft | Checkbox |
+| Published URL | URL |
+| Publish Date | Date |
+| Last Automation Run | Date |
+| Notes | Text |
+
+Important: `Market` and `Target Audience` are text fields in the current live Notion database, not select fields.
+
 ## Daily Flow
 
 1. `Find Insight Trends` runs at 08:37 AM IST.
@@ -75,6 +100,14 @@ Expected result:
 
 - 1-5 new Notion rows appear with Status = `Trend Found`.
 - No website files change.
+
+Already verified:
+
+```txt
+GitHub run: 24708698657
+Result: success
+Created topics: 5
+```
 
 Run draft generation after approving one topic:
 
@@ -104,3 +137,23 @@ Expected result:
 - The workflow builds and deploys Firebase Hosting.
 - Notion status changes to `Published`.
 - The article appears at `https://binaryventures.in/insights/<slug>`.
+
+## Troubleshooting
+
+If trend discovery fails with a message like:
+
+```txt
+Market is expected to be rich_text. Target Audience is expected to be rich_text.
+```
+
+That means the script and Notion property types are out of sync. The current script expects both fields to be text/rich text.
+
+If a workflow shows a Node.js 20 deprecation warning, it is not blocking today. GitHub says Node 20 JavaScript actions will be forced to Node 24 later in 2026, so update the workflow actions/runtime before that deadline.
+
+If a generated article is not visible live, check its frontmatter:
+
+```txt
+status: "published"
+```
+
+Articles with `status: "draft"` are intentionally hidden from `/insights`, article pages, and the sitemap.

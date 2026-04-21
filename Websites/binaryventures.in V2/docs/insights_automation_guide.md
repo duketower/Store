@@ -67,6 +67,17 @@ Daily automation:
 - You review the draft and change ready items to `Approved to Publish`.
 - `Publish Approved Insight` runs at 05:37 PM IST, deploys the article, and marks Notion as `Published`.
 
+Workflow files live at the repository root:
+
+```txt
+.github/workflows/find-insight-trends.yml
+.github/workflows/daily-insight.yml
+.github/workflows/publish-approved-insight.yml
+.github/workflows/firebase-deploy.yml
+```
+
+The GitHub Actions display name for `.github/workflows/daily-insight.yml` is `Generate Insight Draft`.
+
 ## 3. Website Section Structure
 
 Public section name:
@@ -432,13 +443,44 @@ If validation fails:
 
 ## 13. Daily GitHub Action
 
-Create:
+Create three scheduled workflows at the repository root.
+
+### 13.1 Trend Discovery
+
+Workflow file:
+
+```txt
+.github/workflows/find-insight-trends.yml
+```
+
+Trigger:
+
+```yaml
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7 3 * * *"
+```
+
+This runs daily at **08:37 AM India time** from `03:07 UTC`.
+
+What it does:
+
+1. Fetches India-focused trend/news signals from Google News RSS.
+2. Sends those signals to Gemini.
+3. Avoids duplicate Notion titles and slugs.
+4. Creates up to 5 Notion rows with Status = `Trend Found`.
+5. Does not change website files.
+
+### 13.2 Draft Generation
+
+Workflow file:
 
 ```txt
 .github/workflows/daily-insight.yml
 ```
 
-Recommended trigger:
+Trigger:
 
 ```yaml
 on:
@@ -451,16 +493,45 @@ This runs daily at **10:07 AM India time** when interpreted from UTC cron as `04
 
 Use a non-round minute because scheduled workflows can be delayed during peak times.
 
-Workflow steps:
+What it does:
 
 1. Checkout repo.
 2. Setup Node.
 3. Run `npm ci`.
-4. Run the relevant automation script.
+4. Run `scripts/generate-insight-article.mjs`.
 5. Run `npm run build`.
-6. Commit generated or published Markdown changes when a file changed.
+6. Commit generated Markdown drafts when a file changed.
 7. Push to `main`.
-8. Deploy to Firebase Hosting when publishing.
+
+It only picks one Notion item where Status = `Topic Approved`.
+
+### 13.3 Approved Publishing
+
+Workflow file:
+
+```txt
+.github/workflows/publish-approved-insight.yml
+```
+
+Trigger:
+
+```yaml
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7 12 * * *"
+```
+
+This runs daily at **05:37 PM India time** from `12:07 UTC`.
+
+What it does:
+
+1. Finds one Notion item where Status = `Approved to Publish`.
+2. Changes the matching Markdown file to `status: "published"`.
+3. Runs `npm run build`.
+4. Commits and pushes the published article change.
+5. Deploys Firebase Hosting directly inside the workflow.
+6. Marks the Notion item as `Published` only after deploy completes.
 
 Required GitHub secrets:
 
@@ -652,44 +723,44 @@ Track Search Console performance.
 Improve prompts based on weak articles.
 ```
 
-After quality is stable:
+After quality is stable, consider reducing review friction, but keep both approval gates unless there is a clear reason to change them:
 
 ```txt
-Allow auto-publish for low-risk article types.
-Keep manual review for high-stakes SEO or city-focused articles.
+Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
 ```
 
 ## 20. Implementation Checklist
 
-Use this order:
+Completed implementation order:
 
-1. Add `/insights` listing page.
-2. Add `/insights/[slug]` article page.
-3. Add Markdown article loader.
-4. Add article metadata and schema.
-5. Add three starter articles.
-6. Add article URLs to sitemap generation.
-7. Run local build verification.
-8. Deploy manually to Firebase.
-9. Create Notion database.
-10. Create Notion integration.
-11. Create Gemini API key.
-12. Add GitHub secrets.
-13. Add Firebase deploy GitHub Action.
-14. Add daily article generation script.
-15. Add daily GitHub Action.
-16. Test workflow manually.
-17. Verify live article.
-18. Submit sitemap in Google Search Console.
-19. Monitor results for two weeks.
-20. Decide whether to allow full auto-publishing.
+1. Add `/insights` listing page. Done.
+2. Add `/insights/[slug]` article page. Done.
+3. Add Markdown article loader. Done.
+4. Add article metadata and schema. Done.
+5. Add three starter articles. Done.
+6. Add article URLs to sitemap generation. Done.
+7. Run local build verification. Done.
+8. Deploy to Firebase. Done.
+9. Create Notion database. Done.
+10. Create Notion integration. Done.
+11. Create Gemini API key. Done.
+12. Add GitHub secrets. Done.
+13. Add Firebase deploy GitHub Action. Done.
+14. Add trend discovery script and workflow. Done.
+15. Add draft generation script and workflow. Done.
+16. Add approved publishing script and workflow. Done.
+17. Test trend discovery manually. Done.
+18. Approve one topic and test draft generation. Next.
+19. Review one draft and test approved publishing. Next.
+20. Submit sitemap in Google Search Console after the first generated article is published.
+21. Monitor results for two weeks.
 
 ## 21. Immediate Next Step
 
-The next coding task should be:
+The next operational step is:
 
 ```txt
-Implement the Insights section with Markdown support and three starter articles.
+Open Notion, review the 5 Trend Found rows, and change one good topic to Topic Approved.
 ```
 
-After that is stable, add the automation layer.
+Then run `Generate Insight Draft` manually from GitHub Actions, or wait for the next scheduled 10:07 AM IST run.
