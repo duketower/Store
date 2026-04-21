@@ -105,7 +105,7 @@ async function generateArticle(topic) {
     ? topic.secondaryKeywords.join(", ")
     : topic.secondaryKeywords;
 
-  const prompt = `You are a business technology writer for Binary Ventures, an Indian tech company based in Indore.
+  const prompt = `You are a business technology writer for Binary Ventures, a practical technology company serving Indian businesses.
 
 Write a complete, high-quality article in Markdown format for the following topic.
 
@@ -206,11 +206,23 @@ function parseFrontmatter(raw) {
     date: get("date"),
     updated: get("updated"),
     category: get("category"),
+    status: get("status"),
     canonical: get("canonical"),
   };
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
+
+function forceDraftStatus(raw) {
+  if (/^status:\s*"?[^"\n]+"?/m.test(raw)) {
+    return raw.replace(/^status:\s*"?[^"\n]+"?/m, 'status: "draft"');
+  }
+
+  return raw.replace(
+    /^author:\s*"?Binary Ventures"?/m,
+    'author: "Binary Ventures"\nstatus: "draft"'
+  );
+}
 
 function validate(raw, fm) {
   const errors = [];
@@ -223,6 +235,7 @@ function validate(raw, fm) {
   if (!fm.slug) errors.push("Missing slug");
   if (!fm.date) errors.push("Missing date");
   if (!fm.category) errors.push("Missing category");
+  if (fm.status !== "draft") errors.push('Generated articles must use status: "draft"');
   if (!fm.canonical) errors.push("Missing canonical");
   if (!/^https:\/\/binaryventures\.in\/insights\//.test(fm.canonical))
     errors.push("Canonical must use binaryventures.in insights URL");
@@ -273,6 +286,7 @@ async function run() {
     .replace(/^```[a-zA-Z0-9_-]*\r?\n/, "")
     .replace(/\r?\n```$/, "")
     .trim();
+  raw = forceDraftStatus(raw);
 
   const fm = parseFrontmatter(raw);
   if (!fm) {
