@@ -305,11 +305,11 @@ Recommended properties:
 | Slug | Text | Final URL slug |
 | Status | Select | Trend Found, Topic Approved, Draft Generated, Approved to Publish, Published, Needs Review, Rejected |
 | Category | Select | Article category |
-| Market | Select | India, Indore, Bhopal, Mumbai, Delhi, Bangalore, Other |
+| Market | Text | India, Indore, Bhopal, Mumbai, Delhi, Bangalore, Other |
 | Primary Keyword | Text | Main SEO keyword |
 | Secondary Keywords | Multi-select | Supporting keywords |
 | Angle | Text | The article angle |
-| Target Audience | Select | Local Business, Startup, School, Clinic, Manufacturer, Service Business |
+| Target Audience | Text | Local Business, Startup, School, Clinic, Manufacturer, Service Business |
 | Brief | Text | Human-provided instructions |
 | Generated Draft | Checkbox | Whether automation created the draft |
 | Published URL | URL | Final live URL |
