@@ -164,7 +164,7 @@ Output ONLY the frontmatter + article body. No preamble, no explanation.`;
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 4096,
         },
       }),
     }
@@ -192,7 +192,7 @@ function slugify(str) {
 // ─── Frontmatter parser ───────────────────────────────────────────────────────
 
 function parseFrontmatter(raw) {
-  const match = raw.match(/^---\n([\s\S]*?)\n---/);
+  const match = raw.match(/---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return null;
   const block = match[1];
   const get = (key) => {
@@ -214,7 +214,7 @@ function parseFrontmatter(raw) {
 
 function validate(raw, fm) {
   const errors = [];
-  const body = raw.replace(/^---[\s\S]*?---\n/, "");
+  const body = raw.replace(/^[\s\S]*?---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
   const wordCount = body.trim().split(/\s+/).length;
   const headingCount = (body.match(/^#{1,3}\s/gm) || []).length;
 
@@ -268,8 +268,11 @@ async function run() {
     process.exit(1);
   }
 
-  // Strip any markdown code fences Gemini may wrap around the output
-  raw = raw.replace(/^```(?:markdown|md)?\n/, "").replace(/\n```$/, "").trim();
+  // Strip any code fences Gemini may wrap around the output.
+  raw = raw
+    .replace(/^```[a-zA-Z0-9_-]*\r?\n/, "")
+    .replace(/\r?\n```$/, "")
+    .trim();
 
   const fm = parseFrontmatter(raw);
   if (!fm) {
