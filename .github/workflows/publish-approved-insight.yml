@@ -1,0 +1,73 @@
+name: Publish Approved Insight
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 12:07 UTC = 05:37 PM IST. Gives you the day to review and approve drafts.
+    - cron: "7 12 * * *"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      PUBLISH_RESULT_PATH: ${{ runner.temp }}/publish-result.json
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: "Websites/binaryventures.in V2/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: "Websites/binaryventures.in V2"
+        run: npm ci
+
+      - name: Prepare approved article
+        working-directory: "Websites/binaryventures.in V2"
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          PUBLISH_RESULT_PATH: ${{ env.PUBLISH_RESULT_PATH }}
+        run: node scripts/publish-approved-insight.mjs prepare
+
+      - name: Build
+        working-directory: "Websites/binaryventures.in V2"
+        run: npm run build
+
+      - name: Commit published article
+        working-directory: "Websites/binaryventures.in V2"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/content/insights/articles/
+          git diff --cached --quiet || git commit -m "content(insights): publish approved article"
+
+      - name: Push
+        run: git push
+
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: store-pos-44750
+          entryPoint: "Websites/binaryventures.in V2"
+
+      - name: Mark Notion article as published
+        working-directory: "Websites/binaryventures.in V2"
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          PUBLISH_RESULT_PATH: ${{ env.PUBLISH_RESULT_PATH }}
+        run: node scripts/publish-approved-insight.mjs complete

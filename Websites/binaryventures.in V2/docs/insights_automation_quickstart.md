@@ -1,25 +1,28 @@
 # Insights Automation Quickstart
 
-Use this short checklist after creating the Notion database.
+Use this checklist to run the staged Insights automation.
 
 ## Current Status
 
 - GitHub workflows are active:
-  - `Daily Insight`
+  - `Find Insight Trends`
+  - `Generate Insight Draft`
+  - `Publish Approved Insight`
   - `Firebase Deploy`
-- `NOTION_DATABASE_ID` has been added to GitHub secrets.
-- Daily article generation uses `gemini-2.5-flash-lite` by default.
+- GitHub secrets are configured for Notion, Gemini, and Firebase.
+- Topic discovery and draft generation use `gemini-2.5-flash-lite` by default.
 - The Notion database id is:
 
 ```txt
 2162e69679514a28ae27a64a91fa27f9
 ```
 
-## Secrets Still Needed
+## Required Secrets
 
-Add these in GitHub:
+These must be in GitHub repo secrets:
 
 ```txt
+NOTION_DATABASE_ID
 NOTION_TOKEN
 GEMINI_API_KEY
 FIREBASE_SERVICE_ACCOUNT
@@ -28,49 +31,76 @@ FIREBASE_SERVICE_ACCOUNT
 Path:
 
 ```txt
-GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret
+GitHub repo: duketower/Store
+Settings -> Secrets and variables -> Actions -> New repository secret
 ```
 
-## First Test Topic
+## Notion Status Flow
 
-Create one Notion row with these values:
+Use these Status values:
 
 ```txt
-Title: Website Maintenance Checklist for Indore Businesses
-Slug: website-maintenance-checklist-for-indore-businesses
-Status: Approved
-Category: Websites
-Market: Indore
-Primary Keyword: website maintenance Indore
-Secondary Keywords: website support, website security, website updates, local business website
-Target Audience: Local Business
-Angle: Practical checklist for local business owners
-Brief: Write a helpful, practical article for businesses in Indore that explains what to check monthly, quarterly, and annually. Avoid fake claims. Include a CTA to book a call.
+Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
 ```
 
-The generated article should be committed as a draft:
+Other useful statuses:
 
 ```txt
-status: "draft"
+Needs Review
+Rejected
 ```
 
-It will not go live until reviewed and changed to:
+## Daily Flow
+
+1. `Find Insight Trends` runs at 08:37 AM IST.
+2. It searches trend/news signals and creates Notion rows with Status = `Trend Found`.
+3. You review the topic in Notion.
+4. If you like it, change Status to `Topic Approved`.
+5. `Generate Insight Draft` runs at 10:07 AM IST.
+6. It generates one Markdown article as `status: "draft"` and changes Notion Status to `Draft Generated`.
+7. You review the generated article.
+8. If it is ready, change Notion Status to `Approved to Publish`.
+9. `Publish Approved Insight` runs at 05:37 PM IST.
+10. It changes the Markdown article to `status: "published"`, builds, deploys to Firebase, and changes Notion Status to `Published`.
+
+## Manual Tests
+
+Run topic discovery:
 
 ```txt
-status: "published"
+GitHub -> Actions -> Find Insight Trends -> Run workflow
 ```
 
-## Manual Test
+Expected result:
 
-After secrets are set:
+- 1-5 new Notion rows appear with Status = `Trend Found`.
+- No website files change.
+
+Run draft generation after approving one topic:
 
 ```txt
-GitHub -> Actions -> Daily Insight -> Run workflow
+Set one Notion row to Status = Topic Approved
+GitHub -> Actions -> Generate Insight Draft -> Run workflow
 ```
 
 Expected result:
 
 - One Markdown draft appears in `src/content/insights/articles/`.
-- Notion status changes from `Approved` to `Generated`.
-- The generated draft is committed to `main`.
-- The article does not appear publicly until `status` is changed to `published`.
+- The article frontmatter says `status: "draft"`.
+- Notion status changes to `Draft Generated`.
+- The article is committed to `main`.
+- The article does not appear publicly yet.
+
+Run publishing after reviewing one draft:
+
+```txt
+Set one Notion row to Status = Approved to Publish
+GitHub -> Actions -> Publish Approved Insight -> Run workflow
+```
+
+Expected result:
+
+- The article frontmatter changes to `status: "published"`.
+- The workflow builds and deploys Firebase Hosting.
+- Notion status changes to `Published`.
+- The article appears at `https://binaryventures.in/insights/<slug>`.

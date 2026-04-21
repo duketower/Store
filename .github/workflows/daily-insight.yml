@@ -1,9 +1,9 @@
-name: Daily Insight
+name: Generate Insight Draft
 
 on:
   workflow_dispatch:
   schedule:
-    # 04:37 UTC = 10:07 AM IST. Non-round minute avoids GitHub peak queues.
+    # 04:37 UTC = 10:07 AM IST. Runs after topic discovery, if a topic was approved.
     - cron: "37 4 * * *"
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
         working-directory: "Websites/binaryventures.in V2"
         run: npm ci
 
-      - name: Generate draft article
+      - name: Generate approved topic draft
         working-directory: "Websites/binaryventures.in V2"
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}

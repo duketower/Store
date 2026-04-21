@@ -2,32 +2,36 @@
 
 ## Current
 
-- [ ] Continue launch polish from live device review when new feedback is available
-- [ ] Push and deploy the local Insights launch-blocker fixes so `/insights` is live on `binaryventures.in`
+- [ ] Review newly discovered Notion topics with Status = `Trend Found`
+- [ ] Approve one topic by changing Status to `Topic Approved`
+- [ ] Review generated drafts and set ready articles to `Approved to Publish`
+- [ ] Submit `https://binaryventures.in/sitemap.xml` in Google Search Console after the first generated article is published
 
-## Insights — Automation Layer: Manual Setup Required
+## Insights — Automation Layer
 
-Code is present locally. These steps require manual action before the pipeline can run:
+The staged automation flow is:
 
-- [ ] **You** — Create Notion database `Binary Ventures Insights Pipeline` with properties from `docs/insights_automation_guide.md` section 8
-- [ ] **You** — Create Notion internal integration at notion.so/my-integrations, share DB with it, copy token
-- [ ] **You** — Create Gemini API key at aistudio.google.com
-- [ ] **You** — Add GitHub secrets to the repo: `NOTION_TOKEN`, `NOTION_DATABASE_ID`, `GEMINI_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`
-- [ ] **You** — Add at least one Notion item with Status = `Approved` to test the pipeline
-- [ ] **You** — Run the Daily Insight workflow manually via GitHub Actions → workflow_dispatch
-- [ ] **You** — Submit `https://binaryventures.in/sitemap.xml` in Google Search Console
-- [ ] **You** — Monitor Search Console for two weeks before enabling auto-publish
+- `Find Insight Trends` creates Notion rows with Status = `Trend Found`
+- You approve a topic with Status = `Topic Approved`
+- `Generate Insight Draft` creates a Markdown draft and sets Status = `Draft Generated`
+- You approve the reviewed draft with Status = `Approved to Publish`
+- `Publish Approved Insight` publishes the article, deploys Firebase, and sets Status = `Published`
 
-Code already committed:
-- [x] `scripts/generate-insight-article.mjs` — Notion → Gemini → draft Markdown, with quality validation
-- [x] repo-root `.github/workflows/daily-insight.yml` — cron at 10:07 AM IST, build, commit, push generated drafts
-- [x] repo-root `.github/workflows/firebase-deploy.yml` — deploy on every push to main (paths: Websites/binaryventures.in V2/**)
+Code present:
+
+- [x] `scripts/find-insight-trends.mjs` — trend/news signals -> Gemini topic planning -> Notion `Trend Found`
+- [x] `scripts/generate-insight-article.mjs` — Notion `Topic Approved` -> Gemini -> draft Markdown -> Notion `Draft Generated`
+- [x] `scripts/publish-approved-insight.mjs` — Notion `Approved to Publish` -> Markdown `published` -> Notion `Published` after deploy
+- [x] repo-root `.github/workflows/find-insight-trends.yml` — cron at 08:37 AM IST
+- [x] repo-root `.github/workflows/daily-insight.yml` — cron at 10:07 AM IST
+- [x] repo-root `.github/workflows/publish-approved-insight.yml` — cron at 05:37 PM IST
+- [x] repo-root `.github/workflows/firebase-deploy.yml` — deploy on website pushes to main
 
 ## Backlog
 
+- add more editorial guardrails after reviewing the first week of generated drafts
 - decide whether the services preview should remain modal-driven or evolve into direct page links as the dedicated Services page is built
 - deepen Services and Case Studies with more technical implementation detail
-- Insights section is ready locally with 3 starter articles — push and deploy before submitting to Search Console
 - add more articles to `src/content/insights/articles/` following the frontmatter format in `docs/insights_automation_guide.md`
 - add a region-aware website experience using the plan in `docs/regional_pricing_strategy.md`; start with `/au` pages, regional pricing data, a region selector, and SEO-friendly `hreflang` rather than forced IP redirects
 - save the AU/US reference website shortlist into project docs for later review

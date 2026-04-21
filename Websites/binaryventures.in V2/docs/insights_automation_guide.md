@@ -2,10 +2,10 @@
 
 This guide explains how to implement, execute, and verify the Binary Ventures Insights section and daily article automation system.
 
-Recommended pipeline:
+Recommended staged pipeline:
 
 ```txt
-Notion topic tracker -> GitHub Actions daily cron -> Gemini API draft generation -> Markdown article file -> Next.js static build -> Firebase Hosting deploy
+Trend/news signals -> Notion topic tracker -> manual topic approval -> Gemini draft generation -> manual publish approval -> Markdown article file -> Next.js static build -> Firebase Hosting deploy -> Notion published status
 ```
 
 ## 1. Goal
@@ -16,7 +16,9 @@ The final system should:
 
 - Publish SEO-friendly static article pages.
 - Let topics be tracked and edited in Notion.
-- Generate one article daily from approved topics.
+- Find useful article topics automatically.
+- Generate article drafts only from manually approved topics.
+- Publish articles only after a second manual approval.
 - Commit generated Markdown articles to GitHub.
 - Build and deploy automatically to Firebase Hosting.
 - Keep the publishing workflow easy to audit, pause, and improve.
@@ -41,6 +43,29 @@ Why this setup:
 - Notion gives a friendly editorial dashboard.
 - GitHub Actions gives repeatable scheduled automation.
 - Firebase is already the live hosting target for this website.
+
+## 2.1 Editorial Status Flow
+
+Use these Notion Status values:
+
+```txt
+Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
+```
+
+Supporting statuses:
+
+```txt
+Needs Review
+Rejected
+```
+
+Daily automation:
+
+- `Find Insight Trends` runs at 08:37 AM IST and creates `Trend Found` rows in Notion.
+- You review topics and change good ones to `Topic Approved`.
+- `Generate Insight Draft` runs at 10:07 AM IST and generates one draft article.
+- You review the draft and change ready items to `Approved to Publish`.
+- `Publish Approved Insight` runs at 05:37 PM IST, deploys the article, and marks Notion as `Published`.
 
 ## 3. Website Section Structure
 
@@ -278,7 +303,7 @@ Recommended properties:
 | --- | --- | --- |
 | Title | Title | Article topic/title |
 | Slug | Text | Final URL slug |
-| Status | Select | Idea, Approved, Generated, Needs Review, Published, Rejected |
+| Status | Select | Trend Found, Topic Approved, Draft Generated, Approved to Publish, Published, Needs Review, Rejected |
 | Category | Select | Article category |
 | Market | Select | India, Indore, Bhopal, Mumbai, Delhi, Bangalore, Other |
 | Primary Keyword | Text | Main SEO keyword |
@@ -295,10 +320,11 @@ Recommended properties:
 Important rule:
 
 ```txt
-Only Status = Approved should be picked by automation.
+Only Status = Topic Approved should be picked by draft generation.
+Only Status = Approved to Publish should be picked by publishing.
 ```
 
-This prevents unapproved ideas from being published.
+This keeps topic approval and final publishing approval separate.
 
 ## 9. Notion API Integration
 
@@ -319,11 +345,11 @@ NOTION_DATABASE_ID
 
 Verification:
 
-- Run a local test script that fetches one approved Notion item.
+- Run the GitHub workflow `Find Insight Trends`.
 - Expected result:
 
 ```txt
-Found approved topic: Website Maintenance Checklist for Indore Businesses
+New Trend Found topics appear in Notion.
 ```
 
 ## 10. Gemini API Setup
@@ -352,30 +378,32 @@ Create:
 scripts/generate-insight-article.mjs
 ```
 
-The script should:
+The draft generation script should:
 
 1. Connect to Notion.
-2. Find one article where `Status = Approved`.
+2. Find one article where `Status = Topic Approved`.
 3. Read the title, market, category, keywords, audience, angle, and brief.
 4. Send a structured prompt to Gemini.
 5. Generate Markdown with frontmatter.
 6. Validate the generated article.
 7. Save the article to `src/content/insights/articles/`.
-8. Update the Notion item status.
+8. Update the Notion item status to `Draft Generated`.
 
-Recommended early workflow:
-
-```txt
-Approved -> Generated -> manual review -> Published
-```
-
-Recommended mature workflow:
+Active workflow:
 
 ```txt
-Approved -> Published
+Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
 ```
 
-Start with manual review. Move to full auto-publishing only after generated article quality is consistently strong.
+Scripts:
+
+```txt
+scripts/find-insight-trends.mjs
+scripts/generate-insight-article.mjs
+scripts/publish-approved-insight.mjs
+```
+
+Keep manual review in place until generated article quality is consistently strong.
 
 ## 12. Quality Validation Rules
 
@@ -428,11 +456,11 @@ Workflow steps:
 1. Checkout repo.
 2. Setup Node.
 3. Run `npm ci`.
-4. Run article generation script.
+4. Run the relevant automation script.
 5. Run `npm run build`.
-6. Commit generated Markdown article.
+6. Commit generated or published Markdown changes when a file changed.
 7. Push to `main`.
-8. Deploy to Firebase Hosting.
+8. Deploy to Firebase Hosting when publishing.
 
 Required GitHub secrets:
 
@@ -446,13 +474,11 @@ FIREBASE_SERVICE_ACCOUNT
 Verification:
 
 1. Open GitHub Actions.
-2. Select `Daily Insight`.
+2. Select `Find Insight Trends`, `Generate Insight Draft`, or `Publish Approved Insight`.
 3. Click `Run workflow`.
-4. Confirm one Markdown article is created.
-5. Confirm build passes.
-6. Confirm commit is pushed.
-7. Confirm Firebase deploy succeeds.
-8. Confirm Notion status updates.
+4. Confirm the expected Notion status changes.
+5. Confirm generated drafts stay private with `status: "draft"`.
+6. Confirm approved published articles go live with `status: "published"`.
 
 ## 14. Firebase Deploy GitHub Action
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Daily article generation pipeline:
- *   Notion (Approved) → Gemini → draft Markdown file → Notion (Generated)
+ * Insight draft generation pipeline:
+ *   Notion (Topic Approved) → Gemini → draft Markdown file → Notion (Draft Generated)
  *
  * Required env vars:
  *   NOTION_TOKEN          — Notion internal integration secret
@@ -59,7 +59,7 @@ async function fetchApprovedTopic() {
   const data = await notionRequest("POST", "/databases/" + NOTION_DATABASE_ID + "/query", {
     filter: {
       property: "Status",
-      select: { equals: "Approved" },
+      select: { equals: "Topic Approved" },
     },
     sorts: [{ property: "Publish Date", direction: "ascending" }],
     page_size: 1,
@@ -83,7 +83,8 @@ async function fetchApprovedTopic() {
   };
 }
 
-async function updateNotionStatus(pageId, status, notes = "") {
+async function updateNotionStatus(pageId, status, options = {}) {
+  const notes = typeof options === "string" ? options : options.notes || "";
   const properties = {
     Status: { select: { name: status } },
     "Last Automation Run": { date: { start: new Date().toISOString().split("T")[0] } },
@@ -91,8 +92,13 @@ async function updateNotionStatus(pageId, status, notes = "") {
   if (notes) {
     properties.Notes = { rich_text: [{ text: { content: notes.slice(0, 2000) } }] };
   }
-  if (status === "Generated") {
+  if (status === "Draft Generated") {
     properties["Generated Draft"] = { checkbox: true };
+    if (options.slug) {
+      properties["Published URL"] = {
+        url: `https://binaryventures.in/insights/${options.slug}`,
+      };
+    }
   }
   await notionRequest("PATCH", "/pages/" + pageId, { properties });
 }
@@ -262,11 +268,11 @@ async function run() {
     process.exit(1);
   }
 
-  console.log("🔍 Fetching approved topic from Notion...");
+  console.log("🔍 Fetching Topic Approved item from Notion...");
   const topic = await fetchApprovedTopic();
 
   if (!topic) {
-    console.log("✅ No approved topics found. Nothing to generate today.");
+    console.log("✅ No Topic Approved items found. Nothing to generate today.");
     process.exit(0);
   }
 
@@ -313,10 +319,10 @@ async function run() {
   console.log(`✅ Article saved: src/content/insights/articles/${fm.slug}.md`);
 
   // Update Notion
-  await updateNotionStatus(topic.pageId, "Generated");
-  console.log(`✅ Notion status updated to: Generated`);
+  await updateNotionStatus(topic.pageId, "Draft Generated", { slug: fm.slug });
+  console.log(`✅ Notion status updated to: Draft Generated`);
   console.log(`\n🎉 Done. Review the draft before publishing:\n   ${filePath}`);
-  console.log('   To publish, change frontmatter status from "draft" to "published" and commit it.');
+  console.log('   To publish, review it in GitHub/Markdown, then set Notion status to "Approved to Publish".');
 }
 
 run().catch((err) => {
