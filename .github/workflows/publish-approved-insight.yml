@@ -3,8 +3,12 @@ name: Publish Approved Insight
 on:
   workflow_dispatch:
   schedule:
-    # 12:07 UTC = 05:37 PM IST. Gives you the day to review and approve drafts.
-    - cron: "7 12 * * *"
+    # Poll every 5 minutes so Notion publish approvals are picked up quickly.
+    - cron: "*/5 * * * *"
+
+concurrency:
+  group: publish-approved-insight
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -40,11 +44,23 @@ jobs:
           PUBLISH_RESULT_PATH: ${{ env.PUBLISH_RESULT_PATH }}
         run: node scripts/publish-approved-insight.mjs prepare
 
+      - name: Detect published article changes
+        id: detect
+        working-directory: "Websites/binaryventures.in V2"
+        run: |
+          if git diff --quiet -- src/content/insights/articles/; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build
+        if: steps.detect.outputs.has_changes == 'true'
         working-directory: "Websites/binaryventures.in V2"
         run: npm run build
 
       - name: Commit published article
+        if: steps.detect.outputs.has_changes == 'true'
         working-directory: "Websites/binaryventures.in V2"
         run: |
           git config user.name "github-actions[bot]"
@@ -53,9 +69,11 @@ jobs:
           git diff --cached --quiet || git commit -m "content(insights): publish approved article"
 
       - name: Push
+        if: steps.detect.outputs.has_changes == 'true'
         run: git push
 
       - name: Deploy to Firebase
+        if: steps.detect.outputs.has_changes == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -65,6 +83,7 @@ jobs:
           entryPoint: "Websites/binaryventures.in V2"
 
       - name: Mark Notion article as published
+        if: steps.detect.outputs.has_changes == 'true'
         working-directory: "Websites/binaryventures.in V2"
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}

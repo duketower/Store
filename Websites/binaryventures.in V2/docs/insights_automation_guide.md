@@ -65,9 +65,9 @@ Daily automation:
 
 - `Find Insight Trends` runs at 08:37 AM IST and creates `Trend Found` rows in Notion.
 - You review topics and change good ones to `Topic Approved`.
-- `Generate Insight Draft` runs at 10:07 AM IST, generates one draft article, saves it as Markdown, and appends the article draft into the Notion page body for review.
+- `Generate Insight Draft` checks Notion every 5 minutes, generates one approved draft article, saves it as Markdown, and appends the article draft into the Notion page body for review.
 - You review the draft and change ready items to `Approved to Publish`.
-- `Publish Approved Insight` runs at 05:37 PM IST, deploys the article, and marks Notion as `Published`.
+- `Publish Approved Insight` checks Notion every 5 minutes, deploys approved articles, and marks Notion as `Published`.
 
 Workflow files live at the repository root:
 
@@ -497,12 +497,12 @@ Trigger:
 on:
   workflow_dispatch:
   schedule:
-    - cron: "37 4 * * *"
+    - cron: "*/5 * * * *"
 ```
 
-This runs daily at **10:07 AM India time** when interpreted from UTC cron as `04:37 UTC`.
+This checks for Notion approvals every 5 minutes. It does not build or commit unless an approved topic generated a Markdown draft.
 
-Use a non-round minute because scheduled workflows can be delayed during peak times.
+This is near-immediate polling, not a true Notion webhook. GitHub scheduled workflows can still be delayed during busy periods.
 
 What it does:
 
@@ -530,10 +530,10 @@ Trigger:
 on:
   workflow_dispatch:
   schedule:
-    - cron: "7 12 * * *"
+    - cron: "*/5 * * * *"
 ```
 
-This runs daily at **05:37 PM India time** from `12:07 UTC`.
+This checks for publish approvals every 5 minutes. It does not build, commit, or deploy unless an approved article changed from draft to published.
 
 What it does:
 
@@ -728,7 +728,7 @@ Track:
 For the first two weeks:
 
 ```txt
-Generate 1 article daily.
+Generate at most 1 article per workflow run.
 Review manually before publishing.
 Track Search Console performance.
 Improve prompts based on weak articles.
@@ -774,4 +774,4 @@ The next operational step is:
 Open Notion, review the 5 Trend Found rows, and change one good topic to Topic Approved.
 ```
 
-Then run `Generate Insight Draft` manually from GitHub Actions, or wait for the next scheduled 10:07 AM IST run.
+Then wait for the next `Generate Insight Draft` polling run. It checks Notion every 5 minutes.

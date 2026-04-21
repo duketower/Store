@@ -83,12 +83,14 @@ Important: `Market` and `Target Audience` are text fields in the current live No
 2. It searches trend/news signals and creates Notion rows with Status = `Trend Found`.
 3. You review the topic in Notion.
 4. If you like it, change Status to `Topic Approved`.
-5. `Generate Insight Draft` runs at 10:07 AM IST.
+5. `Generate Insight Draft` checks Notion every 5 minutes.
 6. It generates one Markdown article as `status: "draft"`, appends the draft article to the Notion page body, and changes Notion Status to `Draft Generated`.
 7. You review the generated article.
 8. If it is ready, change Notion Status to `Approved to Publish`.
-9. `Publish Approved Insight` runs at 05:37 PM IST.
+9. `Publish Approved Insight` checks Notion every 5 minutes.
 10. It changes the Markdown article to `status: "published"`, builds, deploys to Firebase, and changes Notion Status to `Published`.
+
+This is not a true webhook from Notion, but it behaves close to immediate in practice. After approval, expect the matching workflow to pick it up in roughly 5 minutes, sometimes longer if GitHub Actions is delayed.
 
 ## Manual Tests
 
