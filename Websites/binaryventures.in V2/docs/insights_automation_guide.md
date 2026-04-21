@@ -59,11 +59,13 @@ Needs Review
 Rejected
 ```
 
+If the `Topic Approved`, `Draft Generated`, or `Approved to Publish` options are not visible in Notion yet, type the option name into the Status field and create it. The draft generator also accepts the older `Approved` status as a fallback so existing database options do not block the first run.
+
 Daily automation:
 
 - `Find Insight Trends` runs at 08:37 AM IST and creates `Trend Found` rows in Notion.
 - You review topics and change good ones to `Topic Approved`.
-- `Generate Insight Draft` runs at 10:07 AM IST and generates one draft article.
+- `Generate Insight Draft` runs at 10:07 AM IST, generates one draft article, saves it as Markdown, and appends the article draft into the Notion page body for review.
 - You review the draft and change ready items to `Approved to Publish`.
 - `Publish Approved Insight` runs at 05:37 PM IST, deploys the article, and marks Notion as `Published`.
 
@@ -337,6 +339,14 @@ Only Status = Approved to Publish should be picked by publishing.
 
 This keeps topic approval and final publishing approval separate.
 
+The `Brief` property is only the article instruction. The full article is generated later and stored in:
+
+```txt
+src/content/insights/articles/<slug>.md
+```
+
+After generation, the same draft is also appended to the Notion page body under a `Generated Article Draft` heading so it can be reviewed without opening GitHub.
+
 ## 9. Notion API Integration
 
 Steps:
@@ -392,13 +402,14 @@ scripts/generate-insight-article.mjs
 The draft generation script should:
 
 1. Connect to Notion.
-2. Find one article where `Status = Topic Approved`.
+2. Find one article where `Status = Topic Approved`, with legacy `Approved` accepted as a fallback.
 3. Read the title, market, category, keywords, audience, angle, and brief.
 4. Send a structured prompt to Gemini.
 5. Generate Markdown with frontmatter.
 6. Validate the generated article.
 7. Save the article to `src/content/insights/articles/`.
-8. Update the Notion item status to `Draft Generated`.
+8. Append the draft article to the Notion page body.
+9. Update the Notion item status to `Draft Generated`.
 
 Active workflow:
 

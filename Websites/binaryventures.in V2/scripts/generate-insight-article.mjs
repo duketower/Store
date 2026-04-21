@@ -58,8 +58,16 @@ function getText(prop) {
 async function fetchApprovedTopic() {
   const data = await notionRequest("POST", "/databases/" + NOTION_DATABASE_ID + "/query", {
     filter: {
-      property: "Status",
-      select: { equals: "Topic Approved" },
+      or: [
+        {
+          property: "Status",
+          select: { equals: "Topic Approved" },
+        },
+        {
+          property: "Status",
+          select: { equals: "Approved" },
+        },
+      ],
     },
     sorts: [{ property: "Publish Date", direction: "ascending" }],
     page_size: 1,
@@ -101,6 +109,74 @@ async function updateNotionStatus(pageId, status, options = {}) {
     }
   }
   await notionRequest("PATCH", "/pages/" + pageId, { properties });
+}
+
+function richText(content) {
+  return [{ type: "text", text: { content: String(content || "").slice(0, 1900) } }];
+}
+
+function textBlocks(type, content) {
+  const text = String(content || "").trim();
+  if (!text) return [];
+
+  const chunks = [];
+  for (let i = 0; i < text.length; i += 1900) {
+    chunks.push(text.slice(i, i + 1900));
+  }
+
+  return chunks.map((chunk) => ({
+    object: "block",
+    type,
+    [type]: { rich_text: richText(chunk) },
+  }));
+}
+
+function markdownToNotionBlocks(raw, url) {
+  const body = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "").trim();
+  const blocks = [
+    {
+      object: "block",
+      type: "heading_2",
+      heading_2: { rich_text: richText("Generated Article Draft") },
+    },
+    ...textBlocks(
+      "paragraph",
+      `Review this draft in Notion. If it is ready to publish, change Status to "Approved to Publish". Future URL: ${url}`
+    ),
+    { object: "block", type: "divider", divider: {} },
+  ];
+
+  for (const line of body.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.startsWith("### ")) {
+      blocks.push(...textBlocks("heading_3", trimmed.replace(/^###\s+/, "")));
+    } else if (trimmed.startsWith("## ")) {
+      blocks.push(...textBlocks("heading_2", trimmed.replace(/^##\s+/, "")));
+    } else if (trimmed.startsWith("# ")) {
+      blocks.push(...textBlocks("heading_2", trimmed.replace(/^#\s+/, "")));
+    } else if (/^[-*]\s+/.test(trimmed)) {
+      blocks.push(...textBlocks("bulleted_list_item", trimmed.replace(/^[-*]\s+/, "")));
+    } else if (/^\d+\.\s+/.test(trimmed)) {
+      blocks.push(...textBlocks("numbered_list_item", trimmed.replace(/^\d+\.\s+/, "")));
+    } else {
+      blocks.push(...textBlocks("paragraph", trimmed));
+    }
+  }
+
+  return blocks;
+}
+
+async function appendDraftToNotion(pageId, raw, slug) {
+  const url = `https://binaryventures.in/insights/${slug}`;
+  const blocks = markdownToNotionBlocks(raw, url);
+
+  for (let i = 0; i < blocks.length; i += 100) {
+    await notionRequest("PATCH", `/blocks/${pageId}/children`, {
+      children: blocks.slice(i, i + 100),
+    });
+  }
 }
 
 // ─── Gemini helpers ───────────────────────────────────────────────────────────
@@ -272,7 +348,7 @@ async function run() {
   const topic = await fetchApprovedTopic();
 
   if (!topic) {
-    console.log("✅ No Topic Approved items found. Nothing to generate today.");
+    console.log("✅ No Topic Approved or legacy Approved items found. Nothing to generate today.");
     process.exit(0);
   }
 
@@ -317,6 +393,10 @@ async function run() {
   const filePath = path.join(ARTICLES_DIR, `${fm.slug}.md`);
   fs.writeFileSync(filePath, raw, "utf8");
   console.log(`✅ Article saved: src/content/insights/articles/${fm.slug}.md`);
+
+  // Add the generated draft to the Notion page body so it can be reviewed there.
+  await appendDraftToNotion(topic.pageId, raw, fm.slug);
+  console.log("✅ Draft article appended to Notion page body");
 
   // Update Notion
   await updateNotionStatus(topic.pageId, "Draft Generated", { slug: fm.slug });

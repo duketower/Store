@@ -51,6 +51,8 @@ Needs Review
 Rejected
 ```
 
+If `Topic Approved` is not visible yet, type `Topic Approved` into the Status field and choose the option to create it. The generator also accepts the older `Approved` status as a fallback, but `Topic Approved` is the clearer status for the new workflow.
+
 ## Notion Properties
 
 The automation expects these Notion database properties:
@@ -82,7 +84,7 @@ Important: `Market` and `Target Audience` are text fields in the current live No
 3. You review the topic in Notion.
 4. If you like it, change Status to `Topic Approved`.
 5. `Generate Insight Draft` runs at 10:07 AM IST.
-6. It generates one Markdown article as `status: "draft"` and changes Notion Status to `Draft Generated`.
+6. It generates one Markdown article as `status: "draft"`, appends the draft article to the Notion page body, and changes Notion Status to `Draft Generated`.
 7. You review the generated article.
 8. If it is ready, change Notion Status to `Approved to Publish`.
 9. `Publish Approved Insight` runs at 05:37 PM IST.
@@ -119,10 +121,22 @@ GitHub -> Actions -> Generate Insight Draft -> Run workflow
 Expected result:
 
 - One Markdown draft appears in `src/content/insights/articles/`.
+- The generated article is also appended to the Notion page body for review.
 - The article frontmatter says `status: "draft"`.
 - Notion status changes to `Draft Generated`.
 - The article is committed to `main`.
 - The article does not appear publicly yet.
+
+## Brief vs Article Body
+
+The `Brief` property is not the full article. It is the instruction for the article generator.
+
+The full article appears after draft generation in two places:
+
+- GitHub Markdown file: `src/content/insights/articles/<slug>.md`
+- Notion page body: appended under `Generated Article Draft`
+
+The Notion page body can be empty while Status is `Trend Found`; that is normal.
 
 Run publishing after reviewing one draft:
 
