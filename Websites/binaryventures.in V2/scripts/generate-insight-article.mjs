@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Insight draft generation pipeline:
- *   Notion (Topic Approved) → Gemini → draft Markdown file → Notion (Draft Generated)
+ *   Notion (Approved + Generated Draft unchecked) → Gemini → draft Markdown file → Notion (Generated)
  *
  * Required env vars:
  *   NOTION_TOKEN          — Notion internal integration secret
@@ -58,14 +58,14 @@ function getText(prop) {
 async function fetchApprovedTopic() {
   const data = await notionRequest("POST", "/databases/" + NOTION_DATABASE_ID + "/query", {
     filter: {
-      or: [
-        {
-          property: "Status",
-          select: { equals: "Topic Approved" },
-        },
+      and: [
         {
           property: "Status",
           select: { equals: "Approved" },
+        },
+        {
+          property: "Generated Draft",
+          checkbox: { equals: false },
         },
       ],
     },
@@ -100,7 +100,7 @@ async function updateNotionStatus(pageId, status, options = {}) {
   if (notes) {
     properties.Notes = { rich_text: [{ text: { content: notes.slice(0, 2000) } }] };
   }
-  if (status === "Draft Generated") {
+  if (status === "Generated") {
     properties["Generated Draft"] = { checkbox: true };
     if (options.slug) {
       properties["Published URL"] = {
@@ -141,7 +141,7 @@ function markdownToNotionBlocks(raw, url) {
     },
     ...textBlocks(
       "paragraph",
-      `Review this draft in Notion. If it is ready to publish, change Status to "Approved to Publish". Future URL: ${url}`
+      `Review this draft in Notion. If it is ready to publish, change Status back to "Approved". Future URL: ${url}`
     ),
     { object: "block", type: "divider", divider: {} },
   ];
@@ -344,11 +344,11 @@ async function run() {
     process.exit(1);
   }
 
-  console.log("🔍 Fetching Topic Approved item from Notion...");
+  console.log("🔍 Fetching approved, undrafted item from Notion...");
   const topic = await fetchApprovedTopic();
 
   if (!topic) {
-    console.log("✅ No Topic Approved or legacy Approved items found. Nothing to generate today.");
+    console.log("✅ No approved, undrafted Notion items found. Nothing to generate today.");
     process.exit(0);
   }
 
@@ -399,10 +399,10 @@ async function run() {
   console.log("✅ Draft article appended to Notion page body");
 
   // Update Notion
-  await updateNotionStatus(topic.pageId, "Draft Generated", { slug: fm.slug });
-  console.log(`✅ Notion status updated to: Draft Generated`);
+  await updateNotionStatus(topic.pageId, "Generated", { slug: fm.slug });
+  console.log(`✅ Notion status updated to: Generated`);
   console.log(`\n🎉 Done. Review the draft before publishing:\n   ${filePath}`);
-  console.log('   To publish, review it in GitHub/Markdown, then set Notion status to "Approved to Publish".');
+  console.log('   To publish, review it in GitHub/Markdown, then set Notion status back to "Approved".');
 }
 
 run().catch((err) => {

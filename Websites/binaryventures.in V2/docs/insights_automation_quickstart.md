@@ -41,17 +41,16 @@ Settings -> Secrets and variables -> Actions -> New repository secret
 Use these Status values:
 
 ```txt
-Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
+Trend Found -> Approved -> Generated -> Approved -> Published
 ```
 
 Other useful statuses:
 
 ```txt
 Needs Review
-Rejected
 ```
 
-If `Topic Approved` is not visible yet, type `Topic Approved` into the Status field and choose the option to create it. The generator also accepts the older `Approved` status as a fallback, but `Topic Approved` is the clearer status for the new workflow.
+The same `Approved` option is used twice. Before a draft exists, `Approved` means "generate this topic." After the `Generated Draft` checkbox is checked, `Approved` means "publish this reviewed draft."
 
 ## Notion Properties
 
@@ -82,11 +81,11 @@ Important: `Market` and `Target Audience` are text fields in the current live No
 1. `Find Insight Trends` runs at 08:37 AM IST.
 2. It searches trend/news signals and creates Notion rows with Status = `Trend Found`.
 3. You review the topic in Notion.
-4. If you like it, change Status to `Topic Approved`.
+4. If you like it, change Status to `Approved`.
 5. `Generate Insight Draft` checks Notion every 5 minutes.
-6. It generates one Markdown article as `status: "draft"`, appends the draft article to the Notion page body, and changes Notion Status to `Draft Generated`.
+6. It generates one Markdown article as `status: "draft"`, appends the draft article to the Notion page body, checks `Generated Draft`, and changes Notion Status to `Generated`.
 7. You review the generated article.
-8. If it is ready, change Notion Status to `Approved to Publish`.
+8. If it is ready, change Notion Status back to `Approved`.
 9. `Publish Approved Insight` checks Notion every 5 minutes.
 10. It changes the Markdown article to `status: "published"`, builds, deploys to Firebase, and changes Notion Status to `Published`.
 
@@ -116,7 +115,7 @@ Created topics: 5
 Run draft generation after approving one topic:
 
 ```txt
-Set one Notion row to Status = Topic Approved
+Set one Notion row to Status = Approved
 GitHub -> Actions -> Generate Insight Draft -> Run workflow
 ```
 
@@ -125,7 +124,8 @@ Expected result:
 - One Markdown draft appears in `src/content/insights/articles/`.
 - The generated article is also appended to the Notion page body for review.
 - The article frontmatter says `status: "draft"`.
-- Notion status changes to `Draft Generated`.
+- Notion status changes to `Generated`.
+- Notion `Generated Draft` is checked.
 - The article is committed to `main`.
 - The article does not appear publicly yet.
 
@@ -143,7 +143,7 @@ The Notion page body can be empty while Status is `Trend Found`; that is normal.
 Run publishing after reviewing one draft:
 
 ```txt
-Set one Notion row to Status = Approved to Publish
+Set one generated Notion row back to Status = Approved
 GitHub -> Actions -> Publish Approved Insight -> Run workflow
 ```
 

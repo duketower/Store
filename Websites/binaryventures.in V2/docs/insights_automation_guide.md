@@ -49,24 +49,23 @@ Why this setup:
 Use these Notion Status values:
 
 ```txt
-Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
+Trend Found -> Approved -> Generated -> Approved -> Published
 ```
 
 Supporting statuses:
 
 ```txt
 Needs Review
-Rejected
 ```
 
-If the `Topic Approved`, `Draft Generated`, or `Approved to Publish` options are not visible in Notion yet, type the option name into the Status field and create it. The draft generator also accepts the older `Approved` status as a fallback so existing database options do not block the first run.
+The `Generated Draft` checkbox disambiguates the two `Approved` steps: unchecked means the topic is approved for draft generation; checked means the reviewed draft is approved for publishing.
 
 Daily automation:
 
 - `Find Insight Trends` runs at 08:37 AM IST and creates `Trend Found` rows in Notion.
-- You review topics and change good ones to `Topic Approved`.
+- You review topics and change good ones to `Approved`.
 - `Generate Insight Draft` checks Notion every 5 minutes, generates one approved draft article, saves it as Markdown, and appends the article draft into the Notion page body for review.
-- You review the draft and change ready items to `Approved to Publish`.
+- You review the draft and change ready items back to `Approved`.
 - `Publish Approved Insight` checks Notion every 5 minutes, deploys approved articles, and marks Notion as `Published`.
 
 Workflow files live at the repository root:
@@ -316,7 +315,7 @@ Recommended properties:
 | --- | --- | --- |
 | Title | Title | Article topic/title |
 | Slug | Text | Final URL slug |
-| Status | Select | Trend Found, Topic Approved, Draft Generated, Approved to Publish, Published, Needs Review, Rejected |
+| Status | Select | Trend Found, Approved, Generated, Published, Needs Review |
 | Category | Select | Article category |
 | Market | Text | India, Indore, Bhopal, Mumbai, Delhi, Bangalore, Other |
 | Primary Keyword | Text | Main SEO keyword |
@@ -333,11 +332,11 @@ Recommended properties:
 Important rule:
 
 ```txt
-Only Status = Topic Approved should be picked by draft generation.
-Only Status = Approved to Publish should be picked by publishing.
+Status = Approved with Generated Draft unchecked is picked by draft generation.
+Status = Approved with Generated Draft checked is picked by publishing.
 ```
 
-This keeps topic approval and final publishing approval separate.
+This keeps topic approval and final publishing approval separate while using the current Notion select options.
 
 The `Brief` property is only the article instruction. The full article is generated later and stored in:
 
@@ -402,19 +401,19 @@ scripts/generate-insight-article.mjs
 The draft generation script should:
 
 1. Connect to Notion.
-2. Find one article where `Status = Topic Approved`, with legacy `Approved` accepted as a fallback.
+2. Find one article where `Status = Approved` and `Generated Draft` is unchecked.
 3. Read the title, market, category, keywords, audience, angle, and brief.
 4. Send a structured prompt to Gemini.
 5. Generate Markdown with frontmatter.
 6. Validate the generated article.
 7. Save the article to `src/content/insights/articles/`.
 8. Append the draft article to the Notion page body.
-9. Update the Notion item status to `Draft Generated`.
+9. Update the Notion item status to `Generated` and check `Generated Draft`.
 
 Active workflow:
 
 ```txt
-Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
+Trend Found -> Approved -> Generated -> Approved -> Published
 ```
 
 Scripts:
@@ -514,7 +513,7 @@ What it does:
 6. Commit generated Markdown drafts when a file changed.
 7. Push to `main`.
 
-It only picks one Notion item where Status = `Topic Approved`.
+It only picks one Notion item where Status = `Approved` and `Generated Draft` is unchecked.
 
 ### 13.3 Approved Publishing
 
@@ -537,7 +536,7 @@ This checks for publish approvals every 5 minutes. It does not build, commit, or
 
 What it does:
 
-1. Finds one Notion item where Status = `Approved to Publish`.
+1. Finds one Notion item where Status = `Approved` and `Generated Draft` is checked.
 2. Changes the matching Markdown file to `status: "published"`.
 3. Runs `npm run build`.
 4. Commits and pushes the published article change.
@@ -737,7 +736,7 @@ Improve prompts based on weak articles.
 After quality is stable, consider reducing review friction, but keep both approval gates unless there is a clear reason to change them:
 
 ```txt
-Trend Found -> Topic Approved -> Draft Generated -> Approved to Publish -> Published
+Trend Found -> Approved -> Generated -> Approved -> Published
 ```
 
 ## 20. Implementation Checklist
@@ -771,7 +770,7 @@ Completed implementation order:
 The next operational step is:
 
 ```txt
-Open Notion, review the 5 Trend Found rows, and change one good topic to Topic Approved.
+Open Notion, review the 5 Trend Found rows, and change one good topic to Approved.
 ```
 
 Then wait for the next `Generate Insight Draft` polling run. It checks Notion every 5 minutes.

@@ -3,8 +3,8 @@
 ## Current
 
 - [ ] Review newly discovered Notion topics with Status = `Trend Found`
-- [ ] Approve one topic by changing Status to `Topic Approved`
-- [ ] Review generated drafts and set ready articles to `Approved to Publish`
+- [ ] Approve one topic by changing Status to `Approved`
+- [ ] Review generated drafts and set ready articles back to `Approved`
 - [ ] Submit `https://binaryventures.in/sitemap.xml` in Google Search Console after the first generated article is published
 
 ## Insights — Automation Layer
@@ -12,16 +12,16 @@
 The staged automation flow is:
 
 - `Find Insight Trends` creates Notion rows with Status = `Trend Found`
-- You approve a topic with Status = `Topic Approved`
-- `Generate Insight Draft` creates a Markdown draft and sets Status = `Draft Generated`
-- You approve the reviewed draft with Status = `Approved to Publish`
+- You approve a topic with Status = `Approved`
+- `Generate Insight Draft` creates a Markdown draft, checks `Generated Draft`, and sets Status = `Generated`
+- You approve the reviewed draft by setting Status back to `Approved`
 - `Publish Approved Insight` publishes the article, deploys Firebase, and sets Status = `Published`
 
 Code present:
 
 - [x] `scripts/find-insight-trends.mjs` — trend/news signals -> Gemini topic planning -> Notion `Trend Found`
-- [x] `scripts/generate-insight-article.mjs` — Notion `Topic Approved` -> Gemini -> draft Markdown -> Notion `Draft Generated`
-- [x] `scripts/publish-approved-insight.mjs` — Notion `Approved to Publish` -> Markdown `published` -> Notion `Published` after deploy
+- [x] `scripts/generate-insight-article.mjs` — Notion `Approved` with `Generated Draft` unchecked -> Gemini -> draft Markdown -> Notion `Generated`
+- [x] `scripts/publish-approved-insight.mjs` — Notion `Approved` with `Generated Draft` checked -> Markdown `published` -> Notion `Published` after deploy
 - [x] repo-root `.github/workflows/find-insight-trends.yml` — cron at 08:37 AM IST
 - [x] repo-root `.github/workflows/daily-insight.yml` — polls every 5 minutes for approved topics
 - [x] repo-root `.github/workflows/publish-approved-insight.yml` — polls every 5 minutes for publish approvals

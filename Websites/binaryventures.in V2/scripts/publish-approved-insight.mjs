@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Publish approval pipeline:
- *   Notion (Approved to Publish) -> Markdown status: published -> deploy -> Notion (Published)
+ *   Notion (Approved + Generated Draft checked) -> Markdown status: published -> deploy -> Notion (Published)
  *
  * Usage:
  *   node scripts/publish-approved-insight.mjs prepare
@@ -54,8 +54,16 @@ function getText(prop) {
 async function fetchApprovedToPublish() {
   const data = await notionRequest("POST", `/databases/${NOTION_DATABASE_ID}/query`, {
     filter: {
-      property: "Status",
-      select: { equals: "Approved to Publish" },
+      and: [
+        {
+          property: "Status",
+          select: { equals: "Approved" },
+        },
+        {
+          property: "Generated Draft",
+          checkbox: { equals: true },
+        },
+      ],
     },
     sorts: [{ property: "Publish Date", direction: "ascending" }],
     page_size: 1,
@@ -107,7 +115,7 @@ function replaceFrontmatterField(raw, key, value) {
 async function prepare() {
   const item = await fetchApprovedToPublish();
   if (!item) {
-    console.log("No Approved to Publish items found.");
+    console.log("No approved generated drafts found.");
     writeResult({ didPublish: false });
     return;
   }

@@ -259,7 +259,7 @@ async function createNotionTopic(topic) {
     "Target Audience": richText(topic.targetAudience || "SME Owner"),
     Angle: richText(topic.angle || "Helpful practical guide"),
     Brief: richText(brief),
-    Notes: richText("Created by trend discovery automation. Review the topic and set Status to Topic Approved if you want an article draft."),
+    Notes: richText("Created by trend discovery automation. Review the topic and set Status to Approved if you want an article draft."),
     "Last Automation Run": { date: { start: TODAY } },
   };
 
