@@ -6,7 +6,8 @@ import React from "react";
 import { ArrowRight, Menu, X } from "lucide-react";
 
 import { siteNavigation, publicContact } from "@/content/site";
-import { groupedServiceOffers } from "@/content/services";
+import { getServicePath, groupedServiceOffers } from "@/content/services";
+import { getSupportingPagePath, supportingPages } from "@/content/supporting-pages";
 import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -29,16 +30,22 @@ const servicesDropdownGroups = [
     description: group.homepageSummary,
     items: group.offers.map((service) => ({
       title: service.name,
-      href: `/services#${service.id}`,
+      href: getServicePath(service.id),
     })),
   })),
 ];
 
 const continuityDropdownItem = {
   title: "Maintenance & Support",
-  href: "/services#continuity",
+  href: getServicePath("maintenance-support"),
   description: "Continuity, updates, fixes, and technical support after launch.",
 };
+
+const useCaseDropdownItems = supportingPages.map((page) => ({
+  title: page.title,
+  href: getSupportingPagePath(page.slug),
+  description: page.description,
+}));
 
 export function SiteHeader({ className }: SiteHeaderProps) {
   const [menuState, setMenuState] = React.useState(false);
@@ -47,6 +54,15 @@ export function SiteHeader({ className }: SiteHeaderProps) {
 
   const isActiveLink = React.useCallback(
     (href: string) => {
+      if (href === "/services") {
+        return (
+          pathname === "/services" ||
+          pathname.startsWith("/services/") ||
+          pathname === "/solutions" ||
+          pathname.startsWith("/solutions/")
+        );
+      }
+
       if (href === "/") {
         return pathname === "/";
       }
@@ -146,7 +162,25 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                                   ))}
                                 </div>
                                 <div className="border-t border-white/[0.07] bg-white/[0.025] p-3">
-                                  <div className="grid gap-2 lg:grid-cols-[1fr_13rem]">
+                                  <div className="grid gap-2 lg:grid-cols-[1.1fr_1.1fr_13rem]">
+                                    <div className="rounded-xl border border-white/[0.07] bg-background/40 px-3 py-2.5">
+                                      <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+                                        Use Cases
+                                      </span>
+                                      <div className="mt-2 space-y-1">
+                                        {useCaseDropdownItems.map((item) => (
+                                          <NavigationMenuLink key={item.title} asChild>
+                                            <Link
+                                              href={item.href}
+                                              className="group/link flex min-h-10 items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                            >
+                                              <span>{item.title}</span>
+                                              <ArrowRight className="size-3.5 shrink-0 opacity-60 transition duration-200 group-hover/link:translate-x-0.5 group-hover/link:opacity-100" />
+                                            </Link>
+                                          </NavigationMenuLink>
+                                        ))}
+                                      </div>
+                                    </div>
                                     <NavigationMenuLink asChild>
                                       <Link
                                         href={continuityDropdownItem.href}
@@ -253,6 +287,23 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                                 </div>
                               </div>
                             ))}
+                            <div>
+                              <p className="px-2 py-1 text-sm font-semibold text-foreground">
+                                Use Cases
+                              </p>
+                              <div className="mt-1 grid gap-1">
+                                {useCaseDropdownItems.map((item) => (
+                                  <Link
+                                    key={item.title}
+                                    href={item.href}
+                                    className="flex min-h-10 items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                                  >
+                                    <span>{item.title}</span>
+                                    <ArrowRight className="size-3.5 opacity-60" />
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
                             <Link
                               href={continuityDropdownItem.href}
                               className="flex min-h-10 items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"

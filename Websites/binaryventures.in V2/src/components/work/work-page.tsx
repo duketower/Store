@@ -11,9 +11,11 @@ import {
   Globe2,
   LayoutDashboard,
   LineChart,
+  ArrowRight,
   Send,
   ShieldCheck,
 } from "lucide-react";
+import Link from "next/link";
 
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -244,6 +246,15 @@ function CaseStudyCard({ caseStudy }: { caseStudy: CaseStudy }) {
 
           <div className="mt-6 rounded-[1.25rem] border border-border/80 bg-background/70 p-4">
             <InfoBlock label="Outcome" body={caseStudy.outcome} />
+          </div>
+
+          <div className="mt-5">
+            <Link
+              href={`/work/${caseStudy.slug}`}
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary underline underline-offset-4"
+            >
+              Read full case study <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
 
           <details className="group mt-5 rounded-[1.25rem] border border-border/80 bg-background/80 p-4">

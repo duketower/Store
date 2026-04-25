@@ -1,4 +1,5 @@
 export type CaseStudy = {
+  slug: string;
   title: string;
   category: string;
   metric: string;
@@ -14,10 +15,12 @@ export type CaseStudy = {
   capabilities: string[];
   systemElements: string[];
   workflowHighlights: string[];
+  relatedServiceIds: string[];
 };
 
 export const caseStudies: CaseStudy[] = [
   {
+    slug: "custom-retail-operations-system",
     title: "Custom Retail Operations System",
     category: "Web App / Operations",
     metric: "10+",
@@ -56,8 +59,10 @@ export const caseStudies: CaseStudy[] = [
       "end-of-day summaries are pushed through bot-based updates",
       "different businesses can work from different dashboard patterns inside the same broader system",
     ],
+    relatedServiceIds: ["web-apps", "workflow-automation"],
   },
   {
+    slug: "managed-website-for-a-service-business",
     title: "Managed Website for a Service Business",
     category: "Website / Ongoing Support",
     metric: "2+ yrs",
@@ -96,8 +101,10 @@ export const caseStudies: CaseStudy[] = [
       "the site stays aligned with the business as services, messaging, or content shift",
       "enquiry paths remain clearer and easier to manage over time",
     ],
+    relatedServiceIds: ["websites", "maintenance-support"],
   },
   {
+    slug: "managed-website-for-an-academic-institution",
     title: "Managed Website for an Academic Institution",
     category: "Website / Managed Delivery",
     metric: "Multi-year",
@@ -136,8 +143,10 @@ export const caseStudies: CaseStudy[] = [
       "public information stays clearer and easier to maintain",
       "website changes become part of an ongoing operating rhythm instead of ad hoc fixes",
     ],
+    relatedServiceIds: ["websites", "maintenance-support"],
   },
   {
+    slug: "automation-and-bot-workflows",
     title: "Automation and Bot Workflows",
     category: "Bots / Automation",
     metric: "Hours",
@@ -176,8 +185,13 @@ export const caseStudies: CaseStudy[] = [
       "internal stakeholders are notified through the right channel at the right point in the workflow",
       "lead or operational inputs can trigger follow-up and reporting without repeated handoffs",
     ],
+    relatedServiceIds: ["ai-chatbots", "workflow-automation"],
   },
 ];
+
+export function getCaseStudyBySlug(slug: string) {
+  return caseStudies.find((caseStudy) => caseStudy.slug === slug) ?? null;
+}
 
 export const workCapabilities = [
   {

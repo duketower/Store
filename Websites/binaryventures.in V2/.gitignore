@@ -8,5 +8,8 @@ firebase-debug.log
 firebase-debug.*.log
 test-results/
 tsconfig.tsbuildinfo
+.env
+.env.*
+!.env.example
 services-dropdown*.png
 screenshot-review*/

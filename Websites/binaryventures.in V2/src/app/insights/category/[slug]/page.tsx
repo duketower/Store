@@ -12,6 +12,7 @@ import {
   getCategoryBySlug,
   insightCategories,
 } from "@/lib/insights";
+import { buildMetadata, getBreadcrumbJsonLd, getWebPageJsonLd } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -29,16 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${category} Insights`;
   const description = `Practical ${category.toLowerCase()} articles, guides, and how-tos from Binary Ventures for business owners and operators.`;
 
-  return {
+  return buildMetadata({
     title,
     description,
-    alternates: { canonical: `https://binaryventures.in/insights/category/${slug}` },
-    openGraph: {
-      title: `${title} — Binary Ventures`,
-      description,
-      url: `https://binaryventures.in/insights/category/${slug}`,
-    },
-  };
+    path: `/insights/category/${slug}`,
+    keywords: [category, "business technology insights", "how-to articles"],
+  });
 }
 
 export default async function InsightCategoryPage({ params }: Props) {
@@ -47,9 +44,27 @@ export default async function InsightCategoryPage({ params }: Props) {
   if (!category) notFound();
 
   const articles = getArticlesByCategory(category);
+  const description = `Practical ${category.toLowerCase()} articles, guides, and how-tos from Binary Ventures for business owners and operators.`;
+  const jsonLd = JSON.stringify([
+    getWebPageJsonLd({
+      title: `${category} Insights | Binary Ventures`,
+      description,
+      path: `/insights/category/${slug}`,
+    }),
+    getBreadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Insights", path: "/insights" },
+      { name: category, path: `/insights/category/${slug}` },
+    ]),
+  ]);
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: jsonLd }}
+      />
       <SiteHeader />
       <main className="bg-background">
         <section className="relative overflow-hidden px-6 pb-12 pt-10 sm:pt-12 md:pb-16 md:pt-40">

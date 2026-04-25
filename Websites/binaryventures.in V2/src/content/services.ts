@@ -27,6 +27,25 @@ export type ServiceOffer = {
   };
 };
 
+export type ContinuityService = {
+  id: "maintenance-support";
+  name: "Maintenance & Support";
+  category: "Post-Launch Support";
+  delivery: string;
+  level: "supporting";
+  scope: string;
+  description: string;
+  startingLabel: string;
+  technicalScope: string[];
+  systemElements: string[];
+  integrationExamples: string[];
+  tags: string[];
+  meta: {
+    includes: string;
+    bestFor: string;
+  };
+};
+
 export type ServiceGroup = {
   id: string;
   name: string;
@@ -412,6 +431,55 @@ export const groupedServiceOffers: GroupedServiceOffers[] = serviceGroups.map((g
     .map((serviceId) => serviceOffers.find((service) => service.id === serviceId))
     .filter((service): service is ServiceOffer => Boolean(service)),
 }));
+
+export const continuityService: ContinuityService = {
+  id: "maintenance-support",
+  name: "Maintenance & Support",
+  category: "Post-Launch Support",
+  delivery: "Monthly continuity or scoped support",
+  level: "supporting",
+  scope:
+    "Ongoing website management, technical fixes, smaller improvements, and practical support after the main build goes live.",
+  description:
+    "Post-launch continuity for businesses that need updates, maintenance, technical fixes, and smaller refinements handled without turning every change into a new project.",
+  startingLabel: "From $150/mo",
+  technicalScope: [
+    "content and page updates",
+    "technical fixes and small refinements",
+    "launch issue follow-up and maintenance",
+    "ongoing support where the business needs continuity",
+  ],
+  systemElements: [
+    "website maintenance rhythm",
+    "content and copy updates",
+    "technical issue handling",
+    "small post-launch improvements",
+  ],
+  integrationExamples: [
+    "website update cycles",
+    "landing page refinements",
+    "contact and routing fixes",
+    "ongoing technical continuity",
+  ],
+  tags: ["maintenance", "support", "continuity"],
+  meta: {
+    includes: "Updates, technical fixes, smaller refinements, and continuity support after launch",
+    bestFor:
+      "Businesses that want the delivered setup to stay current, stable, and useful without handling every change internally",
+  },
+};
+
+export function getServicePath(serviceId: string) {
+  return `/services/${serviceId}`;
+}
+
+export function getServiceOfferById(serviceId: string) {
+  return serviceOffers.find((service) => service.id === serviceId) ?? null;
+}
+
+export function getAllIndexableServices() {
+  return [...serviceOffers, continuityService];
+}
 
 export const serviceRequestGroups = [
   {

@@ -6,26 +6,41 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
 import { categoryToSlug, getAllArticles, insightCategories } from "@/lib/insights";
+import { buildMetadata, getBreadcrumbJsonLd, getWebPageJsonLd } from "@/lib/seo";
 
-export const metadata: Metadata = {
+const description =
+  "Guides, how-tos, and business technology articles from Binary Ventures — practical reading for business owners and operators in India.";
+
+export const metadata: Metadata = buildMetadata({
   title: "Insights",
-  description:
-    "Guides, how-tos, and business technology articles from Binary Ventures — practical reading for business owners and operators in India.",
-  openGraph: {
-    title: "Insights — Binary Ventures",
-    description:
-      "Guides, how-tos, and business technology articles from Binary Ventures.",
-    url: "https://binaryventures.in/insights",
-  },
-};
+  description,
+  path: "/insights",
+  keywords: ["business technology blog", "automation articles", "website guides", "SEO guides"],
+});
 
 export default function InsightsPage() {
   const articles = getAllArticles();
   const featured = articles[0];
   const rest = articles.slice(1);
+  const jsonLd = JSON.stringify([
+    getWebPageJsonLd({
+      title: "Insights | Binary Ventures",
+      description,
+      path: "/insights",
+    }),
+    getBreadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Insights", path: "/insights" },
+    ]),
+  ]);
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: jsonLd }}
+      />
       <SiteHeader />
       <main className="bg-background">
         {/* Hero */}

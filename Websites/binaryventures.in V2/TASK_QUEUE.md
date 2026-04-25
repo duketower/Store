@@ -1,11 +1,77 @@
 # Binary Ventures Website V2 Task Queue
 
+This file is the single source of truth for active website work.
+
 ## Current
+
+- [x] Set up Google Search Console for `https://binaryventures.in/`
+- [x] Submit `https://binaryventures.in/sitemap.xml` in Google Search Console
+- [x] Inspect key public URLs in Google Search Console and request indexing where needed
+- [x] Add Google Search Console verification token to website env and verify `https://binaryventures.in/`
+- [x] Add GA4 measurement ID to website env as `NEXT_PUBLIC_GA_MEASUREMENT_ID` (`G-R5ZYQW7GJV`)
+- [ ] Confirm exact business location details for schema: business name, address, city, postal code, country, phone, opening hours, and Google Maps URL
+  - Received:
+    - Business name: `Binary Ventures Pvt Ltd`
+    - Address: `Janeshwar Enclave, Lucknow, Uttar Pradesh, India`
+    - City: `Lucknow`
+    - Postal code: `226021`
+    - Country: `India`
+    - Phone: `7399006699`
+    - Opening hours: `10:00 AM to 6:00 PM`
+  - Still needed:
+    - Google Maps URL
+- [x] Confirm whether the India and Australia entries are staffed offices, service areas, or operating regions only
+  - India: real office
+  - Australia: real office
+- [ ] Add public social profile URLs into structured data once final links are confirmed
+  - Not available yet
+- [ ] Decide whether Google Business Profile / local SEO setup is in scope for this site now
+- [ ] Review Search Console data after verification and refine titles, descriptions, and weak pages based on real queries
+- [ ] Publish more insight articles tied to service and use-case intent
+- [ ] Expand service-page copy and proof blocks based on target keyword clusters
+- [ ] Decide whether to add more use-case pages beyond the current `/solutions/*` set
+
+## SEO Status
+
+### Done
+
+- [x] Added sitewide metadata foundation
+- [x] Added canonical URLs, Open Graph tags, Twitter tags, and page-level metadata
+- [x] Added structured data for Organization, WebSite, WebPage, breadcrumb, services, work, contact, and articles
+- [x] Added `robots.txt`
+- [x] Added `sitemap.xml`
+- [x] Added generated social preview images
+- [x] Added GA4-ready click tracking hooks pending measurement ID
+- [x] Built real service landing pages under `/services/[slug]`
+- [x] Built real case-study pages under `/work/[slug]`
+- [x] Built supporting use-case pages under `/solutions/[slug]`
+- [x] Tightened internal linking across Services, Work, Insights, and Use Cases
+- [x] Added buyer-intent / use-case links under Services navigation
+- [x] Updated reusable SEO guidance in `../SEO_GUIDELINE.md`
+- [x] Ran local visual verification before publishing new service/use-case UI
+- [x] Deployed the latest SEO/navigation changes live to Firebase Hosting
+
+### Pending External Inputs
+
+- [x] Google Search Console verification token
+- [x] GA4 measurement ID (`G-R5ZYQW7GJV`)
+- [ ] Exact business schema details
+  - Partial details received; Google Maps URL still pending
+- [ ] Location classification: office vs service area vs operating region
+- [ ] Social profile URLs
+
+### Ongoing SEO Work
+
+- [ ] Search Console review loop
+- [ ] Content expansion
+- [ ] Local SEO / GBP decision
+- [ ] CTR and metadata refinement
+
+## Insights — Editorial Workflow
 
 - [ ] Review newly discovered Notion topics with Status = `Trend Found`
 - [ ] Approve one topic by changing Status to `Approved`
 - [ ] Review generated drafts and set ready articles back to `Approved`
-- [ ] Submit `https://binaryventures.in/sitemap.xml` in Google Search Console after the first generated article is published
 
 ## Insights — Automation Layer
 
@@ -95,3 +161,11 @@ Code present:
 - built the first Insights automation layer: `scripts/generate-insight-article.mjs` (Notion → Gemini → draft Markdown + validation), repo-root `.github/workflows/daily-insight.yml`, repo-root `.github/workflows/firebase-deploy.yml` (push to main)
 - upgraded Insights automation into a staged editorial flow: trend discovery, topic approval, draft generation, final publish approval, Firebase deploy, and Notion published status update
 - fixed Insights launch blockers: added navigation discovery, corrected starter article Calendly URLs, moved workflows to repo root, made generated articles drafts by default, hid non-published article pages from static generation, added custom article typography, and added static category pages at `/insights/category/[slug]`
+- implemented the core technical SEO layer for Website V2: metadata, canonicals, OG/Twitter tags, schema, robots, sitemap, social preview images, and tracking-ready analytics hooks
+- built indexable service pages under `/services/[slug]` and connected them into sitemap and navigation
+- built indexable case-study pages under `/work/[slug]` and connected them into sitemap and internal links
+- built high-intent use-case pages under `/solutions/[slug]` and connected them into Services navigation as `Use Cases`
+- expanded service pages with richer commercial-intent sections, related proof, related insights, and internal links
+- created the reusable `Websites/SEO_GUIDELINE.md` reference and aligned it with the current navigation/content pattern
+- visually verified the new Services / Use Cases UI locally across desktop and mobile before publishing
+- deployed the updated Services / Use Cases navigation and SEO pages live to `https://binaryventures.in`

@@ -3,13 +3,16 @@ import Link from "next/link";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import {
+  continuityService,
   engagementModels,
+  getServicePath,
   groupedServiceOffers,
   technicalCapabilities,
   servicesFraming,
   servicesIntro,
   type ServiceOffer,
 } from "@/content/services";
+import { getSupportingPagePath, supportingPages } from "@/content/supporting-pages";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
 
 const serviceArchitectureItems = [
@@ -18,7 +21,7 @@ const serviceArchitectureItems = [
     eyebrow: group.eyebrow,
     title: group.name,
     body: group.homepageSummary,
-    href: `#${group.id}`,
+    href: group.offers.length > 0 ? getServicePath(group.offers[0].id) : `#${group.id}`,
     items: group.offers.map((service) => service.name),
   })),
   {
@@ -38,16 +41,15 @@ const startingPointItems = [
       label: service.name,
       value: formatStartingPoint(service),
       summary: service.scope,
-      href: `#${service.id}`,
+      href: getServicePath(service.id),
       kind: service.level === "primary" ? "Primary" : "Supporting",
     }))
   ),
   {
-    label: "Maintenance & Support",
-    value: "From $150/mo",
-    summary:
-      "Ongoing website management, operational updates, technical fixes, and smaller improvements after project delivery.",
-    href: "#continuity",
+    label: continuityService.name,
+    value: continuityService.startingLabel,
+    summary: continuityService.scope,
+    href: getServicePath(continuityService.id),
     kind: "Continuity",
   },
 ];
@@ -286,6 +288,41 @@ export function ServicesPage() {
           <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
             <div className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Use Cases
+              </p>
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                Supporting pages for common commercial-intent questions.
+              </h2>
+              <p className="mt-5 text-sm leading-8 text-muted-foreground md:text-base">
+                Some searches start with the service. Others start with the business
+                problem. These pages are built for that second path.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {supportingPages.map((page) => (
+                <Link
+                  key={page.slug}
+                  href={getSupportingPagePath(page.slug)}
+                  className="rounded-[1.5rem] border border-border/80 bg-background/80 p-5 transition-colors hover:border-border hover:bg-card/80"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    {page.eyebrow}
+                  </p>
+                  <h3 className="mt-4 text-lg font-semibold text-foreground">{page.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                    {page.description}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl rounded-[2rem] border border-border/80 bg-card/60 p-6 md:p-8">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                 Ways to Work Together
               </p>
               <h2 className="mt-5 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
@@ -348,6 +385,15 @@ function ServiceCard({ service }: { service: ServiceOffer }) {
       <p className="mt-6 text-sm leading-7 text-muted-foreground md:text-base">
         {service.description}
       </p>
+
+      <div className="mt-6">
+        <Link
+          href={getServicePath(service.id)}
+          className="inline-flex items-center text-sm font-medium text-primary underline underline-offset-4"
+        >
+          View service page
+        </Link>
+      </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="rounded-[1.25rem] border border-border/80 bg-card/60 p-4">
