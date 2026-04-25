@@ -7,9 +7,11 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { FinalCtaSection } from "@/components/ui/pulse-beams";
 import {
+  categoryToSlug,
   getAllArticles,
   getArticleBySlug,
 } from "@/lib/insights";
+import { getBreadcrumbJsonLd } from "@/lib/seo";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -34,11 +36,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: article.title,
       description: article.description,
       type: "article",
+      locale: "en_IN",
       url: article.canonical,
       publishedTime: article.date,
       modifiedTime: article.updated,
       authors: [article.author],
       tags: article.tags,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.description,
     },
   };
 }
@@ -72,6 +80,17 @@ export default async function ArticlePage({ params }: Props) {
     articleSection: article.category,
     inLanguage: "en-IN",
   });
+  const breadcrumbJsonLd = JSON.stringify(
+    getBreadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Insights", path: "/insights" },
+      {
+        name: article.category,
+        path: `/insights/category/${categoryToSlug(article.category)}`,
+      },
+      { name: article.title, path: `/insights/${article.slug}` },
+    ])
+  );
 
   return (
     <>
@@ -81,13 +100,18 @@ export default async function ArticlePage({ params }: Props) {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: jsonLd }}
       />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }}
+      />
       <SiteHeader />
       <main className="bg-background">
         {/* Article header */}
         <section className="relative overflow-hidden px-6 pb-10 pt-10 sm:pt-12 md:pt-40">
           <div
             aria-hidden
-            className="absolute inset-x-0 top-0 h-[24rem] bg-[radial-gradient(50%_50%_at_50%_0%,rgba(155,153,254,0.12),transparent_70%)]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[24rem] bg-[radial-gradient(50%_50%_at_50%_0%,rgba(155,153,254,0.12),transparent_70%)]"
           />
           <div className="mx-auto max-w-3xl">
             <Link
